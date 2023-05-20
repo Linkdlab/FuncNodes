@@ -136,7 +136,7 @@ class ForNode(Node):
     node_id = "fornode"
 
     input = NodeInput(required=True, type=list)
-    collector = NodeInput(type=Any, requeired=True, does_trigger=False)
+    collector = NodeInput(type=Any, required=False, does_trigger=False)
     do = NodeOutput(type=Any)
     output = NodeOutput(type=list)
 
@@ -149,7 +149,7 @@ class ForNode(Node):
             tq = TriggerQueue()
             self.do.trigger(trigger_queue=tq)
             await tq.await_done()
-            outputs.append(self.collector.value)
+            outputs.append(self.collector.value_or_none)
         self.output.value = outputs
         return True
 
@@ -157,7 +157,7 @@ class ForNode(Node):
 class CollectorNode(Node):
     node_id = "collectornode"
     input = NodeInput(required=True, type=Any)
-    reset = NodeInput(type=Any, default_value=None)
+    reset = NodeInput(type=Any, required=False, default_value=None)
     output = NodeOutput(type=list)
 
     def __init__(self, *args, **kwargs):

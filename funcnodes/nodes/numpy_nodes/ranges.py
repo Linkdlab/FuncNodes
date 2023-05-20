@@ -8,9 +8,9 @@ from .types import NdArrayType
 
 class ARangeNode(Node):
     node_id = "np.arange"
-    start = NodeInput(type=float, default=0, positional=True)
-    stop = NodeInput(type=float, default=1, positional=True)
-    step = NodeInput(type=float, default=1, positional=True)
+    start = NodeInput(type=float, default_value=0, positional=True)
+    stop = NodeInput(type=float, default_value=1, positional=True)
+    step = NodeInput(type=float, default_value=1, positional=True)
 
     out = NodeOutput(type=NdArrayType)
 
@@ -21,9 +21,9 @@ class ARangeNode(Node):
 
 class LinspaceNode(Node):
     node_id = "np.linspace"
-    start = NodeInput(type=float, default=0, positional=True)
-    stop = NodeInput(type=float, default=1, positional=True)
-    num = NodeInput(type=int, default=50, positional=True)
+    start = NodeInput(type=float, default_value=0, positional=True)
+    stop = NodeInput(type=float, default_value=1, positional=True)
+    num = NodeInput(type=int, default_value=50, positional=True)
 
     out = NodeOutput(type=NdArrayType)
 

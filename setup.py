@@ -64,11 +64,7 @@ if sys.argv[-1] == "publish":
     sys.exit()
 
 
-install_requires = [
-    "django>=4.0",
-    "channels>=4.0",
-    "djangorestframework>=3.12.0",
-]
+install_requires = []
 
 setup(
     name="funcnodes",
@@ -88,14 +84,6 @@ setup(
     zip_safe=False,
     classifiers=[
         "Development Status :: 3 - Alpha",
-        "Environment :: Web Environment",
-        "Framework :: Django",
-        "Framework :: Django :: 3.0",
-        "Framework :: Django :: 3.1",
-        "Framework :: Django :: 3.2",
-        "Framework :: Django :: 4.0",
-        "Framework :: Django :: 4.1",
-        "Framework :: Django :: 4.2",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
@@ -108,7 +96,6 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3 :: Only",
-        "Topic :: Internet :: WWW/HTTP",
     ],
     project_urls={
         "Linkdlab": "https://info.linkdlab.de/",

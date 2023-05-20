@@ -244,6 +244,7 @@ EventEmitterMixinGen = TypeVar("EventEmitterMixinGen", bound=EventEmitterMixin)
 class ObjectLoggerMixin:
     def __init__(self, *args, **kwargs) -> None:
         logger = logging.getLogger(self.__class__.__name__)
+
         logger.propagate = False
         if not logger.handlers:
             handler = logging.StreamHandler()
@@ -254,6 +255,7 @@ class ObjectLoggerMixin:
             )
             logger.addHandler(handler)
         self.logger = logging.LoggerAdapter(logger, {"obj": self})
+        print("AAA", self.__class__.__name__, self.logger)
         super().__init__(*args, **kwargs)
 
 

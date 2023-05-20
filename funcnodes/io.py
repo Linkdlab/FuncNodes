@@ -360,7 +360,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin, ABC):
         defval: Any = self.default_value
         if defval is not None:
             return defval
-        raise MissingValueError(f"NodeIO {self.id} has no value")
+        raise MissingValueError(f"NodeIO {self} has no value")
 
     @property
     def value_or_none(self):
@@ -929,6 +929,14 @@ class NodeInput(NodeIO):
         if not s_ir[0]:
             return s_ir
 
+        print(
+            "is_ready",
+            self.id,
+            self.value_or_none,
+            self.required,
+            self.is_grabbing_input(),
+        )
+
         if self.required:
             if self.default_value is not None:
                 return True, ""
@@ -973,6 +981,7 @@ class NodeInput(NodeIO):
         """Sets the default properties of the NodeInput."""
         properties.setdefault("allows_multiple", False)
         properties.setdefault("does_trigger", True)
+        properties.setdefault("required", True)
         return super().set_default_properties(properties)
 
     @resets_cache("is_ready")

@@ -369,7 +369,7 @@ class Node(
         """
         self.logger.info("enable")
         self.disabled = False
-        if self.has_trigger_request:
+        if self.has_trigger_request and self.operable:
             self.trigger()
         return self
 
@@ -407,6 +407,7 @@ class Node(
         -------
         NodeProperties: The updated properties
         """
+        properties = json.loads(json.dumps(properties))
         out_properties = NodeProperties(
             id=properties.get("id", uuid.uuid4().hex),
             name=properties.get("name", self.__class__.__name__),

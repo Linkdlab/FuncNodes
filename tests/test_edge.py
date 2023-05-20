@@ -313,7 +313,11 @@ class TestEdge(unittest.IsolatedAsyncioTestCase):
         ns = NodeSpace()
 
         ns.deserialize(data)  # type: ignore
-
+        print("#" * 10)
+        print(
+            ns.get_node("lin1").start.default_value,
+            ns.get_node("lin1").start.value_or_none,
+        )
         await ns.await_done()
         add2 = cast(AddNode, ns.get_node("add2"))
 

@@ -38,7 +38,7 @@ class FunctionBasedNode(Node):
         raise ValueError("this. on_trigger should not be called")
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return self.func(*args, **kwargs)
+        return self.__class__.func(*args, **kwargs)
 
 
 func_to_node_base = FunctionBasedNode()

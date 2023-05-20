@@ -93,7 +93,13 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
                 },
                 {
                     "id": "mergeip",
-                    "io": {"ip": {"i1": {}, "i2": {}, "i3": {}}},
+                    "io": {
+                        "ip": {
+                            "i1": {"required": False},
+                            "i2": {"required": False},
+                            "i3": {"required": False},
+                        }
+                    },
                     "nid": "manyineachout",
                 },
                 {"id": "collect", "nid": "collectornode"},
@@ -127,9 +133,8 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         except Exception as exc:
             out = np.array(ns.get_node("collect").output.value)
             print("\n" * 4, out, "\n" * 4)
-            raise exc(out)
+            raise exc
         out = np.array(ns.get_node("collect").output.value)
-        print(out)
         self.assertEqual(out.tolist(), steps.tolist())
 
 
