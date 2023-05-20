@@ -72,7 +72,7 @@ setup(
     url="https://github.com/Linkdlab/FuncNodes",
     license="MIT",
     license_files="LICENSE.md",
-    description="A small application to integrate FuncNodes into Django.",
+    description="Basic FuncNodes framework",
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     author="Julian Kimmig (Linkdlab GmbH)",

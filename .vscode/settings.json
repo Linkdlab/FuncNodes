@@ -9,7 +9,10 @@
   "python.linting.pylintEnabled": true,
   "python.linting.flake8Enabled": true,
   "editor.formatOnSave": true,
-  "python.formatting.provider": "black",
+  "python.formatting.provider": "none",
   "python.linting.pylintArgs": ["--rcfile=.pylintrc"],
   "python.linting.flake8Args": ["--config=.flake8"],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  }
 }
