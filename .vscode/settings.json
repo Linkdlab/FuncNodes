@@ -1,0 +1,15 @@
+{
+  "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "test_*.py"],
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": true,
+  "editor.minimap.scale": 2,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.languageServer": "Pylance",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.linting.flake8Enabled": true,
+  "editor.formatOnSave": true,
+  "python.formatting.provider": "black",
+  "python.linting.pylintArgs": ["--rcfile=.pylintrc"],
+  "python.linting.flake8Args": ["--config=.flake8"],
+}
