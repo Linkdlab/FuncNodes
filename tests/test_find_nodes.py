@@ -1,7 +1,7 @@
 """
 Test the autodetectio0n of nodes by id
 """
-from FuncNodes.nodespace import NodeSpace
+from funcnodes.nodespace import NodeSpace
 import unittest
 
 

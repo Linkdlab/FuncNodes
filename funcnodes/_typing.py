@@ -3,9 +3,9 @@ from __future__ import annotations
 import sys
 
 if sys.version_info < (3, 11):
-    from typing_extensions import Required, TypedDict, Unpack, NotRequired
+    from typing_extensions import TypedDict, Unpack
 else:
-    from typing import Required, NotRequired, TypedDict, Unpack
+    from typing import TypedDict, Unpack
 
 from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Protocol, Generic
 
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 # region Events
 
 
-class MessageInArgs(TypedDict):
-    src: NotRequired[EventEmitterMixin]
+class MessageInArgs(TypedDict, total=False):
+    src: EventEmitterMixin
 
 
 GenericMessageInArgs = TypeVar("GenericMessageInArgs", bound=MessageInArgs)
@@ -151,10 +151,22 @@ class IOProperties(TypedDict, total=False):
     trigger_on_get: bool
 
 
+class FixedIOProperties(TypedDict):
+    """Type definition for the minimal properties of a NodeIO."""
+
+    id: NodeIOId
+    type: str
+    required: bool | None
+    default_value: Any | None
+    allows_multiple: bool
+    does_trigger: bool
+    trigger_on_get: bool
+
+
 class NodeIOState(TypedDict):
     """Type definition for the state of a NodeIO."""
 
-    properties: IOProperties
+    properties: FixedIOProperties
 
 
 # endregion NodeIO

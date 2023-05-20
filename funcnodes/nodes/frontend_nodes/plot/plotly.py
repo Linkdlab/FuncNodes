@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import TypedDict, List
-from FuncNodes.iotypes import IOType
-from FuncNodes.nodespace import LibShelf
-from FuncNodes.node import Node
-from FuncNodes.io import NodeInput, NodeOutput
+from typing import List
+from funcnodes.iotypes import IOType
+from funcnodes.node import Node
+from funcnodes.io import NodeInput, NodeOutput
 import numpy as np
 
 

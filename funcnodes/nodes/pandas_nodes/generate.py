@@ -4,7 +4,7 @@ from ...nodespace import LibShelf
 from ...node import Node
 from ...io import NodeInput, NodeOutput
 
-from .types import SeriesType, DataFrameType
+from .types import SeriesType
 
 
 class ListToSeriesNode(Node):
@@ -16,9 +16,6 @@ class ListToSeriesNode(Node):
     async def on_trigger(self):
         self.output.value = pd.Series(self.data.value, name=self.series_name.value)
         return True
-
-
-
 
 
 LIB = LibShelf(

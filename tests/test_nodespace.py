@@ -1,11 +1,10 @@
 """
 Test the NodeSpace
 """
-from FuncNodes.io import NodeInput, NodeOutput
-from FuncNodes.nodespace import NodeSpace
-from FuncNodes.node import Node
+from funcnodes.io import NodeInput, NodeOutput
+from funcnodes.nodespace import NodeSpace
+from funcnodes.node import Node
 import unittest
-import json
 import logging
 
 logging.basicConfig(level=logging.INFO)

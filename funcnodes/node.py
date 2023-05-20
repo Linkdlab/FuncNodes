@@ -18,7 +18,7 @@ from typing import (
     Any,
     TYPE_CHECKING,
 )
-from typing_extensions import Required, TypedDict
+from typing_extensions import TypedDict, Self
 
 from .errors import (
     NodeStructureError,
@@ -132,7 +132,7 @@ class TriggerQueue:
 class NodeProperties(TypedDict, total=False):
     """TypedDict for Node properties"""
 
-    id: Required[NodeIdType]
+    id: NodeIdType
     name: str
     io: PropIODict
     disabled: bool
@@ -340,7 +340,7 @@ class Node(
                 value["id"] = key
             self.add_output(NodeOutput(value))
 
-    def initialize(self) -> Node:
+    def initialize(self) -> Self:
         """
         Initialize the node.
         This method is called by the NodeSpace when the node is added to it.
@@ -359,7 +359,7 @@ class Node(
             self.enable()
         return self
 
-    def enable(self) -> Node:
+    def enable(self) -> Self:
         """
         Enable the node.
         Returns
@@ -435,7 +435,7 @@ class Node(
         str: The node id
 
         """
-        return self._properties["id"]
+        return self._properties["id"]  # type: ignore since id is always present
 
     @property
     def name(self) -> str:
@@ -538,7 +538,7 @@ class Node(
         """
         return not self.disabled
 
-    def disable(self) -> Node:
+    def disable(self) -> Self:
         """Disable the node.
         Returns
         -------
@@ -1335,13 +1335,23 @@ class Node(
         return ser
 
     def full_serialize(self) -> FullNodeJSON:
-        ser = {
+        ser: FullNodeJSON = {
             "name": self.name,
             "id": self.id,
             "node_id": self.node_id,
             "io": {k: v.full_serialize() for k, v in self._io.items()},
             "data": self.get_all_data(),
             "requirements": self.requirements,
+            "disabled": self.disabled,
+            "status": {
+                "operable": False,
+                "disabled": True,
+                "ready": False,
+                "miss_inputs": [],
+                "miss_data": [],
+                "is_working": False,
+                "has_trigger_request": False,
+            },
         }
         if self.initialized:
             ser["status"] = self.check_status(quiet=True)

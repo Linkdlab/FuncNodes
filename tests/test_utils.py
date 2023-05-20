@@ -1,8 +1,8 @@
 import unittest
 import logging
+from funcnodes.utils import flatten_dict
 
 logging.basicConfig(level=logging.INFO)
-from FuncNodes.utils import flatten_dict
 
 
 class TestUtils(unittest.TestCase):

@@ -338,9 +338,15 @@ class DateTimeType(IOType):
 
 
 IOType.register_cross_caster(
-    DateTimeType, StrType, lambda x: x.isoformat(), lambda x: datetime.datetime.fromisoformat(x)
+    DateTimeType,
+    StrType,
+    lambda x: x.isoformat(),
+    lambda x: datetime.datetime.fromisoformat(x),
 )
 
 IOType.register_cross_caster(
-    DateTimeType, FloatType, lambda x: x.timestamp(), lambda x: datetime.datetime.fromtimestamp(x)
+    DateTimeType,
+    FloatType,
+    lambda x: x.timestamp(),
+    lambda x: datetime.datetime.fromtimestamp(x),
 )

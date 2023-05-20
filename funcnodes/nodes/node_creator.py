@@ -6,6 +6,8 @@ import json
 from typing import List, Type, Any, Callable, Dict, get_type_hints
 import sys
 from functools import partial
+from abc import ABCMeta
+from weakref import WeakValueDictionary
 
 if sys.version_info < (3, 11):
     from typing_extensions import Required, TypedDict
@@ -36,8 +38,7 @@ class FunctionBasedNode(Node):
         raise ValueError("this. on_trigger should not be called")
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        """Calls the underlying function with the given arguments."""
-        ...
+        return self.func(*args, **kwargs)
 
 
 func_to_node_base = FunctionBasedNode()
@@ -181,7 +182,8 @@ def func_to_node(
             th = get_type_hints(_f)
             if "return" in th:
                 # chek if return type is None Type
-                if th["return"] == type(None):
+                nt = type(None)
+                if th["return"] == nt:
                     output_params = []
                 else:
                     output_params = [{"name": "out", "annotation": th["return"]}]
@@ -242,7 +244,6 @@ def func_to_node(
         if trigger_on_create is not None
         else Node.trigger_on_create,
         "__init__": _int,
-        "__call__": lambda self, *args, **kwargs: func(*args, **kwargs),
         **inputs,
         **node_outputs,
     }
@@ -296,9 +297,6 @@ def _make_get_node_method(
     setattr(method, "get_node", _get_node)
 
 
-from weakref import WeakValueDictionary
-
-
 def _create_node(nodeclassmixininst: NodeClassMixin, method, name):
     node_id = f"{nodeclassmixininst.NODECLASSID}.{nodeclassmixininst.uuid}.{name}"
 
@@ -307,7 +305,7 @@ def _create_node(nodeclassmixininst: NodeClassMixin, method, name):
 
     _node_create_params = {
         "node_id": node_id,
-        "trigger_on_create": False, 
+        "trigger_on_create": False,
         "nodeclass_name": f"{nodeclassmixininst.NODECLASSID}.{nodeclassmixininst.uuid}.{name.title()}Node",
         **getattr(method, "_node_create_params", {}),
     }
@@ -336,9 +334,6 @@ def _create_node(nodeclassmixininst: NodeClassMixin, method, name):
     setattr(copymethode, "node", node)
     setattr(copymethode, "nodes", WeakValueDictionary())
     setattr(nodeclassmixininst, name, copymethode)
-
-
-from abc import ABC, abstractmethod, ABCMeta
 
 
 class NodeClassMixinMeta(ABCMeta):

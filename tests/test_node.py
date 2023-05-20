@@ -4,10 +4,8 @@ This file contains the tests for the node class.
 import unittest
 import asyncio
 import logging
-from FuncNodes.errors import TriggerException
-
-logging.basicConfig(level=logging.INFO)
-from FuncNodes.node import (
+from funcnodes.errors import TriggerException
+from funcnodes.node import (
     Node,
     NodeStructureError,
     NodeInput,
@@ -17,6 +15,8 @@ from FuncNodes.node import (
     NodeDataName,
     Any,
 )
+
+logging.basicConfig(level=logging.INFO)
 
 
 def patch_init(cls):
@@ -372,6 +372,7 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
                 return True
 
         node = DummyNode().initialize()
+        node.disable()
 
     def test_node_repr(self):
         """Test that the node repr is correct"""

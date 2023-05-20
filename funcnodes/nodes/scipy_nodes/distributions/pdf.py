@@ -1,24 +1,13 @@
 import inspect
 from scipy import stats
-from typing import Any, Callable, List, Type
+from typing import List
 import numpy as np
 
-
-if __name__ == "__main__":
-    import sys
-    import os
-
-    cw = os.path.abspath(os.path.dirname(__file__))
-    while "FuncNodes" not in os.listdir(cw):
-        cw = os.path.abspath(os.path.join(cw, ".."))
-    sys.path.append(cw)
-from FuncNodes.nodes.node_creator import (
+from funcnodes.nodes.node_creator import (
     func_to_node,
     FuncNodeFunctionParam,
-    OutputParam,
 )
-from FuncNodes.nodespace import LibShelf
-from FuncNodes.nodes.numpy_nodes.types import NdArrayType
+from funcnodes.nodespace import LibShelf
 
 PDF_NODES = []
 for n in dir(stats):
@@ -71,7 +60,7 @@ for n in dir(stats):
 
         try:
             v.pdf(**call_dict)
-        except Exception as e:
+        except Exception:
             continue
         noodename = "".join(x.title() for x in n.split("_")) + "Node"
 

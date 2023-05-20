@@ -1,17 +1,16 @@
 """
 Test the Edge class
 """
+from typing import cast
 import unittest
-from FuncNodes.errors import DisabledException, TriggerException
-from FuncNodes.node import (
+from funcnodes.errors import DisabledException, TriggerException
+from funcnodes.node import (
     Node,
     NodeInput,
     NodeOutput,
-    Message_Node_SetData,
     NodeIOError,
-    NodeSerializationInterface,
 )
-from FuncNodes.nodespace import NodeSpace, NodeSpaceSerializationInterface
+from funcnodes.nodespace import NodeSpace
 import numpy as np
 import logging
 
@@ -196,6 +195,9 @@ class TestEdge(unittest.IsolatedAsyncioTestCase):
             node1.io.left.connect_to(node2.io.right)
 
     async def test_branching(self):
+        from funcnodes.nodes.numpy_nodes.ranges import LinspaceNode  # noqa: E402
+        from funcnodes.nodes.numpy_nodes.ufunc import AddNode
+
         node_1 = DummyNode(id="node_1").initialize()
         node_2 = DummyNode(id="node_2").initialize()
         node_3 = DummyNode(id="node_3").initialize()
@@ -310,15 +312,15 @@ class TestEdge(unittest.IsolatedAsyncioTestCase):
 
         ns = NodeSpace()
 
-        ns.deserialize(data)
+        ns.deserialize(data)  # type: ignore
 
         await ns.await_done()
-        add2 = ns.get_node("add2")
+        add2 = cast(AddNode, ns.get_node("add2"))
 
         assert add2.out.value.shape == (10,), add2.out.value.shape
         assert np.all(add2.out.value > np.linspace(0, 20, 10))
         assert np.all(add2.out.value < np.linspace(1, 21, 10))
-        lin1 = ns.get_node("lin1")
+        lin1 = cast(LinspaceNode, ns.get_node("lin1"))
         lin1.num.value = 21
         await ns.await_done()
         assert add2.out.value.shape == (21,)
@@ -394,28 +396,28 @@ class TestEdge(unittest.IsolatedAsyncioTestCase):
             "prop": {},
         }
 
-        ns.deserialize(data)
+        ns.deserialize(data)  # type: ignore
         lin1 = ns.get_node("lin1")
 
         await ns.await_done()
-        add2 = ns.get_node("add2")
+        add2 = cast(AddNode, ns.get_node("add2"))
 
         assert add2.out.value.shape == (10,), add2.out.value.shape
         assert np.all(add2.out.value > np.linspace(0, 20, 10))
         assert np.all(add2.out.value < np.linspace(1, 21, 10))
         print(add2.out.value.shape)
-        lin1 = ns.get_node("lin1")
+        lin1 = cast(LinspaceNode, ns.get_node("lin1"))
         lin1.num.value = 21
         with self.assertRaises(TriggerException):
             await ns.await_done()
 
         ns.on_error(lambda error, src: print(f"Error in {error.node}: {error}"))
-        ns.deserialize(data)
-        lin1 = ns.get_node("lin1")
+        ns.deserialize(data)  # type: ignore
+        lin1 = cast(LinspaceNode, ns.get_node("lin1"))
         await ns.await_done()
         lin1.num.value = 21
         await ns.await_done()
-        add2 = ns.get_node("add2")
+        add2 = cast(AddNode, ns.get_node("add2"))
         assert add2.out.value.shape == (21,)
         assert np.all(add2.out.value > np.linspace(0, 20, 21))
         assert np.all(add2.out.value < np.linspace(1, 21, 21))

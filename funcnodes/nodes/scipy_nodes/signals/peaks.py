@@ -1,8 +1,9 @@
 from typing import Literal
-from FuncNodes.nodespace import LibShelf
-from FuncNodes.nodes.numpy_nodes.types import NdArrayType
-from FuncNodes.node import Node, NodeInput, NodeOutput
+from funcnodes.nodespace import LibShelf
+from funcnodes.nodes.numpy_nodes.types import NdArrayType
+from funcnodes.node import Node, NodeInput, NodeOutput
 import numpy as np
+from scipy.signal import find_peaks_cwt
 
 
 def interpolate_xy(xin, yin, diff: Literal["min", "median", "mean", "max"] = "median"):
@@ -39,14 +40,11 @@ def interpolate_xy(xin, yin, diff: Literal["min", "median", "mean", "max"] = "me
     return x_new.astype(xin.dtype), y_new.astype(yin.dtype)
 
 
-from scipy.signal import find_peaks_cwt
-
-
 class FindPeaksCWT(Node):
     node_id = "scipy.signal.find_peaks_cwt"
     x = NodeInput(type=NdArrayType)
     y = NodeInput(type=NdArrayType, required=True)
-    width = NodeInput(type=float, required=True)
+    widths = NodeInput(type=NdArrayType, required=True)
 
     output = NodeOutput(type=NdArrayType)
 
@@ -65,7 +63,7 @@ class FindPeaksCWT(Node):
         else:
             x = np.arange(len(y))
 
-        peaks = find_peaks_cwt(y, self.width.value)
+        peaks = find_peaks_cwt(y, self.widths.value)
         if len(peaks) == 0:
             self.output.value = np.array([])
             return True

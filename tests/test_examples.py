@@ -1,24 +1,18 @@
 """
 Test examples
 """
-from typing import List
 import unittest
 
-from FuncNodes.io import EdgeSerializationInterface
-from FuncNodes.node import (
+from funcnodes.node import (
     Node,
-    NodeInput,
-    NodeOutput,
-    Message_Node_SetData,
-    NodeIOError,
 )
 
-from FuncNodes.nodespace import NodeSpace, NodeSpaceSerializationInterface
+from funcnodes.nodespace import NodeSpace, NodeSpaceSerializationInterface
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
     async def test_linear_add(self):
-        from FuncNodes.nodes.numpy_nodes.ufunc import AddNode
+        from funcnodes.nodes.numpy_nodes.ufunc import AddNode
 
         N = 6
 
@@ -51,11 +45,11 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         assert res1 + N - 1 == res2
 
     async def test_3np1(self):
-        import logging
+        # import logging
         import numpy as np
 
         # logging.basicConfig(level=logging.DEBUG)
-        N = 27#19
+        N = 27  # 19
         n = N
         steps = []
         while n != 1:
@@ -130,10 +124,10 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         ns.deserialize(data)
         try:
             await ns.await_done(timeout=20)
-        except Exception as e:
+        except Exception as exc:
             out = np.array(ns.get_node("collect").output.value)
             print("\n" * 4, out, "\n" * 4)
-            raise eprint(out)
+            raise exc(out)
         out = np.array(ns.get_node("collect").output.value)
         print(out)
         self.assertEqual(out.tolist(), steps.tolist())

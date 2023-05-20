@@ -20,8 +20,7 @@ from ._typing import (
 from .node_detector import find_node_id
 
 if TYPE_CHECKING:
-    from .io import Edge
-    from .io import EdgeSerializationInterface
+    from .io import Edge, EdgeSerializationInterface, FullEdgeJSON
 
 
 class NodeSpaceSerializationInterface(TypedDict, total=False):
@@ -1102,15 +1101,17 @@ class NodeSpace(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
 
         for edge in edges:
             try:
-                if isinstance(edge[0], int):
-                    startnodeid = nodes[edge[0]]["id"]
+                startnodeid = edge[0]
+                if isinstance(startnodeid, int):
+                    startnodeid = nodes[startnodeid]["id"]
                 else:
-                    startnodeid = self.get_node(edge[0]).id
+                    startnodeid = self.get_node(startnodeid).id
 
-                if isinstance(edge[2], int):
-                    endnodeid = nodes[edge[2]]["id"]
+                endnodeid = edge[2]
+                if isinstance(endnodeid, int):
+                    endnodeid = nodes[endnodeid]["id"]
                 else:
-                    endnodeid = self.get_node(edge[2]).id
+                    endnodeid = self.get_node(endnodeid).id
 
                 self.connect_by_id(
                     startnodeid,

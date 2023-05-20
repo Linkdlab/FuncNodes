@@ -4,9 +4,9 @@ This file contains the tests the numpy nodes
 import unittest
 import logging
 import numpy as np
-from FuncNodes.node import Node
-from FuncNodes.nodes.node_creator import FunctionBasedNode
-from FuncNodes.nodes.numpy_nodes.ufunc import UFUNC_NODES
+from funcnodes.node import Node
+from funcnodes.nodes.node_creator import FunctionBasedNode
+from funcnodes.nodes.numpy_nodes.ufunc import UFUNC_NODES
 
 
 logging.basicConfig(level=logging.INFO)
@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 
 class TestNumpyNodes(unittest.IsolatedAsyncioTestCase):
     def test_basic_create(self):
-        from FuncNodes.nodes import numpy_nodes
+        from funcnodes.nodes import numpy_nodes
 
         AddNode = numpy_nodes.ufunc.AddNode  # type: ignore
         assert issubclass(AddNode, Node), f"AddNode is not a Node but a {type(AddNode)}"
@@ -28,7 +28,7 @@ class TestNumpyNodes(unittest.IsolatedAsyncioTestCase):
         ), f"AddNode has {len(addnode.get_outputs())} outputs instead of 1"
 
     async def test_trigger(self):
-        from FuncNodes.nodes import numpy_nodes
+        from funcnodes.nodes import numpy_nodes
 
         AddNode = numpy_nodes.ufunc.AddNode  # type: ignore
         addnode: Node = AddNode().initialize()
@@ -48,7 +48,7 @@ class TestNumpyNodes(unittest.IsolatedAsyncioTestCase):
             assert issubclass(
                 v, FunctionBasedNode
             ), f"{k} is not a Node but a {type(v)}"
-            node = v().initialize()
+            node = v().disable().initialize()
             assert (
                 len(node.get_inputs()) == node.func.nin
             ), f"{k} has {len(node.get_inputs())} inputs instead of {node.func.nin}"
@@ -61,8 +61,9 @@ class TestNumpyNodes(unittest.IsolatedAsyncioTestCase):
 
             for i in range(node.func.nin):
                 node.get_inputs()[i].value = i + 1
-            node.trigger()
+            node.enable().trigger()
             await node.await_done()
+
             if node.func.nout == 1:
                 assert node.get_outputs()[0].value == node.func(
                     *(i + 1 for i in range(node.func.nin))
@@ -104,7 +105,7 @@ class TestNumpyNodes(unittest.IsolatedAsyncioTestCase):
         ), f"{k} output is {node.get_outputs()[0].value} instead of np.array([[1, 0], [0, 1]])"
 
     async def test_example_add_greater(self):
-        from FuncNodes.nodes.numpy_nodes.ufunc import AddNode, GreaterNode
+        from funcnodes.nodes.numpy_nodes.ufunc import AddNode, GreaterNode
 
         # Define two add nodes, one for each pair of numbers you want to add
         add_node1 = AddNode(
@@ -144,10 +145,10 @@ class TestNumpyNodes(unittest.IsolatedAsyncioTestCase):
             add_node2.out.value == 7
         ), f"add_node2 output is {add_node2.out.value} instead of 7"
         assert (
-            greater_node.out.value == False
+            not greater_node.out.value
         ), f"greater_node output is {greater_node.out.value} instead of False"
         assert (
-            greater_node2.out.value == True
+            greater_node2.out.value
         ), f"greater_node2 output is {greater_node2.out.value} instead of True"
 
         print(

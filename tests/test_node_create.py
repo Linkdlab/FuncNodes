@@ -2,20 +2,20 @@
 This file contains the tests the automatic node creation
 """
 import unittest
-from FuncNodes.errors import NotOperableException
-from FuncNodes.node import Node
-from FuncNodes.nodes.node_creator import (
+import random
+import warnings
+from funcnodes.errors import NotOperableException
+from funcnodes.node import Node
+from funcnodes.nodes.node_creator import (
     func_to_node,
     func_to_node_decorator,
     FuncNodeReservedNameError,
     FuncNodeUnserializableDefaultError,
     FuncNodeWarning,
 )
-from FuncNodes.io import MissingValueError
-import random
-import warnings
-from FuncNodes.nodespace import NodeSpace
-from FuncNodes.errors import LibraryError
+
+from funcnodes.nodespace import NodeSpace
+from funcnodes.errors import LibraryError
 
 
 class TestNodeCreate(unittest.IsolatedAsyncioTestCase):
@@ -41,7 +41,7 @@ class TestNodeCreate(unittest.IsolatedAsyncioTestCase):
         node = NodeClass().initialize()
         node.trigger()
         await node.await_done()
-        assert node.out.value == 1, "node.out.value != 1"
+        assert node.out.value == 1, "node.out.value != 1"  # type: ignore
 
     async def test_simple_func_to_node_with_args(self):
         """Test the creation of a node from a function"""
@@ -107,7 +107,7 @@ class TestNodeCreate(unittest.IsolatedAsyncioTestCase):
         assert node() == 1, "node() != 1"
 
     async def test_classdecorator(self):
-        from FuncNodes.nodes.node_creator import NodeClassMixin, instance_nodefunction
+        from funcnodes.nodes.node_creator import NodeClassMixin, instance_nodefunction
 
         class TestNodeCarrier(NodeClassMixin):
             testfunccallled = False

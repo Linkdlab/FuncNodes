@@ -2,8 +2,8 @@
 Test the Node Library
 """
 import unittest
-from FuncNodes.node import Node
-from FuncNodes.nodespace import Library
+from funcnodes.node import Node
+from funcnodes.nodespace import Library
 
 import logging
 

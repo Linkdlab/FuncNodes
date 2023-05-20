@@ -1,5 +1,5 @@
 """
-module defining all errors for FuncNodes
+module defining all errors for funcnodes
 """
 
 
@@ -25,14 +25,18 @@ class NodeInitalizationError(NodeError):
 class NodeTypeError(NodeError):
     """Raised when a Node is not the correct type"""
 
+
 class NotOperableException(NodeError):
     """Raised when a Node is not operable"""
+
 
 class DisabledException(NodeError):
     """Raised when a Node is disabled"""
 
+
 class TriggerException(NodeError):
     """Raised when an error occurs during a trigger"""
+
 
 # endregion Node Errors
 

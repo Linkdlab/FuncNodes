@@ -77,9 +77,6 @@ class NowNode(Node):
         return True
 
 
-
-
-
 LIB = LibShelf(
     name="input",
     nodes=[

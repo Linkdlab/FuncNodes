@@ -1,14 +1,14 @@
 import unittest
 import logging
+from funcnodes.iotypes import IOType
+import numpy as np
 
 logging.basicConfig(level=logging.INFO)
-from FuncNodes.iotypes import IOType
-import numpy as np
 
 
 class TestUtils(unittest.TestCase):
     def test_numpy_io_types(self):
-        from FuncNodes.nodes.numpy_nodes.types import (
+        from funcnodes.nodes.numpy_nodes.types import (
             ArrayLikeType,
             NdArrayType,
             ndarray_type_creator,

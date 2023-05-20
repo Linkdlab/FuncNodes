@@ -8,7 +8,7 @@ from pyodide.ffi import (
     to_js as pyodide_to_js,
 )  # pylint: disable=import-error
 
-from pyscript import display, format_mime
+from pyscript import format_mime
 
 
 from .nodespace import NodeSpace, Library

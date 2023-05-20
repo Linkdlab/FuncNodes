@@ -2,8 +2,7 @@
 Module for Node inputs and outputs.
 """
 from __future__ import annotations
-from typing import Any, List, Tuple, TYPE_CHECKING, TypeVar, TypedDict
-
+from typing import Any, List, Tuple, TYPE_CHECKING, TypeVar, TypedDict, NamedTuple, cast
 
 import uuid
 import copy
@@ -25,7 +24,9 @@ from ._typing import (
     Message_Node_Disconnected,
     MessageInArgs,
     NodeIdType,
+    FixedIOProperties,
 )
+from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
     from .node import Node, TriggerQueue
@@ -79,13 +80,15 @@ class Message_NodeIO_ValueChanged(MessageInArgs):
     new: Any
 
 
-def reduce_list(l: list) -> list:
-    if len(l) > 20:
+def reduce_list(lst: list) -> list:
+    if len(lst) > 20:
         return (
-            [reduce_val(v) for v in l[:10]] + ["..."] + [reduce_val(v) for v in l[-10:]]
+            [reduce_val(v) for v in lst[:10]]
+            + ["..."]
+            + [reduce_val(v) for v in lst[-10:]]
         )
 
-    return [reduce_val(v) for v in l]
+    return [reduce_val(v) for v in lst]
 
 
 def reduce_val(v):
@@ -118,7 +121,7 @@ def repr_va(repr_va) -> Tuple[str, str]:
         return str(reduce_val(repr_va)), "text/plain"
 
 
-class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
+class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin, ABC):
     """Base class for all Node inputs and outputs."""
 
     def __init__(self, properties: IOProperties | dict | None = None, **kwargs):
@@ -128,14 +131,15 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         if properties is None:
             properties = {}
         properties.update(kwargs)  # type: ignore
-        self._properties: IOProperties = self.set_default_properties(properties)
+        self._properties: FixedIOProperties = self.set_default_properties(properties)
 
         self._type = IOType.get_type(self._properties["type"])
         self._properties["type"] = self._type.typestring
-        self_cached_is_ready = None
 
     # region Properties
-    def set_default_properties(self, properties: IOProperties | dict) -> IOProperties:
+    def set_default_properties(
+        self, properties: IOProperties | dict
+    ) -> FixedIOProperties:
         """Fill in default values for the properties to a given dictionary.
 
         Parameters
@@ -149,7 +153,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
             dictionary of properties with default values filled in
 
         """
-        new_properties: IOProperties = IOProperties(
+        new_properties: FixedIOProperties = FixedIOProperties(
             id=properties.get("id", uuid.uuid4().hex[:8]),
             type=properties.get("type", "any"),
             required=properties.get("required"),
@@ -161,7 +165,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         return new_properties
 
     @property
-    def properties(self) -> IOProperties:
+    def properties(self) -> FixedIOProperties:
         """Returns a copy of the properties of this NodeIO.
         Returns
         -------
@@ -668,7 +672,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
             )
 
         # check for self and other individually
-        
+
         for _io in [self, other]:
             if _io.length > 0:
                 if not _io.allows_multiple:
@@ -813,7 +817,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         IOProperties:
             JSON serializable dictionary of the NodeIO
         """
-        full_properties = self.properties
+        full_properties = cast(IOProperties, self.properties)
         default_properties = self.set_default_properties({})
 
         deep_remove_dict_on_equal(full_properties, default_properties)  # type: ignore
@@ -865,6 +869,23 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         self._edges = []
         self._node = None
         self.emit("removed")
+
+    @abstractmethod
+    def mark_for_trigger(self, src: str | None = None, trigger: bool = False):
+        """Requests a trigger for the node of this NodeIO or other Nodes connected to it.
+
+        Parameters
+        ----------
+        src : str:
+            source of the trigger (Default value = None)
+
+        Raises
+        ------
+        IOError:
+            if the NodeIO is not connected to a node
+
+        """
+        raise NotImplementedError()
 
 
 GenericNodeIO = TypeVar("GenericNodeIO", bound=NodeIO)  # pylint: disable=invalid-name
@@ -946,7 +967,9 @@ class NodeInput(NodeIO):
         self.trigger("connected")
 
     @resets_cache("is_ready")
-    def set_default_properties(self, properties: IOProperties | dict) -> IOProperties:
+    def set_default_properties(
+        self, properties: IOProperties | dict
+    ) -> FixedIOProperties:
         """Sets the default properties of the NodeInput."""
         properties.setdefault("allows_multiple", False)
         properties.setdefault("does_trigger", True)
@@ -1072,7 +1095,9 @@ class NodeOutput(NodeIO):
     """NodeOutput subclass of NodeIO."""
 
     @resets_cache("is_ready")
-    def set_default_properties(self, properties: IOProperties | dict) -> IOProperties:
+    def set_default_properties(
+        self, properties: IOProperties | dict
+    ) -> FixedIOProperties:
         """Sets the default properties of the NodeInput."""
         properties.setdefault("allows_multiple", True)
         properties.setdefault("does_trigger", False)
@@ -1176,16 +1201,14 @@ class NodeOutput(NodeIO):
 
     def set_default_value(self, *args, **kwargs):
         """quietly ignores the default value for NodeOutputs"""
-        if "default_value" in self._properties:
-            del self._properties["default_value"]
-        pass
+        return
 
 
 class Edge(ProxyableMixin):
     """Edge class to connect two NodeIOs."""
 
     @staticmethod
-    def createable(start: NodeInput | NodeOutput, end: NodeInput | NodeOutput) -> bool:
+    def createable(start: NodeIO, end: NodeIO) -> bool:
         """Returns whether an Edge can be created between start and end.
 
         Parameters
@@ -1211,7 +1234,7 @@ class Edge(ProxyableMixin):
             return False
         return True
 
-    def __init__(self, start: NodeInput | NodeOutput, end: NodeInput | NodeOutput):
+    def __init__(self, start: NodeIO, end: NodeIO):
         super().__init__()
         if start == end:
             raise EdgeError("cannot connect to self")
@@ -1260,7 +1283,7 @@ class Edge(ProxyableMixin):
             return self.start_node
         raise EdgeError("node not in edge")
 
-    def other_io(self, node_io: NodeInput | NodeOutput) -> NodeInput | NodeOutput:
+    def other_io(self, node_io: NodeInput | NodeOutput | NodeIO) -> NodeIO:
         """Returns the other NodeIO of this Edge.
 
         Parameters
@@ -1295,12 +1318,12 @@ class Edge(ProxyableMixin):
         self.disconnect()
 
     @property
-    def start(self) -> NodeInput | NodeOutput:
+    def start(self) -> NodeIO:
         """Returns the start NodeIO of this Edge."""
         return self._start
 
     @property
-    def end(self) -> NodeInput | NodeOutput:
+    def end(self) -> NodeIO:
         """Returns the end NodeIO of this Edge."""
         return self._end
 
@@ -1337,9 +1360,13 @@ class Edge(ProxyableMixin):
         return self.full_serialize()
 
 
-EdgeSerializationInterface = Tuple[
-    int | NodeIdType, NodeIOId, int | NodeIdType, NodeIOId
-]
+class EdgeSerializationInterface(NamedTuple):
+    """Edge serialization interface."""
+
+    start_id: int | NodeIdType
+    start_io: NodeIOId
+    end_id: int | NodeIdType
+    end_io: NodeIOId
 
 
 class FullEdgeJSON(TypedDict):

@@ -2,18 +2,11 @@
 Test examples
 """
 import unittest
-from FuncNodes.node import (
-    Node,
-    NodeInput,
-    NodeOutput,
-    Message_Node_SetData,
-    NodeIOError,
-)
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
     async def test_if_node_simple(self):
-        from FuncNodes.nodes.progflow import IfNode
+        from funcnodes.nodes.progflow import IfNode
 
         if_node = IfNode(
             {
@@ -30,18 +23,18 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
 
         # check that the outputs are correct
         assert if_node.io("then").value == "True result"
-        assert if_node.io("else_").value_or_none == None
+        assert if_node.io("else_").value_or_none is None
 
         # switch the input condition and check the outputs again
         if_node.condition.value = False
         if_node.trigger()
         await if_node.await_done()
 
-        assert if_node.io("then").value_or_none == None
+        assert if_node.io("then").value_or_none is None
         assert if_node.io("else_").value == "True result"
 
     async def test_merge_input_node(self):
-        from FuncNodes.nodes.progflow import MergeInputNode
+        from funcnodes.nodes.progflow import MergeInputNode
 
         # Create a MergeInputNode instance
         merge_node = MergeInputNode()
@@ -92,8 +85,8 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
 
         logging.basicConfig(level=logging.DEBUG)
 
-        from FuncNodes.nodes.progflow import ForNode
-        from FuncNodes.nodes.numpy_nodes.ufunc import AddNode
+        from funcnodes.nodes.progflow import ForNode
+        from funcnodes.nodes.numpy_nodes.ufunc import AddNode
 
         fornode = ForNode().initialize()
         addnode = AddNode().initialize()

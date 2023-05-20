@@ -342,6 +342,6 @@ sketch
 
 /dist/*
 !/dist/*.html
-FuncNodesDjango/funcnodes/static/funcnodes/bundle.js
-FuncNodesDjango/funcnodes/static/funcnodes/FuncNodes.zip
+funcnodesDjango/funcnodes/static/funcnodes/bundle.js
+funcnodesDjango/funcnodes/static/funcnodes/funcnodes.zip
 /dev/
