@@ -30,6 +30,47 @@ from ._typing import (
 if TYPE_CHECKING:
     from .node import Node, TriggerQueue
 
+from functools import wraps
+
+
+UNDEFINED = object()
+
+
+def cached_call(name):
+    cache_name = f"__{name}_cached"
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not hasattr(self, cache_name):
+                setattr(self, cache_name, func(self, *args, **kwargs))
+            return getattr(self, cache_name)
+
+        return wrapper
+
+    return decorator
+
+
+def resets_cache(name):
+    cache_name = f"__{name}_cached"
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if hasattr(self, cache_name):
+                delattr(self, cache_name)
+            return func(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def reset_cache(self, name):
+    cache_name = f"__{name}_cached"
+    if hasattr(self, cache_name):
+        delattr(self, cache_name)
+
 
 class Message_NodeIO_ValueChanged(MessageInArgs):
     """Message for NodeIO.value_changed event."""
@@ -91,6 +132,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
 
         self._type = IOType.get_type(self._properties["type"])
         self._properties["type"] = self._type.typestring
+        self_cached_is_ready = None
 
     # region Properties
     def set_default_properties(self, properties: IOProperties | dict) -> IOProperties:
@@ -232,6 +274,8 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
             raise NodeIOError("node is already set")
         if not isinstance(node, Node):
             raise NodeIOError(f"node must be of type Node, not {type(node)}")
+
+        reset_cache(self, "is_ready")
         self._node = node
 
     @property
@@ -284,6 +328,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         """
         return self.is_ready()[0]
 
+    @cached_call("is_ready")
     def is_ready(self) -> Tuple[bool, str]:
         return True, ""
 
@@ -399,6 +444,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         """
         return self._type.cast_if_needed(value)
 
+    @resets_cache("is_ready")
     def set_default_value(self, value: Any):
         """Sets the default value of this NodeIO.
 
@@ -437,6 +483,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         """
         raise NotImplementedError()
 
+    @resets_cache("is_ready")
     def set_value(
         self,
         value: Any,
@@ -503,6 +550,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
             )
         return value, True
 
+    @resets_cache("is_ready")
     def set_value_and_default(self, value: Any) -> Any:
         """Sets the value if this NodeIO and also sets the new value as default value.
 
@@ -568,6 +616,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         """
         return Edge.createable(self, other)
 
+    @resets_cache("is_ready")
     def connect_to(self, other: NodeIO, replace_if_necessary: bool = False) -> Edge:
         """
         Connects this NodeIO to the given NodeIO.
@@ -619,6 +668,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
             )
 
         # check for self and other individually
+        
         for _io in [self, other]:
             if _io.length > 0:
                 if not _io.allows_multiple:
@@ -644,6 +694,8 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
 
         self.emit("connected", Message_NodeIO_Connected(to=other))
         other.emit("connected", Message_NodeIO_Connected(to=self))
+        reset_cache(self, "is_ready")
+        reset_cache(other, "is_ready")
 
         return new_edge
 
@@ -651,6 +703,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         """Alias for connect_to."""
         return self.connect_to(*args, **kwargs)
 
+    @resets_cache("is_ready")
     def _add_edge(self, edge: Edge):
         """Private method to add an edge to this NodeIO.
 
@@ -672,6 +725,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         """
         return len(self) > 0
 
+    @resets_cache("is_ready")
     def _remove_edge(self, edge: Edge) -> bool:
         """Private method to remove an edge from this NodeIO.
 
@@ -790,6 +844,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
         rep["value"] = {"value": v[0], "mime": v[1]}
         return rep
 
+    @resets_cache("is_ready")
     def remove(self):
         """Removes the NodeIO from the node.
         First disconnects all edges, then removes the NodeIO from the node.
@@ -843,6 +898,11 @@ class NodeInput(NodeIO):
         """
         return any([edge.is_grabbing() for edge in self._edges])
 
+    def disconnect_from(self, other: NodeIO):
+        super().disconnect_from(other)
+        self.value = self.default_value
+
+    @cached_call("is_ready")
     def is_ready(self) -> Tuple[bool, str]:
         s_ir = super().is_ready()
         if not s_ir[0]:
@@ -885,12 +945,14 @@ class NodeInput(NodeIO):
             self.update_value()
         self.trigger("connected")
 
+    @resets_cache("is_ready")
     def set_default_properties(self, properties: IOProperties | dict) -> IOProperties:
         """Sets the default properties of the NodeInput."""
         properties.setdefault("allows_multiple", False)
         properties.setdefault("does_trigger", True)
         return super().set_default_properties(properties)
 
+    @resets_cache("is_ready")
     def update_value(
         self, new_value: Any = None, mark_for_trigger: bool | None = None
     ) -> Any:
@@ -963,6 +1025,7 @@ class NodeInput(NodeIO):
             src=src, trigger_queue=trigger_queue
         )
 
+    @resets_cache("is_ready")
     def set_value(
         self,
         value: Any,
@@ -1008,6 +1071,7 @@ class NodeInput(NodeIO):
 class NodeOutput(NodeIO):
     """NodeOutput subclass of NodeIO."""
 
+    @resets_cache("is_ready")
     def set_default_properties(self, properties: IOProperties | dict) -> IOProperties:
         """Sets the default properties of the NodeInput."""
         properties.setdefault("allows_multiple", True)
@@ -1057,6 +1121,7 @@ class NodeOutput(NodeIO):
             if edge.start == self
         ]
 
+    @resets_cache("is_ready")
     def set_value(
         self,
         value: Any,
@@ -1083,6 +1148,7 @@ class NodeOutput(NodeIO):
                 continue
             if edge.is_grabbing():
                 other_io.update_value(mark_for_trigger=False)
+                reset_cache(other_io, "is_ready")
             else:
                 other_io.update_value(mark_for_trigger=mark_for_trigger)
 

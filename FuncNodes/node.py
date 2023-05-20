@@ -1597,7 +1597,7 @@ class Node(
         if self._triggertask is not None:
             self._triggertask.cancel()
 
-    async def await_done(self, timeout: float | None = 10, sleep: float = 0.05):
+    async def await_done(self, timeout: float | None = 10, sleep: float = 0.01):
         """
         wait until node is done with its trigger processes and whatever results in a working state
         the node is triggered if requested before waiting and during waiting
@@ -1614,20 +1614,21 @@ class Node(
         self.trigger_if_requested()
         start = _deltatimer()
         while True:
-            await asyncio.sleep(sleep)
-
             if not self.is_working:
                 self.trigger_if_requested()
+            else:
+                await asyncio.sleep(sleep)
             if not self.is_working:
                 break
 
             if timeout is not None:
                 if _deltatimer() - start > timeout:
                     raise TimeoutError("await_done timeout")
+
         self._handle_trigger_task()
 
     @staticmethod
-    async def await_all(*nodes: Node, timeout: float = -1, sleep: float = 0.05):
+    async def await_all(*nodes: Node, timeout: float = -1, sleep: float = 0.01):
         """
         wait until all nodes are done with their trigger processes and whatever
         results in a working state
