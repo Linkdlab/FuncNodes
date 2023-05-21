@@ -6,9 +6,15 @@ from io import open
 
 from setuptools import find_packages, setup
 
+GIT = "https://github.com/Linkdlab/FuncNodes"
+PACKAGETITLE = "FuncNodes"
+PACKAGENAME = "funcnodes"
+DESCRIPTION = "Basic FuncNodes framework"
+REQUIRED_PYTHON = (3, 6)
+install_requires = install_requires = ["networkx"]
 
 CURRENT_PYTHON = sys.version_info[:2]
-REQUIRED_PYTHON = (3, 6)
+
 
 # This check and everything above must remain compatible with Python 2.7.
 if CURRENT_PYTHON < REQUIRED_PYTHON:
@@ -18,7 +24,7 @@ if CURRENT_PYTHON < REQUIRED_PYTHON:
 Unsupported Python version
 ==========================
 
-This version of FuncNodes requires Python {REQUIRED_PYTHON[0]}.{REQUIRED_PYTHON[1]}, but you're trying
+This version of {PACKAGETITLE} requires Python {REQUIRED_PYTHON[0]}.{REQUIRED_PYTHON[1]}, but you're trying
 to install it on Python {CURRENT_PYTHON[0]}.{CURRENT_PYTHON[1]}.
 
 """
@@ -42,7 +48,7 @@ def get_version(package):
     return s.group(1)
 
 
-version = get_version("funcnodes")
+version = get_version(PACKAGENAME)
 
 
 if sys.argv[-1] == "publish":
@@ -60,24 +66,22 @@ if sys.argv[-1] == "publish":
     print("  git push --tags")
     shutil.rmtree("dist")
     shutil.rmtree("build")
-    shutil.rmtree("funcnodes.egg-info")
+    shutil.rmtree(f"{PACKAGENAME}.egg-info")
     sys.exit()
 
 
-install_requires = []
-
 setup(
-    name="funcnodes",
+    name=PACKAGENAME,
     version=version,
-    url="https://github.com/Linkdlab/FuncNodes",
+    url=GIT,
     license="MIT",
     license_files="LICENSE.md",
-    description="Basic FuncNodes framework",
+    description=DESCRIPTION,
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     author="Julian Kimmig (Linkdlab GmbH)",
     author_email="julian.kimmig@linkdlab.de",
-    packages=find_packages(exclude=["tests", "funcnodessampleserver"]),
+    packages=find_packages(exclude=["tests"]),
     include_package_data=True,
     install_requires=install_requires,
     python_requires=">=3.6",
@@ -99,6 +103,6 @@ setup(
     ],
     project_urls={
         "Linkdlab": "https://info.linkdlab.de/",
-        "Source": "https://github.com/Linkdlab/FuncNodes",
+        "Source": GIT,
     },
 )
