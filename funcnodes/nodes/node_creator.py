@@ -348,7 +348,7 @@ class NodeClassMixinMeta(ABCMeta):
 
 
 class NodeClassMixin(metaclass=NodeClassMixinMeta):
-    NODECLASSID = None
+    NODECLASSID: str = None  # type: ignore
     IS_ABSTRACT = True
 
     @property
