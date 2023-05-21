@@ -299,9 +299,15 @@ def _make_get_node_method(
 ):
     def _get_node() -> Any:
         nodeclassmixininst.create_nodes()
-        return getattr(getattr(nodeclassmixininst, name), "node")
+        return getattr(getattr(nodeclassmixininst, name), "_node")
 
     setattr(method, "get_node", _get_node)
+
+    def _get_nodes() -> Any:
+        nodeclassmixininst.create_nodes()
+        return getattr(getattr(nodeclassmixininst, name), "_nodes")
+
+    setattr(method, "get_nodes", _get_nodes)
 
 
 def _create_node(nodeclassmixininst: NodeClassMixin, method, name):
@@ -334,12 +340,16 @@ def _create_node(nodeclassmixininst: NodeClassMixin, method, name):
     nodeclassmixininst._node_classes[node_id] = node
 
     def _get_node() -> Any:
-        return getattr(copymethode, "node")
+        return getattr(copymethode, "_node")
+
+    def _get_nodes() -> Any:
+        return getattr(copymethode, "_nodes")
 
     setattr(node, "method", copymethode)
     setattr(copymethode, "get_node", _get_node)
-    setattr(copymethode, "node", node)
-    setattr(copymethode, "nodes", WeakValueDictionary())
+    setattr(copymethode, "get_nodes", _get_nodes)
+    setattr(copymethode, "_node", node)
+    setattr(copymethode, "_nodes", WeakValueDictionary())
     setattr(nodeclassmixininst, name, copymethode)
 
 
@@ -403,7 +413,7 @@ class NodeClassMixin(metaclass=NodeClassMixinMeta):
         try:
             src = data["src"]
             cls = self._node_classes[src.node_id]
-            cls.method.nodes[src.id] = src
+            cls.method._nodes[src.id] = src
         except (AttributeError, KeyError):
             pass
 
