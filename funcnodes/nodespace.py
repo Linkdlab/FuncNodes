@@ -297,6 +297,23 @@ class Library(ProxyableMixin):
                 for subshelf in nodes["shelves"]:
                     self.add_nodeclasses(subshelf, subsubs)
 
+    def add_shelf(
+        self, subshelf: LibShelf, parent_self_path: str | List[str] | None = None
+    ):
+        """add_shelf adds a shelf to the library by it shelf path"""
+        if parent_self_path is None:
+            parent_shelf = None
+            parent_self_path = []
+        else:
+            if isinstance(parent_self_path, str):
+                parent_self_path = [parent_self_path]
+            parent_shelf = self._get_deep_shelf(parent_self_path)
+
+        new_shelve = self._get_or_create_subshelf(subshelf["name"], parent_shelf)
+        new_shelve["nodes"].extend(subshelf.get("nodes", []))
+        for subshelf in subshelf.get("shelves", []):
+            self.add_shelf(subshelf, parent_self_path + [new_shelve["name"]])
+
     def contains_nodeclass(self, nodeclass: Type[Node]) -> bool:
         """Returns true if the library contains the given nodeclass
 
