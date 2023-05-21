@@ -255,7 +255,6 @@ class ObjectLoggerMixin:
             )
             logger.addHandler(handler)
         self.logger = logging.LoggerAdapter(logger, {"obj": self})
-        print("AAA", self.__class__.__name__, self.logger)
         super().__init__(*args, **kwargs)
 
 
