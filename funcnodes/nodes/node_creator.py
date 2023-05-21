@@ -158,16 +158,19 @@ def func_to_node(
     for i, p in enumerate(input_params):
         io_type = IOType.get_type(p["annotation"])
         input_dict = IOProperties(id=p["name"], type=io_type.typestring)
-
+        if p["name"] != input_dict.get("id"):
+            raise ValueError(
+                f"input {i} has id {input_dict.get('id')} but should have {p['name']}, this should not happen"
+            )
         if "default" in p:
             input_dict["default_value"] = p["default"]
         else:
             input_dict["required"] = True
 
         if p["positional"]:
-            positionals.append(input_dict["id"])
-        inputs[input_dict["id"]] = NodeInput(input_dict)
-        input_names.append(input_dict["id"])
+            positionals.append(p["name"])
+        inputs[p["name"]] = NodeInput(input_dict)
+        input_names.append(p["name"])
 
     for i in input_names:
         if hasattr(func_to_node_base, i):
@@ -195,12 +198,16 @@ def func_to_node(
 
     output_names = []
     node_outputs = {}
-    for o in output_params:
+    for i, o in enumerate(output_params):
         io_type = IOType.get_type(o["annotation"])
 
         output_dict = IOProperties(id=o["name"], type=io_type.typestring)
-        node_outputs[output_dict["id"]] = NodeOutput(output_dict)
-        output_names.append(output_dict["id"])
+        if o["name"] != output_dict.get("id"):
+            raise ValueError(
+                f"input {i} has id {output_dict.get('id')} but should have {o['name']}, this should not happen"
+            )
+        node_outputs[o["name"]] = NodeOutput(output_dict)
+        output_names.append(o["name"])
 
     for i in output_names:
         if hasattr(func_to_node_base, i):
