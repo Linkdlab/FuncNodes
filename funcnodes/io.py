@@ -929,14 +929,6 @@ class NodeInput(NodeIO):
         if not s_ir[0]:
             return s_ir
 
-        print(
-            "is_ready",
-            self.id,
-            self.value_or_none,
-            self.required,
-            self.is_grabbing_input(),
-        )
-
         if self.required:
             if self.default_value is not None:
                 return True, ""
