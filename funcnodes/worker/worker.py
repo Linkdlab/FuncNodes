@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
-from typing import List, Type
+from typing import List, Type, Callable, Tuple, Awaitable
 import os
 import json
 import asyncio
@@ -22,22 +22,38 @@ class LocalWorkerLookupLoop(CustomLoop):
     class WorkerNotFoundError(Exception):
         pass
 
-    def __init__(self, client: Worker, path, delay=5) -> None:
+    def __init__(self, client: Worker, path=None, delay=5) -> None:
         super().__init__(delay)
 
         self._path = path
-        if not os.path.exists(self._path):
-            os.mkdir(self._path)
-        sys.path.insert(0, self._path)
         self._client: Worker = client
         self.worker_classes: List[Type[FuncNodesExternalWorker]] = []
         self._parsed_files = []
+
+    @property
+    def path(self):
+        if self._path is None:
+            p = self._client.local_scripts
+        else:
+            p = self._path
+
+        if not os.path.exists(p):
+            os.mkdir(p)
+
+        if p not in sys.path:
+            sys.path.insert(0, p)
+
+        return p
+
+    @path.setter
+    def path(self, path):
+        self._path = path
 
     async def loop(self):
         # get all .py files in path (deep)
 
         print("looking for workers", self.worker_classes)
-        for root, dirs, files in os.walk(self._path):  # pylint: disable=unused-variable
+        for root, dirs, files in os.walk(self.path):  # pylint: disable=unused-variable
             for file in files:
                 if file.endswith(".py") and file not in self._parsed_files:
                     print(os.path.join(root, file))
@@ -123,6 +139,21 @@ class LocalWorkerLookupLoop(CustomLoop):
         )
 
 
+class SaveLoop(CustomLoop):
+    def __init__(self, client: Worker, delay=5) -> None:
+        super().__init__(delay)
+        self._client: Worker = client
+        self.save_requested = False
+
+    def request_save(self):
+        self.save_requested = True
+
+    async def loop(self):
+        if self.save_requested:
+            self._client.save()
+        self.save_requested = False
+
+
 class Worker(ABC):
     def __init__(
         self,
@@ -130,13 +161,12 @@ class Worker(ABC):
         default_nodes: List[LibShelf] | None = None,
         nodespace_delay=0.005,
         local_worker_lookup_delay=5,
+        save_delay=5,
     ) -> None:
         if default_nodes is None:
             default_nodes = []
 
-        if not os.path.exists(data_path):
-            os.mkdir(data_path)
-        self._local_nodespace = os.path.join(data_path, "nodespace.json")
+        self.data_path = os.path.abspath(data_path)
 
         self.loop_manager = LoopManager()
         self.nodespace = NodeSpace()
@@ -146,10 +176,12 @@ class Worker(ABC):
 
         self.local_worker_lookup_loop = LocalWorkerLookupLoop(
             client=self,
-            path=os.path.join(data_path, "local_scripts"),
             delay=local_worker_lookup_delay,
         )
         self.loop_manager.add_loop(self.local_worker_lookup_loop)
+
+        self.saveloop = SaveLoop(self, delay=save_delay)
+        self.loop_manager.add_loop(self.saveloop)
 
         self.nodespace.on("*", self._on_nodespaceevent)
 
@@ -158,6 +190,25 @@ class Worker(ABC):
 
         self._nodespace_id: str | None = None
         self.viewdata = {}
+
+    @property
+    def data_path(self):
+        return self._data_path
+
+    @data_path.setter
+    def data_path(self, data_path):
+        data_path = os.path.abspath(data_path)
+        if not os.path.exists(data_path):
+            os.mkdir(data_path)
+        self._data_path = data_path
+
+    @property
+    def local_nodespace(self):
+        return os.path.join(self.data_path, "nodespace.json")
+
+    @property
+    def local_scripts(self):
+        return os.path.join(self.data_path, "local_scripts")
 
     def view_state(self):
         available_nodeids = []
@@ -188,9 +239,12 @@ class Worker(ABC):
         }
         return data
 
+    def request_save(self):
+        self.saveloop.request_save()
+
     def save(self):
         data = self.get_state()
-        with open(self._local_nodespace, "w+", encoding="utf-8") as f:
+        with open(self.local_nodespace, "w+", encoding="utf-8") as f:
             f.write(json.dumps(data, indent=2))
         return data
 
@@ -211,9 +265,9 @@ class Worker(ABC):
 
     async def load(self, data=None):
         if data is None:
-            if not os.path.exists(self._local_nodespace):
+            if not os.path.exists(self.local_nodespace):
                 return
-            with open(self._local_nodespace, "r", encoding="utf-8") as f:
+            with open(self.local_nodespace, "r", encoding="utf-8") as f:
                 data = json.loads(f.read())
 
         if "backend" not in data:
@@ -257,7 +311,7 @@ class Worker(ABC):
 
     def initialize_nodespace(self):
         try:
-            self.load()
+            self.loop_manager._loop.run_until_complete(self.load())
         except FileNotFoundError:
             pass
 
@@ -392,6 +446,11 @@ class RemoteWorker(Worker):
         self.loop_manager.add_loop(self.data_update_loop)
         self.logger = logging.getLogger(__name__)
 
+        self._messagehandlers: List[
+            Callable[[dict], Awaitable[Tuple[bool | None, str]]]
+        ] = []
+        self.add_messagehandler(self._handle_cmd_message)
+
     def send(self, data):
         data = json.dumps(data, cls=JSONEncoder)
         self.sendmessage(data)
@@ -447,6 +506,8 @@ class RemoteWorker(Worker):
             return False, "Invalid target"
 
     async def _handle_cmd_message(self, data):
+        if "cmd" not in data:
+            return None, "No cmd specified"
         handled = False
         undandled_message = "Unhandled cmd message"
         try:
@@ -521,11 +582,21 @@ class RemoteWorker(Worker):
                 self.viewdata["nodes"][targetid] = {}
             self.viewdata["nodes"][targetid].update(data)
 
-    async def recieve(self, data):
+    def add_messagehandler(
+        self, handler: Callable[[dict], Awaitable[Tuple[bool | None, str]]]
+    ) -> None:
+        self._messagehandlers.append(handler)
+
+    async def recieve(self, data: dict):
         handled = False
         undandled_message = "Unhandled message"
-        if "cmd" in data:
-            handled, undandled_message = await self._handle_cmd_message(data)
+        for messagehandler in self._messagehandlers:
+            handled, _undandled_message = await messagehandler(data)
+            if handled:
+                break
+            if handled is None:
+                continue
+            undandled_message = _undandled_message
 
         if not handled:
-            print("unhandled data", data)
+            self.logger.error("%s: %s", undandled_message, json.dumps(data))
