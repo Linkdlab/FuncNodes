@@ -22,8 +22,6 @@ class FuncNodesExternalWorker(NodeClassMixin, CustomLoop):
             ] = WeakValueDictionary()
         FuncNodesExternalWorker.RUNNING_WORKERS[self.NODECLASSID][self.uuid] = self
 
-        
-
     @classmethod
     def running_instances(cls) -> List[FuncNodesExternalWorker]:
         if cls.NODECLASSID not in FuncNodesExternalWorker.RUNNING_WORKERS:

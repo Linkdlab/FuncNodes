@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List, Callable
 from ._typing import (
     LibShelf,
