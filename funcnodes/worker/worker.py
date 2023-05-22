@@ -125,7 +125,11 @@ class LocalWorkerLookupLoop(CustomLoop):
 
 class Worker(ABC):
     def __init__(
-        self, data_path: str, default_nodes: List[LibShelf] | None = None
+        self,
+        data_path: str,
+        default_nodes: List[LibShelf] | None = None,
+        nodespace_delay=0.005,
+        local_worker_lookup_delay=5,
     ) -> None:
         if default_nodes is None:
             default_nodes = []
@@ -137,11 +141,13 @@ class Worker(ABC):
         self.loop_manager = LoopManager()
         self.nodespace = NodeSpace()
 
-        self.nodespace_loop = NodeSpaceLoop(self.nodespace)
+        self.nodespace_loop = NodeSpaceLoop(self.nodespace, delay=nodespace_delay)
         self.loop_manager.add_loop(self.nodespace_loop)
 
         self.local_worker_lookup_loop = LocalWorkerLookupLoop(
-            client=self, path=os.path.join(data_path, "local_scripts")
+            client=self,
+            path=os.path.join(data_path, "local_scripts"),
+            delay=local_worker_lookup_delay,
         )
         self.loop_manager.add_loop(self.local_worker_lookup_loop)
 
@@ -377,12 +383,12 @@ class TriggerOutLoop(CustomLoop):
 
 
 class RemoteWorker(Worker):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, trigger_delay=0.05, data_delay=0.2, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.trigger_out_loop = TriggerOutLoop(self, delay=0.05)
+        self.trigger_out_loop = TriggerOutLoop(self, delay=trigger_delay)
         self.loop_manager.add_loop(self.trigger_out_loop)
 
-        self.data_update_loop = DataUpdateLoop(self, delay=0.2)
+        self.data_update_loop = DataUpdateLoop(self, delay=data_delay)
         self.loop_manager.add_loop(self.data_update_loop)
         self.logger = logging.getLogger(__name__)
 
@@ -514,7 +520,6 @@ class RemoteWorker(Worker):
             if targetid not in self.viewdata["nodes"]:
                 self.viewdata["nodes"][targetid] = {}
             self.viewdata["nodes"][targetid].update(data)
-
 
     async def recieve(self, data):
         handled = False
