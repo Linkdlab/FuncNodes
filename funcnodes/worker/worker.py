@@ -301,6 +301,8 @@ class Worker(ABC):
         self.nodespace.deserialize(data["backend"])
         self.viewdata = data["view"]
 
+        return self.save()
+
     @property
     def nodespace_id(self) -> str | None:
         return self._nodespace_id
@@ -441,6 +443,34 @@ class TriggerOutLoop(CustomLoop):
                 "data": new_trigger_dones,
             }
             self._client.send(event_bundle)
+
+    async def install_package(package: str):
+        import importlib
+
+        try:
+            importlib.import_module(package)
+        except ImportError:
+            import subprocess
+            import sys
+
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "my_package"]
+            )
+
+    async def install_packages(packages: List[str]):
+        import importlib
+
+        missing = []
+        for p in packages:
+            try:
+                importlib.import_module(p)
+            except ImportError:
+                missing.append(p)
+        if len(missing) > 0:
+            import subprocess
+            import sys
+
+            subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
 
 
 class RemoteWorker(Worker):
