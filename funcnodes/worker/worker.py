@@ -270,6 +270,9 @@ class Worker(ABC):
             with open(self.local_nodespace, "r", encoding="utf-8") as f:
                 data = json.loads(f.read())
 
+        if isinstance(data, str):
+            data = json.loads(data)
+
         if "backend" not in data:
             data["backend"] = {}
         if "view" not in data:
