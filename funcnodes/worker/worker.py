@@ -307,6 +307,9 @@ class Worker(ABC):
 
     @nodespace_id.setter
     def nodespace_id(self, nsid: str):
+        if nsid is None:
+            self._nodespace_id = None
+
         if len(nsid) == 32:
             self._nodespace_id = nsid
         else:
