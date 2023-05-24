@@ -14,7 +14,7 @@ import funcnodes
 from funcnodes.worker.loop import LoopManager, NodeSpaceLoop, CustomLoop
 from funcnodes.worker.external_worker import FuncNodesExternalWorker
 from funcnodes.nodespace import NodeSpace, LibShelf
-from funcnodes.node  import Node
+from funcnodes.node import Node
 import numpy as np
 import traceback
 
@@ -639,8 +639,7 @@ class RemoteWorker(Worker):
         if not handled:
             self.logger.error("%s: %s", undandled_message, json.dumps(data))
 
-
-    def add_remote_node(self, data: dict):
+    def add_remote_node(self, data: dict, libpath: List[str]|None = None):
         fielstring = """
 from funcnodes.node import Node
 from funcnodes.io import NodeInput, NodeOutput
@@ -650,6 +649,9 @@ from funcnodes.io import NodeInput, NodeOutput
 
         fielstring += "\n" * 2
         fielstring += data["content"].format(name=data["name"], nid=data["nid"])
+
+        if libpath is None:
+            libpath = ["custom"]
 
         target_path = os.path.join(self.data_path, "nodes")
         if not os.path.exists(target_path):
@@ -679,7 +681,9 @@ from funcnodes.io import NodeInput, NodeOutput
                     and obj.__name__ == f"{data['name']}Node"
                 ):
                     nodeclass = obj
-                    self.nodespace.lib.add_nodeclass(nodeclass, "custom")
+                    self.nodespace.lib.add_nodeclass(nodeclass, libpath)
 
         except Exception as e:
             self.logger.exception(e)
+
+        self.nodespace.emit("node_library_updated")
