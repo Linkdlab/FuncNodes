@@ -27,3 +27,4 @@ class FuncNodesExternalWorker(NodeClassMixin, CustomLoop):
         if cls.NODECLASSID not in FuncNodesExternalWorker.RUNNING_WORKERS:
             return []
         return list(FuncNodesExternalWorker.RUNNING_WORKERS[cls.NODECLASSID].values())
+    

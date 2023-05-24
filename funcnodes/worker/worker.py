@@ -14,6 +14,7 @@ import funcnodes
 from funcnodes.worker.loop import LoopManager, NodeSpaceLoop, CustomLoop
 from funcnodes.worker.external_worker import FuncNodesExternalWorker
 from funcnodes.nodespace import NodeSpace, LibShelf
+from funcnodes.node  import Node
 import numpy as np
 import traceback
 
@@ -637,3 +638,48 @@ class RemoteWorker(Worker):
 
         if not handled:
             self.logger.error("%s: %s", undandled_message, json.dumps(data))
+
+
+    def add_remote_node(self, data: dict):
+        fielstring = """
+from funcnodes.node import Node
+from funcnodes.io import NodeInput, NodeOutput
+"""
+        for imp in data["imports"]:
+            fielstring += f"{imp}\n"
+
+        fielstring += "\n" * 2
+        fielstring += data["content"].format(name=data["name"], nid=data["nid"])
+
+        target_path = os.path.join(self.data_path, "nodes")
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+
+        target_path = os.path.join(target_path, data["nid"] + ".py")
+        with open(target_path, "w+") as f:
+            f.write(fielstring)
+
+        try:
+            basename = os.path.basename(target_path)
+            module_name = basename[:-3]
+            spec = importlib.util.spec_from_file_location(module_name, target_path)
+            if spec is None:
+                return
+            if spec.loader is None:
+                return
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            for (
+                name,  # pylint: disable=unused-variable
+                obj,
+            ) in inspect.getmembers(module):
+                if (
+                    inspect.isclass(obj)
+                    and issubclass(obj, Node)
+                    and obj.__name__ == f"{data['name']}Node"
+                ):
+                    nodeclass = obj
+                    self.nodespace.lib.add_nodeclass(nodeclass, "custom")
+
+        except Exception as e:
+            self.logger.exception(e)
