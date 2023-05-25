@@ -639,7 +639,7 @@ class RemoteWorker(Worker):
         if not handled:
             self.logger.error("%s: %s", undandled_message, json.dumps(data))
 
-    def add_remote_node(self, data: dict, libpath: List[str]|None = None):
+    def add_remote_node(self, data: dict, libpath: List[str] | None = None):
         fielstring = """
 from funcnodes.node import Node
 from funcnodes.io import NodeInput, NodeOutput
@@ -648,7 +648,11 @@ from funcnodes.io import NodeInput, NodeOutput
             fielstring += f"{imp}\n"
 
         fielstring += "\n" * 2
-        fielstring += data["content"].format(name=data["name"], nid=data["nid"])
+        fielstring += (
+            data["content"]
+            .replace("{name}", data["name"])
+            .replace("{nid}", data["nid"])
+        )
 
         if libpath is None:
             libpath = ["custom"]
