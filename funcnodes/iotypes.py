@@ -4,6 +4,9 @@ import json
 import io
 import networkx as nx
 import datetime
+import logging
+
+logger = logging.getLogger("funcnodes")
 
 
 def indentity(x: Any) -> Any:
@@ -36,12 +39,15 @@ class IOType:
         dictionary,with the type string as the key and the IOType
         object as the value."""
         if typeid in IOType._types:
-            if IOType._types[typeid] == io_type:
-                return
-            raise IOTypesError(
-                f"IOType {typeid} is already registered "
-                f"as {IOType._types[typeid]} and cannot be registered as {io_type}"
-            )
+            if IOType._types[typeid] != io_type:
+                logger.error(
+                    "IOType %s is already registered "
+                    "as %s and cannot be registered as %s",
+                    typeid,
+                    IOType._types[typeid],
+                    io_type,
+                )
+            return
         IOType._types[typeid] = io_type
         if io_type.typeclass not in IOType._types:
             IOType._types[io_type.typeclass] = io_type

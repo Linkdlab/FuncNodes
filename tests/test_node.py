@@ -130,6 +130,9 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
 
     def test_id_alredy_taken2(self):
         """Test that a node with an ID that is already taken raises a NodeStructureError"""
+        from funcnodes import node
+
+        node.ERROR_ON_DOUBLE_ID = False
 
         class DummyNode1(Node):  # pylint: disable=C0115,W0223,W0612, E0102
             node_id = "dummy_node_test_id_alredy_taken"
