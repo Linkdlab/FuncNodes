@@ -445,34 +445,6 @@ class TriggerOutLoop(CustomLoop):
             }
             self._client.send(event_bundle)
 
-    async def install_package(package: str):
-        import importlib
-
-        try:
-            importlib.import_module(package)
-        except ImportError:
-            import subprocess
-            import sys
-
-            subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", "my_package"]
-            )
-
-    async def install_packages(packages: List[str]):
-        import importlib
-
-        missing = []
-        for p in packages:
-            try:
-                importlib.import_module(p)
-            except ImportError:
-                missing.append(p)
-        if len(missing) > 0:
-            import subprocess
-            import sys
-
-            subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-
 
 class RemoteWorker(Worker):
     def __init__(self, *args, trigger_delay=0.05, data_delay=0.2, **kwargs) -> None:
@@ -639,13 +611,54 @@ class RemoteWorker(Worker):
         if not handled:
             self.logger.error("%s: %s", undandled_message, json.dumps(data))
 
-    def add_remote_node(self, data: dict, libpath: List[str] | None = None):
+
+
+    async def install_package(self,package: str):
+        import importlib
+
+        try:
+            importlib.import_module(package)
+        except ImportError:
+            import subprocess
+            import sys
+
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "my_package"]
+            )
+
+    async def install_packages(self,packages: List[str]):
+        import importlib
+
+        missing = []
+        for p in packages:
+            try:
+                importlib.import_module(p)
+            except ImportError:
+                missing.append(p)
+        if len(missing) > 0:
+            import subprocess
+            import sys
+
+            subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
+            
+            
+
+    async def add_remote_node(self, data: dict, libpath: List[str] | None = None):
         fielstring = """
-from funcnodes.node import Node
-from funcnodes.io import NodeInput, NodeOutput
+from funcnodes import Node, NodeInput, NodeOutput
 """
-        for imp in data["imports"]:
-            fielstring += f"{imp}\n"
+        for mod, implist in data.get("imports", {}).items():
+            if mod != "":
+                fielstring += f"from {mod} import "
+            else:
+                fielstring += "import "
+            fielstring += ", ".join(
+                [
+                    imp["name"] + (" as " + imp["asname"] if "asname" in imp else "")
+                    for imp in implist
+                ]
+            )
+            fielstring += "\n"
 
         fielstring += "\n" * 2
         fielstring += (
@@ -664,6 +677,8 @@ from funcnodes.io import NodeInput, NodeOutput
         target_path = os.path.join(target_path, data["nid"] + ".py")
         with open(target_path, "w+") as f:
             f.write(fielstring)
+
+        await self.install_packages(data.get("dependencies", [])
 
         try:
             basename = os.path.basename(target_path)
