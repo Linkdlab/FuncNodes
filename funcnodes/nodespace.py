@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import List, Dict, Type, Any, TypedDict, TYPE_CHECKING
 import json
 import copy
-from .mixins import EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin
+from .mixins import EventEmitterMixin, ObjectLoggerMixin
 from .errors import LibraryTypeError, NodeTypeError, LibraryError, NodeSpaceError
 from .node import Node, NodeSerializationInterface, FullNodeClassJSON, FullNodeJSON
 
@@ -58,7 +58,7 @@ class FullNodeSpaceJSON(TypedDict):
     lib: FullLibJSON
 
 
-class Library(ProxyableMixin):
+class Library:
     """Library is a class that holds all the nodes that can be used in a nodespace.
     Nodeclasses can be sorted in shelves. shelves are just strings that can be used
     to group nodes together. shelves can be nested by using an array of strings.
@@ -468,7 +468,7 @@ class Library(ProxyableMixin):
 DEFAULT_LIB: Library = Library()
 
 
-class NodeSpace(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin):
+class NodeSpace(EventEmitterMixin, ObjectLoggerMixin):
     """NodeSpace is a collection of nodes that can be used to create functional graph"""
 
     def __init__(self, lib: Library | None = None):

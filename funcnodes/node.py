@@ -7,6 +7,7 @@ import json
 import uuid
 import inspect
 import asyncio
+import logging
 from time import perf_counter as _deltatimer
 from abc import ABCMeta, abstractmethod
 from typing import (
@@ -59,7 +60,6 @@ from .mixins import (
     EventEmitterMixin,
     EventCallback,
     ObjectLoggerMixin,
-    ProxyableMixin,
 )
 from .utils import (
     deep_fill_dict,
@@ -77,6 +77,9 @@ NODE_MAX_NAME_LENGTH = 20
 # endregion global settings
 
 NodeDataDict = Dict[NodeDataName, Any]
+
+
+logger = logging.getLogger("funcnodes")
 
 
 class TriggerTask:
@@ -163,6 +166,9 @@ class FullNodeJSON(TypedDict):
     requirements: List[dict]
 
 
+ERROR_ON_DOUBLE_ID = False
+
+
 # region helpers
 class NodeMetaClass(ABCMeta):
     """Metaclass for Node class"""
@@ -180,16 +186,42 @@ class NodeMetaClass(ABCMeta):
         new_cls: Type[Node] = super().__new__(
             mcls, name, bases, namespace, **kwargs  # type: ignore
         )
-        if new_cls.node_id is None:
-            raise NodeStructureError(
-                f"Node class '{new_cls.__name__}' does not have a node_id"
-            )
+        try:
+            if not issubclass(new_cls, Node):
+                raise NodeStructureError(
+                    f"Node class '{new_cls.__name__}' is not a subclass of Node"
+                )
+            if new_cls.node_id is None or new_cls.node_id == "":
+                raise NodeStructureError(
+                    f"Node class '{new_cls.__name__}' does not have a node_id"
+                )
+        except NameError:
+            # new_cls is Node thats why its not defined
+            pass
+
         if new_cls.node_id in NodeMetaClass.NODECLASSES:
-            raise NodeStructureError(
-                f"Node class '{new_cls.__name__}'(module={new_cls.__module__})"
-                f" has the same node_id as '{NodeMetaClass.NODECLASSES[new_cls.node_id].__name__}"
-                f"(module={NodeMetaClass.NODECLASSES[new_cls.node_id].__module__}):"
-                f" '{new_cls.node_id}' "
+            if ERROR_ON_DOUBLE_ID:
+                raise NodeStructureError(
+                    (
+                        "Node class '%s'(module=%s) has the same node_id as '%s'"
+                        "(module=%s): '%s' "
+                    )
+                    % (
+                        new_cls.__name__,
+                        new_cls.__module__,
+                        NodeMetaClass.NODECLASSES[new_cls.node_id].__name__,
+                        NodeMetaClass.NODECLASSES[new_cls.node_id].__module__,
+                        new_cls.node_id,
+                    )
+                )
+            logger.warning(
+                "Node class '%s'(module=%s) has the same node_id as '%s'"
+                "(module=%s): '%s' ",
+                new_cls.__name__,
+                new_cls.__module__,
+                NodeMetaClass.NODECLASSES[new_cls.node_id].__name__,
+                NodeMetaClass.NODECLASSES[new_cls.node_id].__module__,
+                new_cls.node_id,
             )
         NodeMetaClass.NODECLASSES[new_cls.node_id] = new_cls
         return new_cls
@@ -240,9 +272,7 @@ class NodeIODict(Dict[str, NodeIO]):
 # type ([^=]*)=([^;]*); "$1":Literal[$2],
 
 
-class Node(
-    EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin, metaclass=NodeMetaClass
-):
+class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
     """Base class for all nodes
 
     Attributes:
@@ -252,7 +282,7 @@ class Node(
         depends on the inputs not on some external state, like URL response
     """
 
-    node_id: str = "basenode"
+    node_id: str = ""
     PURE = True
     trigger_on_create: bool = True
     requirements: List[dict] = []

@@ -116,6 +116,9 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
 
     def test_id_alredy_taken(self):
         """Test that a node with an ID that is already taken raises a NodeStructureError"""
+        from funcnodes import node
+
+        node.ERROR_ON_DOUBLE_ID = True
 
         class DummyNode1(Node):  # pylint: disable=C0115,W0223,W0612, E0102
             node_id = "dummy_node_test_id_alredy_taken"
@@ -124,6 +127,21 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
 
             class DummyNode2(Node):  # pylint: disable=C0115,W0223,W0612, E0102
                 node_id = "dummy_node_test_id_alredy_taken"
+
+    def test_id_alredy_taken2(self):
+        """Test that a node with an ID that is already taken raises a NodeStructureError"""
+
+        class DummyNode1(Node):  # pylint: disable=C0115,W0223,W0612, E0102
+            node_id = "dummy_node_test_id_alredy_taken"
+
+        with self.assertLogs("funcnodes", level="INFO") as cm:
+
+            class DummyNode2(Node):  # pylint: disable=C0115,W0223,W0612, E0102
+                node_id = "dummy_node_test_id_alredy_taken"
+
+            self.assertEqual(len(cm.output), 1)
+            self.assertEqual(len(cm.records), 1)
+            self.assertIn("has the same node_id as", cm.output[0])
 
     def test_node_default_io(self):
         """Test that the default IO is set correctly"""

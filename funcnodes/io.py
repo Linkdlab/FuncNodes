@@ -11,7 +11,6 @@ from .utils import deep_remove_dict_on_equal
 from .mixins import (
     EventEmitterMixin,
     ObjectLoggerMixin,
-    ProxyableMixin,
 )
 from .errors import NodeIOError, EdgeError, MissingValueError, NodeError
 from ._typing import (
@@ -121,7 +120,7 @@ def repr_va(repr_va) -> Tuple[str, str]:
         return str(reduce_val(repr_va)), "text/plain"
 
 
-class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ProxyableMixin, ABC):
+class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ABC):
     """Base class for all Node inputs and outputs."""
 
     def __init__(self, properties: IOProperties | dict | None = None, **kwargs):
@@ -1205,7 +1204,7 @@ class NodeOutput(NodeIO):
         return
 
 
-class Edge(ProxyableMixin):
+class Edge:
     """Edge class to connect two NodeIOs."""
 
     @staticmethod

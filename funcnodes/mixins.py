@@ -3,13 +3,7 @@ mixins as base classes for funcnodes
 """
 from __future__ import annotations
 import logging
-import sys
-from typing import List, Any, Dict, Callable, Generic, TypeVar, Type
-
-if sys.version_info < (3, 11):
-    from typing_extensions import Self
-else:
-    from typing import Self
+from typing import List, Any, Dict, Callable, TypeVar
 
 from ._typing import (
     EventCallback,
@@ -256,50 +250,3 @@ class ObjectLoggerMixin:
             logger.addHandler(handler)
         self.logger = logging.LoggerAdapter(logger, {"obj": self})
         super().__init__(*args, **kwargs)
-
-
-GenericProxyableMixin = TypeVar("GenericProxyableMixin", bound="ProxyableMixin")
-
-
-class ProxyBase(Generic[GenericProxyableMixin]):
-    def __init__(self, obj: GenericProxyableMixin):
-        self._obj: GenericProxyableMixin = obj
-        self._obj.proxy = self  # type: ignore
-
-
-class ProxyableMixin:
-    def __init__(self, *args, **kwargs):
-        self._proxy: ProxyBase[Self] | None = None
-        super().__init__(*args, **kwargs)
-
-    @property
-    def proxy(self) -> ProxyBase[Self]:
-        if self._proxy is None:
-            self.get_default_proxyclass()(self)
-            if self._proxy is None:
-                raise AttributeError(
-                    f"Proxy not set for {self}, despite having a default proxy class {self.get_default_proxyclass()}"
-                )
-        return self._proxy
-
-    @proxy.setter
-    def proxy(self, proxy: ProxyBase[Self]) -> None:
-        if self._proxy is not None:
-            raise AttributeError(f"Proxy already set for {self}")
-        self._proxy = proxy
-
-    @classmethod
-    def set_default_proxyclass(cls, proxyclass: Type[ProxyBase]):
-        cls._default_proxyclass = proxyclass
-
-    @classmethod
-    def get_default_proxyclass(cls) -> Type[ProxyBase]:
-        # check if the class has a default proxy class
-        if hasattr(cls, "_default_proxyclass"):
-            return cls._default_proxyclass
-        # check if the parent class has a default proxy class
-        if hasattr(cls, "__bases__"):
-            for base in cls.__bases__:
-                if issubclass(base, ProxyableMixin):
-                    return base.get_default_proxyclass()
-        raise AttributeError(f"No default proxy class set for {cls}")
