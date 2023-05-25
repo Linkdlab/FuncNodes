@@ -1,6 +1,6 @@
 import numpy as np
-from ..node_creator import func_to_node, FuncNodeFunctionParam, OutputParam
-from ...nodespace import LibShelf
+from funcnodes.node_creator import func_to_node, FuncNodeFunctionParam, OutputParam
+from funcnodes.nodespace import LibShelf
 from .types import NdArrayType
 
 # for n in dir(np.random):

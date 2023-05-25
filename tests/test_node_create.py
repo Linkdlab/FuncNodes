@@ -6,7 +6,7 @@ import random
 import warnings
 from funcnodes.errors import NotOperableException
 from funcnodes.node import Node
-from funcnodes.nodes.node_creator import (
+from funcnodes.node_creator import (
     func_to_node,
     func_to_node_decorator,
     FuncNodeReservedNameError,
@@ -107,7 +107,7 @@ class TestNodeCreate(unittest.IsolatedAsyncioTestCase):
         assert node() == 1, "node() != 1"
 
     async def test_classdecorator(self):
-        from funcnodes.nodes.node_creator import NodeClassMixin, instance_nodefunction
+        from funcnodes.node_creator import NodeClassMixin, instance_nodefunction
 
         class TestNodeCarrier(NodeClassMixin):
             testfunccallled = False

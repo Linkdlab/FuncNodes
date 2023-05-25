@@ -5,7 +5,7 @@ import unittest
 import logging
 import numpy as np
 from funcnodes.node import Node
-from funcnodes.nodes.node_creator import FunctionBasedNode
+from funcnodes.node_creator import FunctionBasedNode
 from funcnodes.nodes.numpy_nodes.ufunc import UFUNC_NODES
 
 

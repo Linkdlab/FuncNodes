@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Dict, Type
 import numpy as np
 import numpy.typing as npt
-from funcnodes.io import NodeInput, NodeOutput
-from funcnodes.nodes.node_creator import FunctionBasedNode
+from funcnodes import NodeInput, NodeOutput
+from funcnodes.node_creator import FunctionBasedNode
 from funcnodes.nodespace import LibShelf
 from .types import NdArrayType
 

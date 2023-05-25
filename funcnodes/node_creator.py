@@ -18,14 +18,14 @@ import asyncio
 import inspect
 import warnings
 
-from ..io import (
+from .io import (
     NodeInput,
     NodeOutput,
     IOProperties,
 )
-from ..iotypes import IOType
+from .iotypes import IOType
 
-from ..node import Node, NodeIdType
+from .node import Node, NodeIdType
 
 
 class FunctionBasedNode(Node):

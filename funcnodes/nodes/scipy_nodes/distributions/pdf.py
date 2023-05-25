@@ -3,7 +3,7 @@ from scipy import stats
 from typing import List
 import numpy as np
 
-from funcnodes.nodes.node_creator import (
+from funcnodes.node_creator import (
     func_to_node,
     FuncNodeFunctionParam,
 )
