@@ -611,9 +611,7 @@ class RemoteWorker(Worker):
         if not handled:
             self.logger.error("%s: %s", undandled_message, json.dumps(data))
 
-
-
-    async def install_package(self,package: str):
+    async def install_package(self, package: str):
         import importlib
 
         try:
@@ -626,7 +624,7 @@ class RemoteWorker(Worker):
                 [sys.executable, "-m", "pip", "install", "my_package"]
             )
 
-    async def install_packages(self,packages: List[str]):
+    async def install_packages(self, packages: List[str]):
         import importlib
 
         missing = []
@@ -640,8 +638,6 @@ class RemoteWorker(Worker):
             import sys
 
             subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-            
-            
 
     async def add_remote_node(self, data: dict, libpath: List[str] | None = None):
         fielstring = """
@@ -678,7 +674,7 @@ from funcnodes import Node, NodeInput, NodeOutput
         with open(target_path, "w+") as f:
             f.write(fielstring)
 
-        await self.install_packages(data.get("dependencies", [])
+        await self.install_packages(data.get("dependencies", []))
 
         try:
             basename = os.path.basename(target_path)
