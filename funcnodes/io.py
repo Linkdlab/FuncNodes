@@ -31,7 +31,12 @@ if TYPE_CHECKING:
     from .node import Node, TriggerQueue
 
 from functools import wraps
+import json
 
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 UNDEFINED = object()
 
@@ -91,11 +96,22 @@ def reduce_list(lst: list) -> list:
 
 
 def reduce_val(v):
+    if np:
+        if isinstance(v, (np.ndarray, np.matrix)):
+            v = v.tolist()
     if isinstance(v, (list, tuple)):
-        return [reduce_val(x) for x in v]
+        return reduce_list(v)
     if isinstance(v, dict):
         return {k: reduce_val(v) for k, v in v.items()}
     return v
+
+
+def stringify_value(v):
+    if isinstance(v, (list, tuple)):
+        return ", ".join(stringify_value(vv) for vv in v)
+    if isinstance(v, dict):
+        return json.dumps(v, indent=2)
+    return str(v)
 
 
 def repr_va(repr_va) -> Tuple[str, str]:
@@ -117,7 +133,7 @@ def repr_va(repr_va) -> Tuple[str, str]:
     elif hasattr(repr_va, "_repr_pretty_"):
         return repr_va._repr_pretty_(), "text/plain"
     else:
-        return str(reduce_val(repr_va)), "text/plain"
+        return stringify_value(reduce_val(repr_va)), "text/plain"
 
 
 class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ABC):
