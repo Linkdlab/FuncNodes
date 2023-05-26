@@ -561,6 +561,10 @@ class RemoteWorker(Worker):
         data = {
             "backend": self.nodespace.full_serialize(),
             "view": self.view_state(),
+            "worker": {
+                w.NODECLASSID: [i.uuid for i in w.running_instances()]
+                for w in self.local_worker_lookup_loop.worker_classes
+            },
         }
         return data
 
