@@ -77,6 +77,16 @@ class NowNode(Node):
         return True
 
 
+class LengthNode(Node):
+    node_id = "length"
+    input = NodeInput(type=list, required=True)
+    output = NodeOutput(type=int)
+
+    async def on_trigger(self):
+        self.output.value = len(self.input.value)
+        return True
+
+
 LIB = LibShelf(
     name="input",
     nodes=[
@@ -86,6 +96,7 @@ LIB = LibShelf(
         BooleanInputNode,
         DateTimeInputNode,
         NowNode,
+        LengthNode,
     ],
     shelves=[],
 )
