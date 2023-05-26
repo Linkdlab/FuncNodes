@@ -114,10 +114,9 @@ def stringify_value(v):
             return json.dumps(v, indent=2)
         except Exception:
             try:
-                return json.dumps({
-                    str(k): stringify_value(vv)
-                    for k, vv in v.items()
-                }, indent=2)
+                return json.dumps(
+                    {str(k): stringify_value(vv) for k, vv in v.items()}, indent=2
+                )
             except Exception:
                 pass
     return str(v)
@@ -185,8 +184,36 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ABC):
             allows_multiple=properties.get("allows_multiple", True),
             does_trigger=properties.get("does_trigger", True),
             trigger_on_get=properties.get("trigger_on_get", False),
+            options=properties.get("options", None),
         )
         return new_properties
+
+    @property
+    def options(self) -> List[Tuple[str, Any]] | None:
+        """Returns the options of this NodeIO.
+
+        Returns
+        -------
+        List[Tuple[str, Any]]:
+            options of this NodeIO
+        """
+        return self._properties.get("options")
+
+    @options.setter
+    def options(self, options: List[Tuple[str, Any]] | None) -> None:
+        """Sets the options of this NodeIO.
+
+        Parameters
+        ----------
+        options : List[Tuple[str, Any]]:
+            options to set
+
+        Returns
+        -------
+        None:
+
+        """
+        self._properties["options"] = options
 
     @property
     def properties(self) -> FixedIOProperties:
@@ -864,6 +891,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ABC):
             "node": self._node.id if self._node else None,
             "value": self.value_or_none,
             "does_trigger": self.does_trigger,
+            "options": self.options,
         }
 
     def _repr_json_(self):
@@ -1414,3 +1442,4 @@ class FullNodeIOJSON(TypedDict):
     node: str | None
     value: Any
     does_trigger: bool
+    options: List[Tuple[str:any]] | None

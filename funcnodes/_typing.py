@@ -7,7 +7,17 @@ if sys.version_info < (3, 11):
 else:
     from typing import TypedDict, Unpack
 
-from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Protocol, Generic
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Type,
+    TypeVar,
+    Protocol,
+    Generic,
+    Tuple,
+)
 
 
 if TYPE_CHECKING:
@@ -149,6 +159,7 @@ class IOProperties(TypedDict, total=False):
     allows_multiple: bool
     does_trigger: bool
     trigger_on_get: bool
+    options: List[Tuple[str, any]]
 
 
 class FixedIOProperties(TypedDict):
@@ -161,6 +172,7 @@ class FixedIOProperties(TypedDict):
     allows_multiple: bool
     does_trigger: bool
     trigger_on_get: bool
+    options: List[Tuple[str, any]]
 
 
 class NodeIOState(TypedDict):
