@@ -697,7 +697,11 @@ from funcnodes import Node, NodeInput, NodeOutput
                 name,  # pylint: disable=unused-variable
                 obj,
             ) in inspect.getmembers(module):
-                if inspect.isclass(obj) and issubclass(obj, Node):
+                if (
+                    inspect.isclass(obj)
+                    and issubclass(obj, Node)
+                    and obj.__name__ == data["name"]
+                ):
                     nodeclass = obj
                     self.nodespace.lib.add_nodeclass(nodeclass, libpath)
 
