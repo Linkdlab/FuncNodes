@@ -110,7 +110,7 @@ def stringify_value(v):
     if isinstance(v, (list, tuple)):
         return ", ".join(stringify_value(vv) for vv in v)
     if isinstance(v, dict):
-        try
+        try:
             return json.dumps(v, indent=2)
         except Exception:
             try:
