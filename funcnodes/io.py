@@ -84,6 +84,13 @@ class Message_NodeIO_ValueChanged(MessageInArgs):
     new: Any
 
 
+class MessageOptionsChanged(MessageInArgs):
+    """Message for NodeIO.options_changed event."""
+
+    old: Any
+    new: Any
+
+
 def reduce_list(lst: list) -> list:
     if len(lst) > 20:
         return (
@@ -213,7 +220,25 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ABC):
         None:
 
         """
+        oldvalue = self.options
         self._properties["options"] = options
+        self.emit(
+            "options_changed",
+            MessageOptionsChanged(
+                old=oldvalue,
+                new=self.options,
+            ),
+        )
+        if self.node:
+            if self.node.nodespace:
+                self.node.nodespace.emit(
+                    "io_options_changed",
+                    MessageOptionsChanged(
+                        old=oldvalue,
+                        new=self.options,
+                        io=self.full_id,
+                    ),
+                )
 
     @property
     def properties(self) -> FixedIOProperties:
@@ -442,8 +467,12 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ABC):
     def __str__(self) -> str:
         return f"{self.id}({self.node})"
 
+    @property
+    def full_id(self):
+        return f"{self.node.id}__{self.id}"
+
     def __repr__(self) -> str:
-        return self.__str__()
+        return self.full_id
 
     def __len__(self) -> int:
         return len(self._edges)
@@ -884,6 +913,7 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ABC):
         """
         return {
             "id": self.id,
+            "full_id": self.full_id,
             "type": self.typestring,
             "name": self.name,
             "is_input": self.is_input(),
@@ -1435,6 +1465,7 @@ class FullNodeIOJSON(TypedDict):
     """Full JSON representation of a NodeIO."""
 
     id: str
+    full_id: str
     name: str
     type: str
     is_input: bool
