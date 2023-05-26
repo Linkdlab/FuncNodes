@@ -568,6 +568,9 @@ class RemoteWorker(Worker):
         }
         return data
 
+    def new_backend_instance(self, workerid):
+        self.local_worker_lookup_loop.start_local_worker_by_id(workerid)
+
     async def sync_state(self):
         data = self.full_state()
         self.data_update_loop.reset_active_data()

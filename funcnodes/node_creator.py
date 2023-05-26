@@ -188,6 +188,12 @@ def func_to_node(
                 nt = type(None)
                 if th["return"] == nt:
                     output_params = []
+                elif getattr(th["return"], "__origin__", None) is tuple:
+                    output_params = [
+                        {"name": f"out{i}", "annotation": t}
+                        for i, t in enumerate(th["return"].__args__)
+                    ]
+
                 else:
                     output_params = [{"name": "out", "annotation": th["return"]}]
         except TypeError:
