@@ -647,21 +647,28 @@ class RemoteWorker(Worker):
             subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
 
     async def add_remote_node(self, data: dict, libpath: List[str] | None = None):
-        fielstring = """
-from funcnodes import Node, NodeInput, NodeOutput
+        fielstring = """from funcnodes import Node, NodeInput, NodeOutput
 """
         for mod, implist in data.get("imports", {}).items():
+            line = ""
             if mod != "":
-                fielstring += f"from {mod} import "
+                line += f"from {mod} import "
             else:
-                fielstring += "import "
-            fielstring += ", ".join(
-                [
-                    imp["name"] + (" as " + imp["asname"] if "asname" in imp else "")
-                    for imp in implist
-                ]
+                line += "import "
+            line += (
+                ", ".join(
+                    [
+                        imp["name"]
+                        + (" as " + imp["asname"] if "asname" in imp else "")
+                        for imp in implist
+                    ]
+                )
+                + "\n"
             )
-            fielstring += "\n"
+            if line.startswith("from __future__ "):
+                fielstring = line + fielstring
+            else:
+                fielstring += line
 
         fielstring += "\n" * 2
         fielstring += (

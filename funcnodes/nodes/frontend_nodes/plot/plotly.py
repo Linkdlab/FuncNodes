@@ -37,12 +37,7 @@ class PlotlyData(IOType):
     typestring = "plotlydata"
 
 
-class PlotlyNode(Node):
-    node_id = "plotlynode"
-    pass
-
-
-class Plotly2DNode(PlotlyNode):
+class Plotly2DNode(Node):
     node_id = "plotly2dnode"
     x = NodeInput(type=np.ndarray, required=False)
     y = NodeInput(type=np.ndarray, required=True)
@@ -64,7 +59,7 @@ class Plotly2DNode(PlotlyNode):
         return True
 
 
-class Plotly2DVLines(PlotlyNode):
+class Plotly2DVLines(Node):
     node_id = "plotly2dvlines"
     x = NodeInput(type=np.ndarray, required=True)
     bottom = NodeInput(type=float, default_value=0)
@@ -88,7 +83,7 @@ class Plotly2DVLines(PlotlyNode):
         return True
 
 
-class Plotly2DMergeNode(PlotlyNode):
+class Plotly2DMergeNode(Node):
     node_id = "plotly2dmerge"
     plot1 = NodeInput(type=PlotlyListType, required=True)
     plot2 = NodeInput(type=PlotlyListType, required=True)
