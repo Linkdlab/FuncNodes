@@ -1,47 +1,16 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import List
-from funcnodes.iotypes import IOType
+
 from funcnodes.node import Node
 from funcnodes.io import NodeInput, NodeOutput
 import numpy as np
-
-
-@dataclass
-class PlotlyDataType:
-    x: np.ndarray
-    y: np.ndarray
-    type: str
-    mode: str
-    marker: dict | None
-
-    def _repr_json_(self):
-        d = {
-            "x": self.x.tolist(),
-            "y": self.y.tolist(),
-            "type": self.type,
-            "mode": self.mode,
-        }
-        if self.marker is not None:
-            d["marker"] = self.marker
-        return d
-
-
-class PlotlyListType(List[PlotlyDataType]):
-    def _repr_json_(self):
-        return [x._repr_json_() for x in self]
-
-
-class PlotlyData(IOType):
-    typeclass = (PlotlyListType,)
-    typestring = "plotlydata"
+from .plotly_types import PlotlyDataType, PlotlyListType, PlotlyData
 
 
 class Plotly2DNode(Node):
     node_id = "plotly2dnode"
     x = NodeInput(type=np.ndarray, required=False)
     y = NodeInput(type=np.ndarray, required=True)
-    plot = NodeOutput(type=PlotlyListType)
+    plot = NodeOutput(type=PlotlyData)
 
     def on_trigger(self):
         x = self.x.value_or_none
@@ -64,7 +33,7 @@ class Plotly2DVLines(Node):
     x = NodeInput(type=np.ndarray, required=True)
     bottom = NodeInput(type=float, default_value=0)
     top = NodeInput(type=float, default_value=1)
-    plot = NodeOutput(type=PlotlyListType)
+    plot = NodeOutput(type=PlotlyData)
 
     def on_trigger(self):
         plds = []
@@ -85,9 +54,9 @@ class Plotly2DVLines(Node):
 
 class Plotly2DMergeNode(Node):
     node_id = "plotly2dmerge"
-    plot1 = NodeInput(type=PlotlyListType, required=True)
-    plot2 = NodeInput(type=PlotlyListType, required=True)
-    plot = NodeOutput(type=PlotlyListType)
+    plot1 = NodeInput(type=PlotlyData, required=True)
+    plot2 = NodeInput(type=PlotlyData, required=True)
+    plot = NodeOutput(type=PlotlyData)
 
     def on_trigger(self):
         pldl: PlotlyListType = PlotlyListType(self.plot1.value + self.plot2.value)
