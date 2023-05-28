@@ -18,6 +18,17 @@ class TextSplitNode(Node):
         return True
 
 
+class StripLinesNode(Node):
+    node_id = "text.strip_lines"
+    text = NodeInput(type=str, required=True)
+    output = NodeOutput(type=str)
+
+    async def on_trigger(self):
+        text = self.text.value
+        self.output.value = "\n".join([line.strip() for line in text.split("\n")])
+        return True
+
+
 class ToKeyValuePair(Node):
     node_id = "text.kv_pair"
     text = NodeInput(type=str, required=True)
@@ -26,7 +37,7 @@ class ToKeyValuePair(Node):
 
     async def on_trigger(self):
         text = self.text.value
-        sep= self.sep.value
+        sep = self.sep.value
         sep = bytes(sep, "utf-8").decode("unicode_escape")
         if not sep:
             return False
