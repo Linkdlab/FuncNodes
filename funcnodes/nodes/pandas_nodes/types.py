@@ -19,7 +19,9 @@ class DataFrameType(IOType):
 
 def json_to_dataframe(value: dict) -> pd.DataFrame:
     if "index" in value and "columns" in value and "data" in value:
-        return pd.DataFrame.from_dict(value, orient="tight")
+        return pd.DataFrame(
+            value["data"], columns=value["columns"], index=value["index"]
+        )
     return pd.DataFrame.from_dict(value)
 
 
