@@ -601,8 +601,11 @@ class NodeIO(EventEmitterMixin, ObjectLoggerMixin, ABC):
             try:
                 value = self.to_type(value)
             except Exception as exc:  # pylint: disable=broad-except
+                str_val=str(value)
+                if len(str_val)>100:
+                    str_val=str_val[:100]+"..."
                 suberror = NodeIOError(
-                    f"Could not set value of '{self.id}' to '{value}' because of '{exc}'"
+                    f"Could not set value of '{self.id}' to '{str_val}' because of '{exc}'"
                 )
                 if self.node:
                     return self.node.error(suberror), False
