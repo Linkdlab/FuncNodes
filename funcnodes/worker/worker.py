@@ -167,6 +167,8 @@ class Worker(ABC):
         if default_nodes is None:
             default_nodes = []
 
+        self.logger = logging.getLogger(__name__)
+
         self.data_path = os.path.abspath(data_path)
 
         self.loop_manager = LoopManager()
@@ -329,6 +331,105 @@ class Worker(ABC):
         self.initialize_nodespace()
         self.loop_manager.run_forever()
 
+    async def install_package(self, package: str):
+        import importlib
+
+        try:
+            importlib.import_module(package)
+        except ImportError:
+            import subprocess
+            import sys
+
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "my_package"]
+            )
+
+    async def install_packages(self, packages: List[str]):
+        import importlib
+
+        missing = []
+        for p in packages:
+            try:
+                importlib.import_module(p)
+            except ImportError:
+                missing.append(p)
+        if len(missing) > 0:
+            import subprocess
+            import sys
+
+            subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
+
+    async def add_remote_node(self, data: dict, libpath: List[str] | None = None):
+        fielstring = """from funcnodes import Node, NodeInput, NodeOutput
+"""
+        for mod, implist in data.get("imports", {}).items():
+            line = ""
+            if mod != "":
+                line += f"from {mod} import "
+            else:
+                line += "import "
+            line += (
+                ", ".join(
+                    [
+                        imp["name"]
+                        + (" as " + imp["asname"] if "asname" in imp else "")
+                        for imp in implist
+                    ]
+                )
+                + "\n"
+            )
+            if line.startswith("from __future__ "):
+                fielstring = line + fielstring
+            else:
+                fielstring += line
+
+        fielstring += "\n" * 2
+        fielstring += (
+            data["content"]
+            .replace("{name}", data["name"])
+            .replace("{nid}", data["nid"])
+        )
+
+        if libpath is None:
+            libpath = ["custom"]
+
+        target_path = os.path.join(self.data_path, "nodes")
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+
+        target_path = os.path.join(target_path, data["nid"] + ".py")
+        with open(target_path, "w+") as f:
+            f.write(fielstring)
+
+        await self.install_packages(data.get("dependencies", []))
+
+        try:
+            basename = os.path.basename(target_path)
+            module_name = basename[:-3]
+            spec = importlib.util.spec_from_file_location(module_name, target_path)
+            if spec is None:
+                return
+            if spec.loader is None:
+                return
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            for (
+                name,  # pylint: disable=unused-variable
+                obj,
+            ) in inspect.getmembers(module):
+                if (
+                    inspect.isclass(obj)
+                    and issubclass(obj, Node)
+                    and obj.__name__ == data["name"]
+                ):
+                    nodeclass = obj
+                    self.nodespace.lib.add_nodeclass(nodeclass, libpath)
+
+        except Exception as e:
+            self.logger.exception(e)
+
+        self.nodespace.emit("node_library_updated")
+
 
 async def get_all_nodeio_reps(
     nodespace: NodeSpace,
@@ -454,7 +555,6 @@ class RemoteWorker(Worker):
 
         self.data_update_loop = DataUpdateLoop(self, delay=data_delay)
         self.loop_manager.add_loop(self.data_update_loop)
-        self.logger = logging.getLogger(__name__)
 
         self._messagehandlers: List[
             Callable[[dict], Awaitable[Tuple[bool | None, str]]]
@@ -617,102 +717,3 @@ class RemoteWorker(Worker):
 
         if not handled:
             self.logger.error("%s: %s", undandled_message, json.dumps(data))
-
-    async def install_package(self, package: str):
-        import importlib
-
-        try:
-            importlib.import_module(package)
-        except ImportError:
-            import subprocess
-            import sys
-
-            subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", "my_package"]
-            )
-
-    async def install_packages(self, packages: List[str]):
-        import importlib
-
-        missing = []
-        for p in packages:
-            try:
-                importlib.import_module(p)
-            except ImportError:
-                missing.append(p)
-        if len(missing) > 0:
-            import subprocess
-            import sys
-
-            subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-
-    async def add_remote_node(self, data: dict, libpath: List[str] | None = None):
-        fielstring = """from funcnodes import Node, NodeInput, NodeOutput
-"""
-        for mod, implist in data.get("imports", {}).items():
-            line = ""
-            if mod != "":
-                line += f"from {mod} import "
-            else:
-                line += "import "
-            line += (
-                ", ".join(
-                    [
-                        imp["name"]
-                        + (" as " + imp["asname"] if "asname" in imp else "")
-                        for imp in implist
-                    ]
-                )
-                + "\n"
-            )
-            if line.startswith("from __future__ "):
-                fielstring = line + fielstring
-            else:
-                fielstring += line
-
-        fielstring += "\n" * 2
-        fielstring += (
-            data["content"]
-            .replace("{name}", data["name"])
-            .replace("{nid}", data["nid"])
-        )
-
-        if libpath is None:
-            libpath = ["custom"]
-
-        target_path = os.path.join(self.data_path, "nodes")
-        if not os.path.exists(target_path):
-            os.makedirs(target_path)
-
-        target_path = os.path.join(target_path, data["nid"] + ".py")
-        with open(target_path, "w+") as f:
-            f.write(fielstring)
-
-        await self.install_packages(data.get("dependencies", []))
-
-        try:
-            basename = os.path.basename(target_path)
-            module_name = basename[:-3]
-            spec = importlib.util.spec_from_file_location(module_name, target_path)
-            if spec is None:
-                return
-            if spec.loader is None:
-                return
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            for (
-                name,  # pylint: disable=unused-variable
-                obj,
-            ) in inspect.getmembers(module):
-                if (
-                    inspect.isclass(obj)
-                    and issubclass(obj, Node)
-                    and obj.__name__ == data["name"]
-                ):
-                    nodeclass = obj
-                    self.nodespace.lib.add_nodeclass(nodeclass, libpath)
-
-        except Exception as e:
-            self.logger.exception(e)
-
-        self.nodespace.emit("node_library_updated")
