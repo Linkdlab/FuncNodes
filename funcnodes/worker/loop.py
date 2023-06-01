@@ -13,6 +13,15 @@ class CustomLoop(ABC):
             logger = logging.getLogger(f"{self.__class__.__name__}")
         self._logger = logger
         self._running = True
+        self._manager: LoopManager | None = None
+
+    @property
+    def manager(self) -> LoopManager | None:
+        return self._manager
+
+    @manager.setter
+    def manager(self, manager: LoopManager):
+        self._manager = manager
 
     @abstractmethod
     async def loop(self):
@@ -38,13 +47,15 @@ class CustomLoop(ABC):
 
 
 class LoopManager:
-    def __init__(self) -> None:
+    def __init__(self, worker) -> None:
         self._loops: List[CustomLoop] = []
         self._loop = asyncio.new_event_loop()
+        self._worker = worker
         asyncio.set_event_loop(self._loop)
 
     def add_loop(self, loop: CustomLoop):
         self._loops.append(loop)
+        loop.manager = self
         self._loop.create_task(loop.continuous_run())
 
     def remove_loop(self, loop: CustomLoop):

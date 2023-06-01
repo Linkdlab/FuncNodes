@@ -171,7 +171,7 @@ class Worker(ABC):
 
         self.data_path = os.path.abspath(data_path)
 
-        self.loop_manager = LoopManager()
+        self.loop_manager = LoopManager(self)
         self.nodespace = NodeSpace()
 
         self.nodespace_loop = NodeSpaceLoop(self.nodespace, delay=nodespace_delay)
