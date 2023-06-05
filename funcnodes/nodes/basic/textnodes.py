@@ -18,6 +18,23 @@ class TextSplitNode(Node):
         return True
 
 
+class LineSplitNode(Node):
+    node_id = "text.lsplit"
+    text = NodeInput(type=str, required=True)
+    line = NodeInput(type=int, required=True)
+    before = NodeOutput(type=str)
+    after = NodeOutput(type=str)
+
+    async def on_trigger(self):
+        text = self.text.value
+        index = self.line.value
+        lines = text.split("\n")
+        l1, l2 = lines[:index], lines[index:]
+        self.before.value = "\n".join(l1)
+        self.after.value = "\n".join(l2)
+        return True
+
+
 class StripLinesNode(Node):
     node_id = "text.strip_lines"
     text = NodeInput(type=str, required=True)
