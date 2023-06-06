@@ -1,43 +1,9 @@
-from typing import Literal
 from funcnodes.nodespace import LibShelf
 from funcnodes.nodes.numpy_nodes.types import NdArrayType
 from funcnodes.node import Node, NodeInput, NodeOutput
 import numpy as np
-from scipy.signal import find_peaks_cwt
-
-
-def interpolate_xy(xin, yin, diff: Literal["min", "median", "mean", "max"] = "median"):
-    # crop both arrays to the same length
-    minlen = min(len(xin), len(yin))
-    x = xin[:minlen].astype(float)
-    y = yin[:minlen].astype(float)
-
-    sorted_indices = np.argsort(x)
-    x = x[sorted_indices]
-    y = y[sorted_indices]
-
-    x_diffs = np.diff(x)
-    mindiff = np.min(x_diffs)
-    maxdiff = np.max(x_diffs)
-    if mindiff == maxdiff:
-        return x, y
-
-    if diff == "min":
-        usediff = mindiff
-    elif diff == "max":
-        usediff = maxdiff
-    elif diff == "median":
-        usediff = np.median(x_diffs)
-    elif diff == "mean":
-        usediff = np.mean(x_diffs)
-    else:
-        raise ValueError(
-            f"diff must be one of 'min', 'max', 'median', 'mean', not {diff}"
-        )
-
-    x_new = np.linspace(x[0], x[-1] + usediff, int(np.ceil((x[-1] - x[0]) / usediff)))
-    y_new = np.interp(x_new, x, y)
-    return x_new.astype(xin.dtype), y_new.astype(yin.dtype)
+from scipy.signal import find_peaks_cwt, find_peaks
+from .signal_tools import interpolate_xy
 
 
 class FindPeaksCWT(Node):
@@ -71,6 +37,46 @@ class FindPeaksCWT(Node):
         peaks = x[peaks]
 
         self.output.value = peaks
+        return True
+
+
+class FindPeaks(Node):
+    node_id = "scipy.signal.find_peaks"
+    x = NodeInput(type=NdArrayType)
+    y = NodeInput(type=NdArrayType, required=True)
+    min_distance = NodeInput(type=float, default=0)
+    min_width = NodeInput(type=float, default=0)
+
+    peak_indices = NodeOutput(type=NdArrayType)
+
+    async def on_trigger(self):
+        y = self.y.value
+        if len(y) <= 1:
+            self.peak_indices.value = np.array([])
+            return True
+        x = self.x.value_or_none
+
+        if x is not None:
+            if len(x) <= 1:
+                self.peak_indices.value = np.array([])
+                return True
+            x, y = interpolate_xy(x, y)
+        else:
+            x = np.arange(len(y))
+
+        dx = np.diff(x).min()
+
+        min_distance = self.min_distance.value
+        min_distance = int(dx / min_distance)
+        if min_distance <= 0:
+            min_distance = 1
+
+        min_width = self.min_width.value
+        min_width = int(dx / min_width)
+        if min_width <= 0:
+            min_width = None
+
+        peaks, _ = find_peaks(y, distance=min_distance, width=min_width)
         return True
 
 
