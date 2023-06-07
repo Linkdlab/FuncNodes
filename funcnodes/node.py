@@ -865,9 +865,7 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
 
         self.emit("add_io", Message_Node_AddIO(io=io))
         if self.nodespace is not None:
-            self.nodespace.emit(
-                "add_io", Message_Node_AddIO(io=io, node=self)
-            )
+            self.nodespace.emit("add_io", Message_Node_AddIO(io=io, node=self))
         return io
 
     def add_input(self, node_input: NodeInput) -> NodeInput:
@@ -1069,6 +1067,8 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
             raise NodeIOError(f"IO '{io.id}' not in node '{self.name}'")
 
         del self._io[io.id]
+        if hasattr(self, "__default_io_" + io.id):
+            delattr(self, "__default_io_" + io.id)
         io.remove()
         self.emit("remove_io", Message_Node_RemoveIO(io=io))
         if self.nodespace is not None:
