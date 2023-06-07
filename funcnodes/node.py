@@ -864,6 +864,10 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
         self._data[io.id] = io.value_or_none
 
         self.emit("add_io", Message_Node_AddIO(io=io))
+        if self.nodespace is not None:
+            self.nodespace.emit(
+                "add_io", Message_Node_AddIO(io=io, node=self)
+            )
         return io
 
     def add_input(self, node_input: NodeInput) -> NodeInput:
@@ -903,6 +907,10 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
             )
 
         self.emit("add_input", Message_Node_AddInput(node_input=node_input))
+        if self.nodespace is not None:
+            self.nodespace.emit(
+                "add_input", Message_Node_AddInput(node_input=node_input, node=self)
+            )
 
         return node_input
 
@@ -942,6 +950,10 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
             node_output.set_value(node_output.default_value, True, False)
 
         self.emit("add_output", Message_Node_AddOutput(node_output=node_output))
+        if self.nodespace is not None:
+            self.nodespace.emit(
+                "add_output", Message_Node_AddOutput(node_output=node_output, node=self)
+            )
         return node_output
 
     def push_output(self, node_output: NodeOutput, mark_for_trigger: bool = True):
@@ -1059,6 +1071,10 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
         del self._io[io.id]
         io.remove()
         self.emit("remove_io", Message_Node_RemoveIO(io=io))
+        if self.nodespace is not None:
+            self.nodespace.emit(
+                "remove_io", Message_Node_RemoveIO(io=io, node=self)
+            )
         return True
 
     def remove_input(self, node_input: NodeInput) -> bool:
