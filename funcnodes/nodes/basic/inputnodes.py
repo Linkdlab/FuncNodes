@@ -2,6 +2,7 @@ from ...nodespace import LibShelf
 from ...node import Node
 from ...io import NodeInput, NodeOutput
 from datetime import datetime
+from .types import dt_type
 
 
 class IntegerInputNode(Node):
@@ -44,20 +45,6 @@ class BooleanInputNode(Node):
         return True
 
 
-try:
-    import numpy as np
-
-    dt_type = np.ndarray
-    from funcnodes.nodes.numpy_nodes.types import NdArrayType  # noqa
-
-    def now_getter():
-        return np.datetime64(datetime.now())
-
-except ImportError:
-    dt_type = datetime
-    now_getter = datetime.now
-
-
 class DateTimeInputNode(Node):
     node_id = "datetimeip"
     input = NodeInput(type=datetime, required=True)
@@ -74,7 +61,7 @@ class NowNode(Node):
     output = NodeOutput(type=dt_type, trigger_on_get=True)
 
     async def on_trigger(self):
-        self.output.value = now_getter()
+        self.output.value = datetime.now()
         return True
 
 
