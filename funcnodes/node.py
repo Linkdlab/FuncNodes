@@ -1440,7 +1440,7 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
             "name": self.name,
             "id": self.id,
             "node_id": self.node_id,
-            "io": {k: v.full_serialize() for k, v in self._io.items()},
+            "io": [v._repr_json_() for v in self._inputs + self._outputs],
             "data": self.get_all_data(),
             "requirements": self.requirements,
             "disabled": self.disabled,
@@ -1466,7 +1466,7 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
             "node_id": self.node_id,
             "inputs": [nio.id for nio in self._inputs],
             "outputs": [nio.id for nio in self._outputs],
-            "io": {k: v._repr_json_() for k, v in self._io.items()},
+            "io": [v._repr_json_() for v in self._inputs + self._outputs],
             "requirements": self.requirements,
         }
 
