@@ -1072,9 +1072,7 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
         io.remove()
         self.emit("remove_io", Message_Node_RemoveIO(io=io))
         if self.nodespace is not None:
-            self.nodespace.emit(
-                "remove_io", Message_Node_RemoveIO(io=io, node=self)
-            )
+            self.nodespace.emit("remove_io", Message_Node_RemoveIO(io=io.id, node=self))
         return True
 
     def remove_input(self, node_input: NodeInput) -> bool:

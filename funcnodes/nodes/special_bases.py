@@ -92,6 +92,7 @@ class VariableInputNode(Node):
             [ipdict.get(f"{name}{number}") for name in self.input_names]
             for number in numbers
                  ]
+        pairs = [pair for pair in pairs if all(pair)]
         return pairs
             
 
