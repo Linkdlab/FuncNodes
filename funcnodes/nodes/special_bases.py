@@ -31,10 +31,16 @@ class VariableInputNode(Node):
             self.number.value = 0
             num = 0
 
-        while num> len(self.variable_inputs)/len(self.input_names):
-            self.create_varinput()
-        while num < len(self.variable_inputs)/len(self.input_names):
-            self.remove_varinput(self.variable_inputs[-1].id)
+        pairs=self.get_input_pairs()
+
+        if num> len(pairs):
+            for i in range(num - len(pairs)):
+                self.create_varinput()
+        if num < len(pairs):
+            pairs2rem = pairs[:num-len(pairs)]
+            for p in pairs2rem:
+                for ip in p:
+                    self.remove_varinput(ip.id)
         return True
 
     def create_varinput(self)->List[str]:
