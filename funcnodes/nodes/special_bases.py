@@ -49,6 +49,7 @@ class VariableInputNode(Node):
                 deletable=True,
                 type=ip_type,
                 id=f"{name}{i}",
+                required=False,
             )
             for name, ip_type in zip(self.input_names, self.input_types)
             ]
