@@ -25,7 +25,7 @@ class VariableInputNode(Node):
             if name[-1].isdigit():
                 raise ValueError("input_names must not end with a number")
 
-    def on_trigger(self):
+    async def on_trigger(self):
         num = self.number.value
         if num < 0:
             self.number.value = 0
