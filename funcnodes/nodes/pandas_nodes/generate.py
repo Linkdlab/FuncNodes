@@ -30,7 +30,9 @@ class BuildDataFrameNode(VariableInputNode):
         if len(inputs) == 0:
             return False
 
-        series_list = [pd.Series(ipp[1].value, name=ipp[0].value) for ipp in inputs]
+        series_list = [
+            pd.Series(ipp[1].value_or_none, name=ipp[0].value_or_none) for ipp in inputs
+        ]
 
         # Creating the DataFrame
         self.output.value = pd.concat(series_list, axis=1)
