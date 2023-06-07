@@ -473,7 +473,8 @@ class DataUpdateLoop(CustomLoop):
         for nodeid, node_repr in all_data.items():
             if nodeid not in self._active_data:
                 self._active_data[nodeid] = {}
-            for ioid, ioval in node_repr["io"].items():
+            for ioval in node_repr["io"]:
+                ioid = ioval["id"]
                 if ioid not in self._active_data[nodeid]:
                     self._active_data[nodeid][ioid] = {
                         "value": "null",
