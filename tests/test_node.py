@@ -92,10 +92,10 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
             node.disabled == node.properties["disabled"]
         ), f"Node properties are '{node.properties}'"
         assert (
-            node.properties["io"]["ip"] == {}
+            node.properties["io"]["ip"] == []
         ), f"Node properties are '{node.properties}'"
         assert (
-            node.properties["io"]["op"] == {}
+            node.properties["io"]["op"] == []
         ), f"Node properties are '{node.properties}'"
 
         node.properties["name"] = "test"
@@ -160,12 +160,14 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
 
         node = DummyNode()
         properties = node.properties
+        ipmap = {io["id"]: io for io in properties["io"]["ip"]}
+
         assert "io" in properties
         assert "ip" in properties["io"]
-        assert "left" in properties["io"]["ip"]
-        assert "id" in properties["io"]["ip"]["left"]
+        assert "left" in ipmap
+        assert "id" in ipmap["left"]
 
-        assert properties["io"]["ip"]["left"]["id"] == "left"
+        assert ipmap["left"]["id"] == "left"
         assert node.io.left.id == "left"
         assert node.left.id == "left"
         assert node.io.left.name == "left"
@@ -204,7 +206,7 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
         sercomp2 = {
             "id": "3cf952ea6d57493288d2aa32f43b2899",
             "nid": "test_node_serialization",
-            "io": {"ip": {"left": {"default_value": 42}}},
+            "io": {"ip": [{"default_value": 42, "id": "left"}]},
         }
         sercomp2["id"] = node2.id
         self.assertDictEqual(

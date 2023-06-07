@@ -72,9 +72,9 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(serialized_data["nid"], "mergeip")
         self.assertListEqual(sorted(list(serialized_data["io"].keys())), ["ip"])
-        self.assertDictEqual(
-            list(serialized_data["io"]["ip"].values())[0], {"required": False}
-        )
+        serdata = serialized_data["io"]["ip"][0]
+        del serdata["id"]  # remove id since its randomly generated
+        self.assertDictEqual(serdata, {"required": False})
         # Test deserialization
         new_merge_node = MergeInputNode(serialized_data)
 

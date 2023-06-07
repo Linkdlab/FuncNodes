@@ -124,6 +124,25 @@ class TestNodeSpace(unittest.TestCase):
             },
         )
 
+        ns.get_node("n_0").left.set_value_and_default(1)
+        ser = ns.serialize()
+        self.maxDiff = None
+        self.assertDictEqual(
+            ser,
+            {
+                "nodes": [
+                    {
+                        "id": "n_0",
+                        "nid": "dummy_node_test_nodespace",
+                        "io": {"ip": [{"default_value": 1, "id": "left"}]},
+                    },
+                    {"id": "n_1", "nid": "dummy_node_test_nodespace"},
+                ],
+                "edges": [["n_0", "output", "n_1", "left"]],
+                "prop": {},
+            },
+        )
+
     def test_deserialize(self):
         ns = NodeSpace()
         ns.lib.add_nodeclass(DummyNode)
@@ -141,9 +160,29 @@ class TestNodeSpace(unittest.TestCase):
             "edges": [["n_0", "output", "n_1", "left"]],
             "prop": {},
         }
+        d11 = {
+            "nodes": [
+                {
+                    "id": "n_0",
+                    "nid": "dummy_node_test_nodespace",
+                    "io": {
+                        "ip": [{"default_value": 0, "id": "right"}],
+                    },
+                },
+                {"id": "n_1", "nid": "dummy_node_test_nodespace"},
+            ],
+            "edges": [["n_0", "output", "n_1", "left"]],
+            "prop": {},
+        }
         ns.deserialize(d1)
 
         d2 = ns.serialize()
         print(d2)
         self.maxDiff = None
-        self.assertDictEqual(d1, d2)
+        self.assertDictEqual(d11, d2)
+
+        ns.deserialize(d11)
+
+        d2 = ns.serialize()
+        self.maxDiff = None
+        self.assertDictEqual(d11, d2)

@@ -48,6 +48,7 @@ from ._typing import (
     NodeIOId,
     Message_Node_SetData,
     PropIODict,
+    IOProperties,
     NodeStateInterface,
     Message_Node_SetNodeSpace,
     Message_Node_AddIO,
@@ -320,55 +321,122 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
                 self.on(event, listener)
 
     def _make_io(self):
-        indict = {}
-        outdict = {}
+        inputlist: List[IOProperties] = []
+        outputlist: List[IOProperties] = []
         for key in dir(self):
             try:
                 value = getattr(self, key)
                 if isinstance(value, NodeIO):
                     if isinstance(value, NodeInput):
-                        indict[key] = value.properties
-                        indict[key]["id"] = key
+                        props: IOProperties = value.properties
+                        props["id"] = key
+                        inputlist.append(props)
 
                     elif isinstance(value, NodeOutput):
-                        outdict[key] = value.properties
-                        outdict[key]["id"] = key
+                        props: IOProperties = value.properties
+                        props["id"] = key
+                        outputlist.append(props)
                     else:
                         raise NodeStructureError(
                             f"NodeIO '{key}' of node '{self.name}' has an invalid type"
                         )
             except AttributeError:
                 pass
+        ios: PropIODict = {"ip": inputlist, "op": outputlist}
 
-        ios = {"ip": indict, "op": outdict}
+        ios_ip_map = {d["id"]: i for i, d in enumerate(ios["ip"])}
+        ios_op_map = {d["id"]: i for i, d in enumerate(ios["op"])}
+
         # check for backwardscompatibility where the
         # ios in to properties where not seperated in ip and op
-        if "io" in self._properties:
-            if "ip" not in self._properties["io"]:
-                self._properties["io"]["ip"] = {}
-            if "op" not in self._properties["io"]:
-                self._properties["io"]["op"] = {}
+        if "io" not in self._properties:
+            self._properties["io"] = {}
+        if "ip" not in self._properties["io"]:
+            self._properties["io"]["ip"] = []
+        if "op" not in self._properties["io"]:
+            self._properties["io"]["op"] = []
 
-            for key in list(self._properties["io"].keys()):
-                if key != "ip" and key != "op":
-                    if key in ios["ip"]:
-                        self._properties["io"]["ip"][key] = self._properties["io"][key]
-                        del self._properties["io"][key]
-                    elif key in ios["op"]:
-                        self._properties["io"]["op"][key] = self._properties["io"][key]
-                        del self._properties["io"][key]
+        if isinstance(self._properties["io"]["ip"], dict):
+            nip = []
+            for key, val in self._properties["io"]["ip"].items():
+                val["id"] = key
+                nip.append(val)
+            self._properties["io"]["ip"] = nip
 
-        deep_fill_dict(self._properties, {"io": ios})  # type: ignore
+        if isinstance(self._properties["io"]["op"], dict):
+            nop = []
+            for key, val in self._properties["io"]["op"].items():
+                val["id"] = key
+                nop.append(val)
+            self._properties["io"]["op"] = nop
+
+        # prop id maps miught be incomplete if no id is set in the properties, the IO will later have a random id
+        prop_ip_map = {
+            d["id"]: i for i, d in enumerate(self._properties["io"]["ip"]) if "id" in d
+        }
+        prop_op_map = {
+            d["id"]: i for i, d in enumerate(self._properties["io"]["op"]) if "id" in d
+        }
+
+        for k, v in self._properties["io"].items():
+            if k not in ["ip", "op"]:
+                if k in ios_ip_map:
+                    if k in prop_ip_map:
+                        # already in the properties, no update for now, this can be changed later
+                        continue
+                    v["id"] = k
+                    self._properties["io"]["ip"].append(v)
+                    prop_ip_map[k] = len(self._properties["io"]["ip"]) - 1
+                elif k in ios_op_map:
+                    if k in prop_op_map:
+                        # already in the properties, no update for now, this can be changed later
+                        continue
+                    v["id"] = k
+                    self._properties["io"]["op"].append(v)
+                    prop_op_map[k] = len(self._properties["io"]["op"]) - 1
+                elif k in prop_ip_map and k in prop_op_map:
+                    raise NodeStructureError(
+                        f"NodeIO '{k}' of node '{self.name}' is defined as input and output at the same time"
+                    )
+                elif k in prop_ip_map:
+                    # already in the properties, no update for now, this can be changed later
+                    continue
+                elif k in prop_op_map:
+                    # already in the properties, no update for now, this can be changed later
+                    continue
+                else:
+                    raise NodeStructureError(
+                        f"NodeIO '{k}' of node '{self.name}' is not defined in the node class and not in the properties"
+                    )
+
+        for inputentry in ios["ip"]:
+            ipid = inputentry["id"]
+            found = False
+            for origip in self._properties["io"]["ip"]:
+                if origip["id"] == ipid:
+                    deep_fill_dict(inputentry, origip)
+                    found = True
+                    break
+            if not found:
+                self._properties["io"]["ip"].append(inputentry)
+
+        for outputentry in ios["op"]:
+            opid = outputentry["id"]
+            found = False
+            for origop in self._properties["io"]["op"]:
+                if origop["id"] == opid:
+                    deep_fill_dict(outputentry, origop)
+                    found = True
+                    break
+            if not found:
+                self._properties["io"]["op"].append(outputentry)
+
         # io is always present due to deepfill
-        for key, value in self._properties["io"]["ip"].items():  # type: ignore
-            if "id" not in value:
-                value["id"] = key
-            self.add_input(NodeInput(value))
+        for ipdata in self._properties["io"]["ip"]:
+            self.add_input(NodeInput(ipdata))
 
-        for key, value in self._properties["io"]["op"].items():  # type: ignore
-            if "id" not in value:
-                value["id"] = key
-            self.add_output(NodeOutput(value))
+        for opdata in self._properties["io"]["op"]:  # type: ignore
+            self.add_output(NodeOutput(opdata))
 
     def initialize(self) -> Self:
         """
@@ -1315,8 +1383,8 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
         deep_remove_dict_on_equal(full_properties, default_properties)  # type: ignore
         # add io serialization
         iodict: PropIODict = PropIODict()
-        iodict["ip"] = {}
-        iodict["op"] = {}
+        iodict["ip"] = []
+        iodict["op"] = []
         full_properties["io"] = iodict
         for node_input in self._inputs:
             # serialize the node_input
@@ -1331,7 +1399,8 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
                 # if the serialization is empty, skip it
                 if len(ioser) == 0:
                     continue
-            iodict["ip"][node_input.id] = ioser
+            ioser["id"] = node_input.id
+            iodict["ip"].append(ioser)
         # if all node_inputs are empty, remove the ip dict
         if len(iodict["ip"]) == 0:
             del iodict["ip"]
@@ -1349,7 +1418,8 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
                 # if the serialization is empty, skip it
                 if len(ioser) == 0:
                     continue
-            iodict["op"][node_output.id] = ioser
+            ioser["id"] = node_output.id
+            iodict["op"].append(ioser)
 
         # if all node_outputs are empty, remove the op dict
         if len(full_properties["io"]["op"]) == 0:

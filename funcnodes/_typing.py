@@ -58,8 +58,8 @@ NodeIdType = str
 class PropIODict(TypedDict, total=False):
     """TypedDict for NodeProperties.io"""
 
-    ip: Dict[NodeIOId, IOProperties]
-    op: Dict[NodeIOId, IOProperties]
+    ip: List[IOProperties]
+    op: List[IOProperties]
 
 
 class NodeStatus(TypedDict):
@@ -149,7 +149,7 @@ class Message_NodeIO_Disconnected(MessageInArgs):
     other: NodeIO
 
 
-class IOProperties(TypedDict, total=False):
+class BaseIOProperties(TypedDict, total=False):
     """Type definition for the minimal properties of a NodeIO."""
 
     id: NodeIOId
@@ -159,20 +159,19 @@ class IOProperties(TypedDict, total=False):
     allows_multiple: bool
     does_trigger: bool
     trigger_on_get: bool
-    options: List[Tuple[str, any]]
+    options: List[Tuple[str, Any]]
 
 
-class FixedIOProperties(TypedDict):
-    """Type definition for the minimal properties of a NodeIO."""
+class IOProperties(BaseIOProperties, total=False):
+    """Type definition for the minimal properties of a NodeIO with optional fields."""
 
-    id: NodeIOId
-    type: str
-    required: bool | None
-    default_value: Any | None
-    allows_multiple: bool
-    does_trigger: bool
-    trigger_on_get: bool
-    options: List[Tuple[str, any]]
+    pass
+
+
+class FixedIOProperties(BaseIOProperties, total=True):
+    """Type definition for the minimal properties of a NodeIO with required fields."""
+
+    pass
 
 
 class NodeIOState(TypedDict):
