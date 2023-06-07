@@ -76,7 +76,6 @@ for n in dir(stats):
         ser = node.full_serialize()
 
         PDF_NODES.append(nodeclass)
-        print(n)
 
 
 LIB = LibShelf(
