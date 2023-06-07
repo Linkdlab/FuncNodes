@@ -72,8 +72,10 @@ class VariableInputNode(Node):
         inputs_to_remove = [f"{n}{number}" for n in self.input_names]
         for ip in self.variable_inputs:
             if ip.id in inputs_to_remove:
-                self.remove_input(ip)
                 self.variable_inputs.remove(ip)
+        for ip in self.get_inputs():
+            if ip.id in inputs_to_remove:
+                self.remove_input(ip)
             
         return True
 
