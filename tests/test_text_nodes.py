@@ -14,7 +14,7 @@ class TestTextNodes(unittest.IsolatedAsyncioTestCase):
 
         node = TextSplitNode()
         node.text.value = "Hello World"
-        node.sep.value = " "
+        node.sep.set_value_and_default(" ")
         node.initialize()
         node.trigger()
 
@@ -22,3 +22,12 @@ class TestTextNodes(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(node.before.value, "Hello")
         self.assertEqual(node.after.value, "World")
+
+        ser = node.serialize()
+
+        node2 = TextSplitNode(ser)
+
+        node2json = node2._repr_json_()
+
+        for io in node2json["io"]:
+            self.assertEqual(io["type"], "str", f"Type of {io['name']} is not str")

@@ -422,7 +422,7 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
             found = False
             for origip in self._properties["io"]["ip"]:
                 if origip["id"] == ipid:
-                    deep_fill_dict(inputentry, origip)
+                    deep_fill_dict(origip, inputentry)
                     found = True
                     break
             if not found:
@@ -433,7 +433,7 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
             found = False
             for origop in self._properties["io"]["op"]:
                 if origop["id"] == opid:
-                    deep_fill_dict(outputentry, origop)
+                    deep_fill_dict(origop, outputentry)
                     found = True
                     break
             if not found:
