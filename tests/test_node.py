@@ -150,7 +150,7 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
         """Test that the default IO is set correctly"""
 
         class DummyNode(Node):  # pylint: disable=C0115,W0223,W0612, E0102
-            left = NodeInput()
+            left = NodeInput(type=int)
             right = NodeInput()
             out = NodeOutput()
             node_id = "test_node_default_io"
@@ -171,6 +171,7 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
         assert node.io.left.id == "left"
         assert node.left.id == "left"
         assert node.io.left.name == "left"
+        assert node.left.typestring == "int"
 
         node2 = DummyNode()
         assert node2.id != node.id
@@ -182,7 +183,7 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
         """Test that the node can be serialized correctly"""
 
         class DummyNode(Node):  # pylint: disable=C0115,W0223,W0612, E0102
-            left = NodeInput()
+            left = NodeInput(type=int)
             right = NodeInput()
             out = NodeOutput()
             node_id = "test_node_serialization"
@@ -213,6 +214,86 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
             ser2,
             sercomp2,
         )
+
+    def test_node_json(self):
+        class DummyNode(Node):  # pylint: disable=C0115,W0223,W0612, E0102
+            left = NodeInput(type=int)
+            right = NodeInput()
+            out = NodeOutput()
+            node_id = "test_node_serialization"
+
+            async def on_trigger(self):
+                return True
+
+        node = DummyNode()
+
+        ser = node._repr_json_()
+        mustbein = ["name", "id", "node_id", "inputs", "outputs", "io"]
+        for key in mustbein:
+            self.assertIn(key, ser), f"Key '{key}' not in serialized node"
+
+        self.assertEqual(ser["name"], "DummyNode")
+        self.assertEqual(ser["id"], node.id)
+        self.assertEqual(ser["node_id"], "test_node_serialization")
+        self.assertEqual(ser["inputs"], ["left", "right"])
+        self.assertEqual(ser["outputs"], ["out"])
+        for io in ser["io"]:
+            self.assertIn("id", io, "Key 'id' not in serialized io")
+            self.assertIn(
+                "full_id", io, f"Key 'full_id' not in serialized io for '{io['id']}'"
+            )
+            self.assertIn(
+                "type", io, f"Key 'type' not in serialized io for '{io['id']}'"
+            )
+            self.assertIn(
+                "name", io, f"Key 'name' not in serialized io for '{io['id']}'"
+            )
+            self.assertIn(
+                "is_input", io, f"Key 'is_input' not in serialized io for '{io['id']}'"
+            )
+            self.assertIn(
+                "connected",
+                io,
+                f"Key 'connected' not in serialized io for '{io['id']}'",
+            )
+            self.assertIn(
+                "node", io, f"Key 'node' not in serialized io for '{io['id']}'"
+            )
+            self.assertIn(
+                "value", io, f"Key 'value' not in serialized io for '{io['id']}'"
+            )
+            self.assertIn(
+                "does_trigger",
+                io,
+                f"Key 'does_trigger' not in serialized io for '{io['id']}'",
+            )
+            self.assertIn(
+                "options", io, f"Key 'options' not in serialized io for '{io['id']}'"
+            )
+
+            self.assertEqual(
+                io["node"], node.id, f"Node id not correct in serialized io {io['id']}"
+            )
+            self.assertEqual(
+                io["full_id"],
+                f"{node.id}__{io['id']}",
+                f"Full id not correct in serialized io {io['id']}",
+            )
+            self.assertEqual(
+                io["is_input"],
+                io["id"] in [ip.id for ip in node.get_inputs()],
+                f"Is input not correct in serialized io {io['id']}",
+            )
+            self.assertEqual(
+                io["connected"],
+                False,
+                f"Connected not correct in serialized io {io['id']}",
+            )
+            self.assertEqual(
+                io["does_trigger"],
+                io["is_input"],
+                f"Does trigger not correct in serialized io {io['id']}",
+            )
 
     async def test_node_deserialization(self):
         """Test that the node can be deserialized correctly"""
@@ -411,3 +492,28 @@ class TestNode(unittest.IsolatedAsyncioTestCase):
 
         node = DummyNode(id="n1").initialize()
         self.assertEqual(repr(node), "DummyNode(n1): ip1, ip2 --> op1")
+
+    def test_io_order(self):
+        class DummyNode(Node):
+            node_id = "test_node_repr"
+            ip2 = NodeInput()
+            ip1 = NodeInput()
+            op1 = NodeOutput()
+            op2 = NodeOutput()
+
+            async def on_trigger(self):
+                return True
+
+        class DummyNode2(DummyNode):
+            node_id = "test_node_repr2"
+            ip3 = NodeInput()
+
+            async def on_trigger(self):
+                return True
+
+        n = DummyNode2()
+
+        io_json = n._repr_json_()["io"]
+        ioids = [i["id"] for i in io_json]
+        self.assertEqual(ioids, ["ip2", "ip1", "ip3", "op1", "op2"])
+        self.assertNotEqual(ioids, ["ip1", "ip2", "ip3", "op1", "op2"])

@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import json
 import uuid
-import inspect
 import asyncio
 import logging
 from time import perf_counter as _deltatimer
@@ -225,6 +224,14 @@ class NodeMetaClass(ABCMeta):
                 new_cls.node_id,
             )
         NodeMetaClass.NODECLASSES[new_cls.node_id] = new_cls
+
+        attributeorder = []
+        for base in reversed(new_cls.__mro__):
+            if hasattr(base, "_attributeorder"):
+                attributeorder.extend(base._attributeorder)
+        attributeorder.extend(list(namespace.keys()))
+        new_cls._attributeorder = attributeorder
+
         return new_cls
 
 
@@ -323,7 +330,7 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
     def _make_io(self):
         inputlist: List[IOProperties] = []
         outputlist: List[IOProperties] = []
-        for key in dir(self):
+        for key in self._attributeorder:
             try:
                 value = getattr(self, key)
                 if isinstance(value, NodeIO):
@@ -342,6 +349,7 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
                         )
             except AttributeError:
                 pass
+
         ios: PropIODict = {"ip": inputlist, "op": outputlist}
 
         ios_ip_map = {d["id"]: i for i, d in enumerate(ios["ip"])}
@@ -1769,20 +1777,6 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
                     raise TimeoutError("await_all timeout")
 
     # endregion trigger
-
-    @classmethod
-    def get_source(cls) -> str:
-        """returns the source code of the node"""
-        return inspect.getsource(cls)
-
-    @classmethod
-    def get_required_imports(cls) -> list[str]:
-        """returns the required imports of the node"""
-        return [
-            "from " + Node.__module__ + " import Node",
-            "from " + NodeInput.__module__ + " import NodeInput",
-            "from " + NodeOutput.__module__ + " import NodeOutput",
-        ]
 
     @classmethod
     def full_class_serialize(cls) -> FullNodeClassJSON:
