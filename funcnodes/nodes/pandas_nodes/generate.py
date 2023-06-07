@@ -25,7 +25,10 @@ class BuildDataFrameNode(VariableInputNode):
     input_names = ["col", "data"]
 
     async def on_trigger(self):
+        await super().on_trigger()
         inputs = self.get_input_pairs()
+        if len(inputs) == 0:
+            return False
 
         series_list = [pd.Series(ipp[1].value, name=ipp[0].value) for ipp in inputs]
 
@@ -35,6 +38,6 @@ class BuildDataFrameNode(VariableInputNode):
 
 LIB = LibShelf(
     name="generate",
-    nodes=[ListToSeriesNode,BuildDataFrameNode],
+    nodes=[ListToSeriesNode, BuildDataFrameNode],
     shelves=[],
 )
