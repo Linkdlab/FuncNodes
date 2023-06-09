@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, List
 from funcnodes import Node
 from funcnodes import NodeInput
-from funcnodes.io import NodeInput
+
 
 class VariableInputNode(Node):
     node_id = "VariableInput"
@@ -15,10 +15,10 @@ class VariableInputNode(Node):
         self.variable_inputs: List[NodeInput] = []
         for ip in self.get_inputs():
             ip.deletable = True
-        
+
         if not len(self.input_names) == len(self.input_types):
             raise ValueError("input_names and input_types must be the same length")
-        
+
         for name in self.input_names:
             if len(name) == 0:
                 raise ValueError("input_names must not be an empty strings")
@@ -31,22 +31,22 @@ class VariableInputNode(Node):
             self.number.value = 0
             num = 0
 
-        pairs=self.get_input_pairs()
+        pairs = self.get_input_pairs()
 
-        if num> len(pairs):
+        if num > len(pairs):
             for i in range(num - len(pairs)):
                 self.create_varinput()
+
         if num < len(pairs):
-            pairs2rem = pairs[:num-len(pairs)]
+            pairs2rem = pairs[-(len(pairs) - num) :]
             for p in pairs2rem:
                 for ip in p:
                     self.remove_varinput(ip.id)
         return True
 
-    def create_varinput(self)->List[str]:
-
+    def create_varinput(self) -> List[str]:
         var_ids = [ip.id for ip in self.variable_inputs]
-        i=1
+        i = 1
         while any([f"{ipname}{i}" in var_ids for ipname in self.input_names]):
             i += 1
 
@@ -58,19 +58,19 @@ class VariableInputNode(Node):
                 required=False,
             )
             for name, ip_type in zip(self.input_names, self.input_types)
-            ]
+        ]
 
         for new_ip in new_inputs:
             self.add_input(new_ip)
             self.variable_inputs.append(new_ip)
         return [new_ip.id for new_ip in new_inputs]
-    
+
     def remove_varinput(self, id: str) -> bool:
-        basename = id.rstrip('0123456789')
+        basename = id.rstrip("0123456789")
         if basename not in self.input_names:
             return False
-        
-        number = id[len(basename):]
+
+        number = id[len(basename) :]
 
         if not number.isdigit() or len(number) == 0:
             return False
@@ -82,24 +82,20 @@ class VariableInputNode(Node):
         for ip in self.get_inputs():
             if ip.id in inputs_to_remove:
                 self.remove_input(ip)
-            
+
         return True
 
     def get_input_pairs(self) -> List[List[NodeInput]]:
         ipdict = {ip.id: ip for ip in self.variable_inputs}
-        numbers=[]
+        numbers = []
         for ip in self.variable_inputs:
-            basename = ip.id.rstrip('0123456789')
-            number = ip.id[len(basename):]
+            basename = ip.id.rstrip("0123456789")
+            number = ip.id[len(basename) :]
             if number not in numbers:
                 numbers.append(number)
-        
         pairs = [
             [ipdict.get(f"{name}{number}") for name in self.input_names]
             for number in numbers
-                 ]
-        pairs = [pair for pair in pairs if all(pair)]
+        ]
+        pairs = [pair for pair in pairs if all([p is not None for p in pair])]
         return pairs
-            
-
-        

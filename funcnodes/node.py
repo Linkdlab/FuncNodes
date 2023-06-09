@@ -1069,6 +1069,10 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
         del self._io[io.id]
         if hasattr(self, "__default_io_" + io.id):
             delattr(self, "__default_io_" + io.id)
+
+        if io.id in self._data:
+            del self._data[io.id]
+
         io.remove()
         self.emit("remove_io", Message_Node_RemoveIO(io=io))
         if self.nodespace is not None:

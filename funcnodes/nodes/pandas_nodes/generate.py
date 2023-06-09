@@ -19,7 +19,7 @@ class ListToSeriesNode(Node):
 
 class BuildDataFrameNode(VariableInputNode):
     node_id = "pd.buildDataFrame"
-    output = NodeOutput(type=pd.DataFrame)
+    dataframe = NodeOutput(type=pd.DataFrame)
 
     input_types = [str, NdArrayType]
     input_names = ["col", "data"]
@@ -35,7 +35,7 @@ class BuildDataFrameNode(VariableInputNode):
         ]
 
         # Creating the DataFrame
-        self.output.value = pd.concat(series_list, axis=1)
+        self.dataframe.value = pd.concat(series_list, axis=1)
 
 
 LIB = LibShelf(
