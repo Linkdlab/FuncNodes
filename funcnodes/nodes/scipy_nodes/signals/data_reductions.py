@@ -1,6 +1,7 @@
 from funcnodes.nodes.numpy_nodes.types import NdArrayType
 from funcnodes.node import Node, NodeInput, NodeOutput
 import numpy as np
+from .signal_tools import interpolate_xy
 
 
 class NthPointReduction(Node):
@@ -29,3 +30,27 @@ class NthPointReduction(Node):
         selected_indices = indices[::factor]
         self.x_reduced.value = np.copy(x[::factor])
         self.selected_indices.value = selected_indices
+
+
+class EvenData(Node):
+    node_id = "datareduction.even_data"
+
+    x = NodeInput(type=NdArrayType)
+    y = NodeInput(type=NdArrayType)
+
+    xr = NodeOutput(type=NdArrayType)
+    yr = NodeOutput(type=NdArrayType)
+
+    async def on_trigger(self):
+        y = self.y.value
+        x = self.x.value
+
+        if len(y) <= 1 or len(x) <= 1:
+            self.xr.value = np.array([])
+            self.yr.value = np.array([])
+            return True
+
+        xr, yr = interpolate_xy(x, y)
+
+        self.xr.value = xr
+        self.yr.value = yr
