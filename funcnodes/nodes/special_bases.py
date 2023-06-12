@@ -12,7 +12,7 @@ class VariableInputNode(Node):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.variable_inputs: List[NodeInput] = []
+
         for ip in self.get_inputs():
             ip.deletable = True
 
@@ -45,7 +45,7 @@ class VariableInputNode(Node):
         return True
 
     def create_varinput(self) -> List[str]:
-        var_ids = [ip.id for ip in self.variable_inputs]
+        var_ids = [ip.id for ip in self.get_var_inputs()]
         i = 1
         while any([f"{ipname}{i}" in var_ids for ipname in self.input_names]):
             i += 1
@@ -62,7 +62,6 @@ class VariableInputNode(Node):
 
         for new_ip in new_inputs:
             self.add_input(new_ip)
-            self.variable_inputs.append(new_ip)
         return [new_ip.id for new_ip in new_inputs]
 
     def remove_varinput(self, id: str) -> bool:
@@ -76,19 +75,31 @@ class VariableInputNode(Node):
             return False
 
         inputs_to_remove = [f"{n}{number}" for n in self.input_names]
-        for ip in self.variable_inputs:
-            if ip.id in inputs_to_remove:
-                self.variable_inputs.remove(ip)
         for ip in self.get_inputs():
             if ip.id in inputs_to_remove:
                 self.remove_input(ip)
 
         return True
 
+    def get_var_inputs(self) -> List[NodeInput]:
+        ipdict = {ip.id: ip for ip in self.get_inputs()}
+        variable_inputs = []
+
+        current_input_ids = [ip.id for ip in self.get_inputs()]
+        for cid in current_input_ids:
+            basename = cid.rstrip("0123456789")
+            number = cid[len(basename) :]
+            if number.isdigit() and len(number) > 0:
+                if basename in self.input_names:
+                    variable_inputs.append(ipdict[cid])
+        return variable_inputs
+
     def get_input_pairs(self) -> List[List[NodeInput]]:
-        ipdict = {ip.id: ip for ip in self.variable_inputs}
+        variable_inputs = self.get_var_inputs()
+        ipdict = {ip.id: ip for ip in variable_inputs}
+
         numbers = []
-        for ip in self.variable_inputs:
+        for ip in variable_inputs:
             basename = ip.id.rstrip("0123456789")
             number = ip.id[len(basename) :]
             if number not in numbers:

@@ -136,3 +136,27 @@ class TestPandasNodes(unittest.IsolatedAsyncioTestCase):
         await node.await_done()
 
         self.assertEqual(linspacenode2.out.get_other_io(), [])
+
+        ser = node.serialize()
+
+        node2 = BuildDataFrameNode(ser).initialize()
+
+        self.assertEqual(len(node2.get_inputs()), 3)
+        self.assertEqual(ser, node2.serialize())
+
+        node2.number.value = 2
+        node2.trigger()
+        await node2.await_done()
+
+        self.assertEqual(len(node2.get_inputs()), 5)
+
+        self.assertEqual(
+            [i.id for i in node2.get_inputs()],
+            [
+                "number",
+                "col1",
+                "data1",
+                "col2",
+                "data2",
+            ],
+        )

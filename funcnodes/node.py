@@ -439,6 +439,24 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
             if not found:
                 self._properties["io"]["op"].append(outputentry)
 
+        # sort self._properties["io"]["ip"] by occurence in ios["ip"], if not present in ios["ip"] add to end
+        ios_ip_map_list = list(ios_ip_map.keys())
+        ios_op_map_list = list(ios_op_map.keys())
+
+        self._properties["io"]["ip"] = sorted(
+            self._properties["io"]["ip"],
+            key=lambda x: ios_ip_map_list.index(x["id"])
+            if x["id"] in ios_ip_map_list
+            else len(ios_ip_map_list),
+        )
+
+        self._properties["io"]["op"] = sorted(
+            self._properties["io"]["op"],
+            key=lambda x: ios_op_map_list.index(x["id"])
+            if x["id"] in ios_op_map_list
+            else len(ios_op_map_list),
+        )
+
         # io is always present due to deepfill
         for ipdata in self._properties["io"]["ip"]:
             self.add_input(NodeInput(ipdata))
@@ -850,7 +868,10 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
         if getattr(self, io.id, None) is None or isinstance(
             getattr(self, io.id, None), NodeIO
         ):
-            if isinstance(getattr(self, io.id, None), NodeIO):
+            if (
+                isinstance(getattr(self, io.id, None), NodeIO)
+                and io.id in self._attributeorder
+            ):
                 if getattr(self, "__default_io_" + io.id, None) is None:
                     setattr(self, "__default_io_" + io.id, getattr(self, io.id))
                 else:
