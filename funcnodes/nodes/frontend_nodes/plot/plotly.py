@@ -62,3 +62,11 @@ class Plotly2DMergeNode(Node):
         pldl: PlotlyListType = PlotlyListType(self.plot1.value + self.plot2.value)
         self.plot.value = pldl
         return True
+
+
+class PlotlyDisplay(Node):
+    node_id = "plotlydisplay"
+    plot = NodeInput(type=PlotlyData, required=True)
+
+    def on_trigger(self):
+        return True
