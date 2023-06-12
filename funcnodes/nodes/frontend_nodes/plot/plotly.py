@@ -10,12 +10,15 @@ class Plotly2DNode(Node):
     node_id = "plotly2dnode"
     x = NodeInput(type=np.ndarray, required=False)
     y = NodeInput(type=np.ndarray, required=True)
-    mode = NodeInput(type=str, options=[
-        ["lines", "lines"],
-        ["markers", "markers"],
-        ["lines+markers", "lines + markers"],
-
-    ], default_value="lines")
+    mode = NodeInput(
+        type=str,
+        options=[
+            ["lines", "lines"],
+            ["markers", "markers"],
+            ["lines + markers", "lines+markers"],
+        ],
+        default_value="lines",
+    )
 
     plot = NodeOutput(type=PlotlyData)
 
