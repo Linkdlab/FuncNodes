@@ -68,16 +68,25 @@ class FindPeaks(Node):
         else:
             x = np.arange(len(y))
 
-        dx = np.diff(x).min()
+        diffx = np.diff(x)
+        if np.all(diffx == 0):
+            raise ValueError("dx is all zero")
+        dx = diffx.min()
+
+        if dx <= 0:
+            dx = np.median(diffx)
+
+        if dx <= 0:
+            dx = diffx.mean()
 
         min_distance = self.min_distance.value
-        min_distance = int(dx / min_distance)
-        if min_distance <= 0:
+        min_distance = int(dx / max(dx, min_distance))
+        if min_distance <= 1:
             min_distance = 1
 
         min_width = self.min_width.value
-        min_width = int(dx / min_width)
-        if min_width <= 0:
+        min_width = int(dx / max(dx, min_width))
+        if min_width <= 1:
             min_width = None
 
         min_height = self.min_height.value
@@ -120,16 +129,25 @@ class FindPeaksAndEval(Node):
         else:
             x = np.arange(len(y))
 
-        dx = np.diff(x).min()
+        diffx = np.diff(x)
+        if np.all(diffx == 0):
+            raise ValueError("dx is all zero")
+        dx = diffx.min()
+
+        if dx <= 0:
+            dx = np.median(diffx)
+
+        if dx <= 0:
+            dx = diffx.mean()
 
         min_distance = self.min_distance.value
-        min_distance = int(dx / min_distance)
+        min_distance = int(dx / max(dx, min_distance))
         if min_distance <= 0:
             min_distance = 1
 
         min_width = self.min_width.value
-        min_width = int(dx / min_width)
-        if min_width <= 0:
+        min_width = int(dx / max(dx, min_width))
+        if min_width <= 1:
             min_width = None
 
         min_height = self.min_height.value
@@ -143,7 +161,7 @@ class FindPeaksAndEval(Node):
         self.peak_indices.value = peaks
 
         y_norm = y - y.min()
-        y_norm /= y_norm.max()
+        y_norm = y_norm / y_norm.max()
 
         peakdata = {}
         peakdata["left_by_next_peak"] = np.concatenate([[0], peaks[:-1]])
@@ -218,15 +236,34 @@ class FindPeaksAndEval(Node):
             subpeakdata = subpeakdata / subpeakdata.max()
 
             th = 0.5
-            left = np.argmin(np.abs(subpeakdata[:pn] - th)) + peakdata["left"][pi]
-            right = np.argmin(np.abs(subpeakdata[pn:] - th)) + pn + peakdata["left"][pi]
+            if pn > 0:
+                left = np.argmin(np.abs(subpeakdata[:pn] - th)) + peakdata["left"][pi]
+            else:
+                left = peakdata["left"][pi]
+
+            if pn < len(subpeakdata) - 1:
+                right = (
+                    np.argmin(np.abs(subpeakdata[pn:] - th)) + pn + peakdata["left"][pi]
+                )
+            else:
+                right = peakdata["right"][pi]
 
             peakdata["FWHM_left"][pi] = left
             peakdata["FWHM_right"][pi] = right
 
             th = 0.1
-            left = np.argmin(np.abs(subpeakdata[:pn] - th)) + peakdata["left"][pi]
-            right = np.argmin(np.abs(subpeakdata[pn:] - th)) + pn + peakdata["left"][pi]
+
+            if pn > 0:
+                left = np.argmin(np.abs(subpeakdata[:pn] - th)) + peakdata["left"][pi]
+            else:
+                left = peakdata["left"][pi]
+
+            if pn < len(subpeakdata) - 1:
+                right = (
+                    np.argmin(np.abs(subpeakdata[pn:] - th)) + pn + peakdata["left"][pi]
+                )
+            else:
+                right = peakdata["right"][pi]
 
             peakdata["W10_left"][pi] = left
             peakdata["W10_right"][pi] = right
