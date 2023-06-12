@@ -187,6 +187,7 @@ class Worker(ABC):
         self.loop_manager.add_loop(self.saveloop)
 
         self.nodespace.on("*", self._on_nodespaceevent)
+        self.nodespace.on_error(self._on_nodespaceerror)
 
         for shelf in default_nodes:
             self.nodespace.lib.add_shelf(shelf)
@@ -254,6 +255,10 @@ class Worker(ABC):
     @abstractmethod
     def _on_nodespaceevent(self, event, **kwargs):
         """handle nodespace events"""
+
+    @abstractmethod
+    def _on_nodespaceerror(self, error, **kwargs):
+        """handle nodespace errors"""
 
     def full_state(self):
         data = {
@@ -577,6 +582,16 @@ class RemoteWorker(Worker):
             "data": kwargs,
         }
         self.send(event_bundle)
+
+    def _on_nodespaceerror(self, error: Exception, **kwargs):
+        """handle nodespace errors"""
+        error_bundle = {
+            "type": "error_event",
+            "error": repr(error),
+            "data": kwargs,
+            "tb": list(traceback.TracebackException.from_exception(error).format()),
+        }
+        self.send(error_bundle)
 
     async def targeted_command(self, data):
         target = data["target"]
