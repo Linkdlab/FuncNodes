@@ -10,6 +10,13 @@ class Plotly2DNode(Node):
     node_id = "plotly2dnode"
     x = NodeInput(type=np.ndarray, required=False)
     y = NodeInput(type=np.ndarray, required=True)
+    mode = NodeInput(type=str, options=[
+        ["lines", "lines"],
+        ["markers", "markers"],
+        ["lines+markers", "lines + markers"],
+
+    ], default_value="lines")
+
     plot = NodeOutput(type=PlotlyData)
 
     def on_trigger(self):
@@ -20,7 +27,7 @@ class Plotly2DNode(Node):
             x=np.array(x),
             y=np.array(self.y.value),
             type="scatter",
-            mode="lines",
+            mode=self.mode.value,
             marker=None,
         )
         pldl: PlotlyListType = PlotlyListType([pld])
@@ -61,12 +68,4 @@ class Plotly2DMergeNode(Node):
     def on_trigger(self):
         pldl: PlotlyListType = PlotlyListType(self.plot1.value + self.plot2.value)
         self.plot.value = pldl
-        return True
-
-
-class PlotlyDisplay(Node):
-    node_id = "plotlydisplay"
-    plot = NodeInput(type=PlotlyData, required=True)
-
-    def on_trigger(self):
         return True
