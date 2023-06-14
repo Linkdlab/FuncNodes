@@ -352,6 +352,7 @@ class Worker(ABC):
     async def install_packages(self, packages: List[str]):
         import importlib
 
+        self.logger.debug(f"check packages to install {packages}")
         missing = []
         for p in packages:
             try:
@@ -359,6 +360,7 @@ class Worker(ABC):
             except ImportError:
                 missing.append(p)
         if len(missing) > 0:
+            self.logger.info(f"check install {packages}")
             import subprocess
             import sys
 
