@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
-from typing import List, Type, Callable, Tuple, Awaitable
+from typing import List, Type, Callable, Tuple, Awaitable, TypedDict
 import os
 import json
 import asyncio
@@ -13,10 +13,41 @@ import uuid
 import funcnodes
 from funcnodes.worker.loop import LoopManager, NodeSpaceLoop, CustomLoop
 from funcnodes.worker.external_worker import FuncNodesExternalWorker
-from funcnodes.nodespace import NodeSpace, LibShelf
+from funcnodes.nodespace import (
+    NodeSpace,
+    LibShelf,
+    FullNodeSpaceJSON,
+    NodeSpaceSerializationInterface,
+)
 from funcnodes.node import Node
 import numpy as np
 import traceback
+
+
+class Meta(TypedDict):
+    id: str
+    version: str
+
+
+class NodeViewState(TypedDict):
+    pos: Tuple[int, int]
+    size: Tuple[int, int]
+
+
+class ViewState(TypedDict):
+    nodes: dict[str, NodeViewState]
+
+
+class State(TypedDict):
+    backend: NodeSpaceSerializationInterface
+    view: ViewState
+    meta: Meta
+
+
+class FullState(TypedDict):
+    backend: FullNodeSpaceJSON
+    view: ViewState
+    worker: dict[str, list[str]]
 
 
 class LocalWorkerLookupLoop(CustomLoop):
@@ -193,7 +224,7 @@ class Worker(ABC):
             self.nodespace.lib.add_shelf(shelf)
 
         self._nodespace_id: str | None = None
-        self.viewdata = {}
+        self.viewdata: ViewState = {}
 
     @property
     def data_path(self):
@@ -214,7 +245,7 @@ class Worker(ABC):
     def local_scripts(self):
         return os.path.join(self.data_path, "local_scripts")
 
-    def view_state(self):
+    def view_state(self) -> ViewState:
         available_nodeids = []
         if "nodes" not in self.viewdata:
             self.viewdata["nodes"] = {}
@@ -232,8 +263,8 @@ class Worker(ABC):
             del self.viewdata["nodes"][nodeid]
         return self.viewdata
 
-    def get_state(self):
-        data = {
+    def get_state(self) -> State:
+        data: State = {
             "backend": self.nodespace.serialize(),
             "view": self.view_state(),
             "meta": {
@@ -247,7 +278,7 @@ class Worker(ABC):
         self.saveloop.request_save()
 
     def save(self):
-        data = self.get_state()
+        data: State = self.get_state()
         with open(self.local_nodespace, "w+", encoding="utf-8") as f:
             f.write(json.dumps(data, indent=2))
         return data
@@ -271,7 +302,7 @@ class Worker(ABC):
         }
         return data
 
-    async def load(self, data=None):
+    async def load(self, data: State | None = None):
         if data is None:
             if not os.path.exists(self.local_nodespace):
                 return
@@ -675,7 +706,7 @@ class RemoteWorker(Worker):
 
         return handled, undandled_message
 
-    def full_state(self):
+    def full_state(self) -> FullState:
         data = {
             "backend": self.nodespace.full_serialize(),
             "view": self.view_state(),
