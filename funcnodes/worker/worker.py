@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
-from typing import List, Type, Callable, Tuple, Awaitable, TypedDict
+from typing import List, Type, Callable, Tuple, Awaitable, TypedDict, Any, Literal, Dict
 import os
 import json
 import asyncio
@@ -48,6 +48,12 @@ class FullState(TypedDict):
     backend: FullNodeSpaceJSON
     view: ViewState
     worker: dict[str, list[str]]
+
+
+class MEvent(TypedDict):
+    type: Literal["mevent"]
+    event: str
+    data: Any
 
 
 class LocalWorkerLookupLoop(CustomLoop):
@@ -529,12 +535,16 @@ class DataUpdateLoop(CustomLoop):
                     changed_data[nodeid][ioid] = self._active_data[nodeid][ioid]
 
         if len(changed_data) > 0:
-            event_bundle = {
+            event_bundle: MEvent = {
                 "type": "mevent",
                 "event": "value_update",
                 "data": changed_data,
             }
             self._client.send(event_bundle)
+
+
+class TriggerNode(TypedDict):
+    id: str
 
 
 class TriggerOutLoop(CustomLoop):
@@ -558,19 +568,19 @@ class TriggerOutLoop(CustomLoop):
         if len(changed_states) == 0:
             return
 
-        new_triggers = [
+        new_triggers: List[TriggerNode] = [
             {"id": node_id}
             for node_id, new_state in changed_states.items()
             if new_state
         ]
-        new_trigger_dones = [
+        new_trigger_dones: List[TriggerNode] = [
             {"id": node_id}
             for node_id, new_state in changed_states.items()
             if not new_state
         ]
 
         if len(new_triggers) > 0:
-            event_bundle = {
+            event_bundle: MEvent = {
                 "type": "mevent",
                 "event": "trigger",
                 "data": new_triggers,
@@ -578,12 +588,18 @@ class TriggerOutLoop(CustomLoop):
             self._client.send(event_bundle)
 
         if len(new_trigger_dones) > 0:
-            event_bundle = {
+            event_bundle: MEvent = {
                 "type": "mevent",
                 "event": "trigger_done",
                 "data": new_trigger_dones,
             }
             self._client.send(event_bundle)
+
+
+class NodeSpaceEvent(TypedDict):
+    type: Literal["nsevent"]
+    event: str
+    data: Dict[str, Any]
 
 
 class RemoteWorker(Worker):
@@ -609,7 +625,7 @@ class RemoteWorker(Worker):
         """send a message to the frontend"""
 
     def _on_nodespaceevent(self, event, **kwargs):
-        event_bundle = {
+        event_bundle: NodeSpaceEvent = {
             "type": "nsevent",
             "event": event,
             "data": kwargs,
@@ -720,7 +736,7 @@ class RemoteWorker(Worker):
     def new_backend_instance(self, workerid):
         self.local_worker_lookup_loop.start_local_worker_by_id(workerid)
 
-    async def sync_state(self):
+    async def sync_state(self) -> FullState:
         data = self.full_state()
         self.data_update_loop.reset_active_data()
         return data
