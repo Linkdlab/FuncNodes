@@ -19,7 +19,7 @@ from funcnodes.nodespace import (
     FullNodeSpaceJSON,
     NodeSpaceSerializationInterface,
 )
-from funcnodes.node import Node
+from funcnodes.node import Node, NodeSerializationInterface
 import numpy as np
 import traceback
 
@@ -308,6 +308,25 @@ class Worker(ABC):
         }
         return data
 
+    async def install_node(self, nodedata: NodeSerializationInterface):
+        nideid = nodedata["nid"]
+        if self.nodespace.lib.has_node_id(nideid):
+            return
+        await self.local_worker_lookup_loop.loop()
+
+        self.nodespace.add_node(nodedata)
+
+        for req in nodedata.get("requirements", []):
+            if req["type"] == "nodeclass":
+                _class = req["class"]
+                _id = req["id"]
+                for cls in self.local_worker_lookup_loop.worker_classes:
+                    if cls.NODECLASSID == _class:
+                        self.local_worker_lookup_loop.start_local_worker(cls, _id)
+
+        if self.nodespace.lib.has_node_id(nideid):
+            return
+
     async def load(self, data: State | None = None):
         if data is None:
             if not os.path.exists(self.local_nodespace):
@@ -326,19 +345,7 @@ class Worker(ABC):
         if "nodes" in data["backend"]:
             nodes = data["backend"]["nodes"]
             for node in nodes:
-                for req in node.get("requirements", []):
-                    if req["type"] == "nodeclass":
-                        if self.nodespace.lib.has_node_id(node["nid"]):
-                            continue
-                        _class = req["class"]
-                        _id = req["id"]
-                        await self.local_worker_lookup_loop.loop()
-                        for cls in self.local_worker_lookup_loop.worker_classes:
-                            if cls.NODECLASSID == _class:
-                                self.local_worker_lookup_loop.start_local_worker(
-                                    cls, _id
-                                )
-                                break
+                self.install_node(node)
 
         if "meta" in data:
             if "id" in data["meta"]:
