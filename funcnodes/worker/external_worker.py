@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Dict, List
 from funcnodes.worker.loop import CustomLoop
-from funcnodes import NodeClassMixin, instance_nodefunction
+from funcnodes import NodeClassMixin  # , instance_nodefunction
 
 from weakref import WeakValueDictionary
 
@@ -26,4 +26,7 @@ class FuncNodesExternalWorker(NodeClassMixin, CustomLoop):
         return list(FuncNodesExternalWorker.RUNNING_WORKERS[cls.NODECLASSID].values())
 
 
-__all__ = ["FuncNodesExternalWorker", "instance_nodefunction"]
+__all__ = [
+    "FuncNodesExternalWorker",
+    # "instance_nodefunction"
+]

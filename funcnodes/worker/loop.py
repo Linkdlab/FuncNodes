@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import asyncio
 from typing import List
 import logging
-from funcnodes.nodespace import NodeSpace
+from funcnodes import NodeSpace
 
 
 class CustomLoop(ABC):

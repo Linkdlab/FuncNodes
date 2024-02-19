@@ -1,180 +1,94 @@
-"""
-module for base Node class
-"""
 from __future__ import annotations
-import copy
-import json
-import uuid
+from typing import Dict, Type, Optional, TypedDict, List
+from abc import ABC, ABCMeta, abstractmethod
 import asyncio
-import logging
-from time import perf_counter as _deltatimer
-from abc import ABCMeta, abstractmethod
-from typing import (
-    List,
-    Set,
-    Dict,
-    Type,
-    Tuple,
-    Any,
-    TYPE_CHECKING,
-)
-from typing_extensions import TypedDict, Self
-
-from .errors import (
-    NodeStructureError,
-    NodeInitalizationError,
-    NodeIOError,
-    NodeError,
-    NodeSpaceError,
-    NotOperableException,
-    DisabledException,
-    TriggerException,
-)
-
+from uuid import uuid4
+from .exceptions import NodeIdAlreadyExistsError
 from .io import (
     NodeInput,
     NodeOutput,
-    NodeIO,
-    Edge,
-    GenericNodeIO,
+    NoValue,
+    NodeInputStatus,
+    NodeOutputStatus,
+    NodeInputSerialization,
+    NodeOutputSerialization,
     FullNodeIOJSON,
+    NodeIOSerialization,
+    NodeIOClassSerialization,
 )
-
-from ._typing import (
-    NodeStatus,
-    NodeIdType,
-    NodeDataName,
-    NodeIOId,
-    Message_Node_SetData,
-    PropIODict,
-    IOProperties,
-    NodeStateInterface,
-    Message_Node_SetNodeSpace,
-    Message_Node_AddIO,
-    Message_Node_AddInput,
-    Message_Node_AddOutput,
-    Message_Node_RemoveIO,
-    Message_Node_CheckStatus,
-)
-from .mixins import (
+from .triggerstack import TriggerStack
+from .eventmanager import (
+    AsyncEventManager,
+    emit_before,
+    emit_after,
     EventEmitterMixin,
-    EventCallback,
-    ObjectLoggerMixin,
-)
-from .utils import (
-    deep_fill_dict,
-    deep_remove_dict_on_equal,
 )
 
-
-if TYPE_CHECKING:
-    from .nodespace import NodeSpace
-
-# region global settings
-
-NODE_MAX_NAME_LENGTH = 20
-
-# endregion global settings
-
-NodeDataDict = Dict[NodeDataName, Any]
+from .utils import run_until_complete
 
 
-logger = logging.getLogger("funcnodes")
+def _get_nodeclass_inputs(node: Type[Node] | Node) -> List[NodeInput]:
+    """
+    Iterates over the attributes of a Node instance and returns the ones that are instances of NodeInput.
+
+    Args:
+        node (Node): The instance of the Node to parse.
+
+    Returns:
+        List[NodeInput]: The list of NodeInput instances found in the node.
+    """
+    inputs = []
+    for attr_name in dir(node):
+        attr = getattr(node, attr_name)
+        if isinstance(attr, NodeInput):
+            inputs.append(attr)
+    return inputs
 
 
-class TriggerTask:
-    def __init__(self, task: asyncio.Task):
-        self._trigger_queue: TriggerQueue | None = None
-        self._task = task
+def _get_nodeclass_outputs(node: Type[Node] | Node) -> List[NodeOutput]:
+    """
+    Iterates over the attributes of a Node instance and returns the ones that are instances of NodeOutput.
 
-    @property
-    def trigger_queue(self):
-        return self._trigger_queue
+    Args:
+        node (Node): The instance of the Node to parse.
 
-    @trigger_queue.setter
-    def trigger_queue(self, value):
-        if self._trigger_queue is not None:
-            raise RuntimeError("trigger_queue can only be set once")
-        self._trigger_queue = value
-
-    def __await__(self):
-        return self._task.__await__()
-
-    def done(self):
-        return self._task.done()
-
-    def cancel(self):
-        return self._task.cancel()
-
-    def exception(self):
-        return self._task.exception()
+    Returns:
+        List[NodeOutput]: The list of NodeOutput instances found in the node.
+    """
+    outputs = []
+    for attr_name in dir(node):
+        attr = getattr(node, attr_name)
+        if isinstance(attr, NodeOutput):
+            outputs.append(attr)
+    return outputs
 
 
-class TriggerQueue:
-    def __init__(self):
-        self._tasks: List[TriggerTask] = []
-        # self.id = uuid.uuid4().int
+def _parse_nodeclass_io(node: Node):
+    """
+    Iterates over the attributes of a Node instance and parses the ones that are instances of NodeInput or NodeOutput.
+    It then adds these as inputs or outputs to the class instance.
 
-    @property
-    def is_done(self):
-        return not self._tasks
+    Args:
+        node (Node): The instance of the Node to parse.
 
-    def append(self, task: TriggerTask):
-        task._trigger_queue = self
-        self._tasks.append(task)
+    Returns:
+        None
+    """
+    inputs = _get_nodeclass_inputs(node)
 
-    async def await_done(self):
-        while not self.is_done:
-            task = self._tasks.pop(0)
-            await task
+    outputs = _get_nodeclass_outputs(node)
+    for ip in inputs:
+        node.add_input(NodeInput(**ip.serialize()))
 
-    def __await__(self):
-        return self.await_done().__await__()
-
-
-class NodeProperties(TypedDict, total=False):
-    """TypedDict for Node properties"""
-
-    id: NodeIdType
-    name: str
-    io: PropIODict
-    disabled: bool
-    requirements: List[dict]
-    trigger_on_create: bool
+    for op in outputs:
+        node.add_output(NodeOutput(**op.serialize()))
 
 
-class NodeSerializationInterface(NodeProperties, total=False):
-    """TypedDict for Node serialization"""
-
-    nid: str
+class InTriggerError(Exception):
+    """Exception raised when attempting to trigger a node that is already in trigger."""
 
 
-class FullNodeClassJSON(TypedDict):
-    name: str
-    node_id: str
-    trigger_on_create: bool
-
-
-class FullNodeJSON(TypedDict):
-    name: str
-    id: str
-    node_id: str
-    disabled: bool
-    io: Dict[str, FullNodeIOJSON]
-    data: NodeDataDict
-    status: NodeStatus
-    requirements: List[dict]
-
-
-ERROR_ON_DOUBLE_ID = False
-
-
-# region helpers
-class NodeMetaClass(ABCMeta):
-    """Metaclass for Node class"""
-
-    NODECLASSES: Dict[str, Type[Node]] = {}
-
+class NodeMeta(ABCMeta):
     def __new__(  # pylint: disable=bad-mcs-classmethod-argument
         mcls,  # type: ignore
         name,
@@ -183,458 +97,211 @@ class NodeMetaClass(ABCMeta):
         /,
         **kwargs,
     ):
+        """
+        Construct and return a new `Node` object. This is the metaclass for all Node types.
+        This custom implementation of `__new__` is designed to automatically register the new class
+        in a registry for Node types.
+
+        Args:
+            mcls: The metaclass instance.
+            name (str): The name of the new class.
+            bases (Tuple[type, ...]): A tuple of the base classes for the new class.
+            namespace (Dict[str, Any]): The namespace containing the definitions for the new class.
+            /: Indicates that the preceding arguments are positional-only.
+            **kwargs: Extra keyword arguments.
+
+        Returns:
+            Type[Node]: A new class object of type Node.
+
+        Raises:
+            TypeError: If the new class is not a subclass of `Node`.
+            NameError: If the class is `Node` itself and not an instance of it.
+        """
+        # Create the new class by invoking the superclass's `__new__` method.
         new_cls: Type[Node] = super().__new__(
-            mcls, name, bases, namespace, **kwargs  # type: ignore
+            mcls,
+            name,
+            bases,
+            namespace,
+            **kwargs,  # type: ignore
         )
+
         try:
             if not issubclass(new_cls, Node):
-                raise NodeStructureError(
-                    f"Node class '{new_cls.__name__}' is not a subclass of Node"
-                )
-            if new_cls.node_id is None or new_cls.node_id == "":
-                raise NodeStructureError(
-                    f"Node class '{new_cls.__name__}' does not have a node_id"
-                )
+                raise TypeError("NodeMeta can only be used with Node subclasses")
+            # Register the new class in the global registry of node classes.
+
+            register_node(new_cls)
         except NameError:
-            # new_cls is Node thats why its not defined
-            pass
-
-        if new_cls.node_id in NodeMetaClass.NODECLASSES:
-            if ERROR_ON_DOUBLE_ID:
-                raise NodeStructureError(
-                    (
-                        "Node class '%s'(module=%s) has the same node_id as '%s'"
-                        "(module=%s): '%s' "
-                    )
-                    % (
-                        new_cls.__name__,
-                        new_cls.__module__,
-                        NodeMetaClass.NODECLASSES[new_cls.node_id].__name__,
-                        NodeMetaClass.NODECLASSES[new_cls.node_id].__module__,
-                        new_cls.node_id,
-                    )
-                )
-            logger.warning(
-                "Node class '%s'(module=%s) has the same node_id as '%s'"
-                "(module=%s): '%s' ",
-                new_cls.__name__,
-                new_cls.__module__,
-                NodeMetaClass.NODECLASSES[new_cls.node_id].__name__,
-                NodeMetaClass.NODECLASSES[new_cls.node_id].__module__,
-                new_cls.node_id,
-            )
-        NodeMetaClass.NODECLASSES[new_cls.node_id] = new_cls
-
-        attributeorder = []
-        for base in reversed(new_cls.__mro__):
-            if hasattr(base, "_attributeorder"):
-                attributeorder.extend(base._attributeorder)
-        attributeorder.extend(list(namespace.keys()))
-        new_cls._attributeorder = attributeorder
+            # This block catches the `NameError` that is thrown when `Node` is being defined.
+            # Since `Node` itself is not yet defined when it's being created, it's normal to
+            # get a `NameError` here. We ignore it unless the name is not 'Node'.
+            if (
+                name != "Node"
+            ):  # pragma: no cover (this check probably isn't needed and cannot be tested)
+                raise  # pragma: no cover (this check probably isn't needed and cannot be tested)
 
         return new_cls
 
 
-# requires initialization for Node methods which check if the node is initialized
-def requires_init(func):
-    """Decorator for Node methods which require the node to be initialized"""
-
-    def requires_init_wrapper(self: Node, *args, **kwargs):
-        if not self.initialized:
-            raise NodeInitalizationError(f"Node '{self.name}' is not initialized")
-        return func(self, *args, **kwargs)
-
-    return requires_init_wrapper
-
-
-class NodeIODict(Dict[str, NodeIO]):
-    """Dict for NodeIO objects"""
-
-    def __setitem__(self, key: str, value: NodeIO):
-        if not isinstance(value, NodeIO):
-            raise NodeStructureError(
-                f"only NodeIO objects can be added to NodeIODict,"
-                f" not '{type(value)}'"
-            )
-        return super().__setitem__(key, value)
-
-    def __setattr__(self, __name: str, __value: NodeIO) -> None:
-        return self.__setitem__(__name, __value)
-
-    def __getattr__(self, __name: str) -> NodeIO:
-        return self.__getitem__(__name)
-
-    def __call__(self, io_name) -> NodeIO:
-        """call the nodeio dict entry via node.io(...) handles different shortcut.
-        It sould not be used  under production since its not long term save.
-        Returns:
-            NodeIO: the NodeIO object
-
-        """
-        io = self[io_name]
-        return io
-
-
-# endregion helpers
-
-# type ([^=]*)=([^;]*); "$1":Literal[$2],
-
-
-class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
-    """Base class for all nodes
-
-    Attributes:
-        node_id (str): unique id for the node class
-        trigger_on_create (bool): if True, the node will trigger on creation
-        pure (bool): if True, the node function is pure and only
-        depends on the inputs not on some external state, like URL response
+class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
+    """
+    The base class for all nodes, making use of the custom metaclass `NodeMeta` to handle
+    automatic registration. It inherits from `EventEmitterMixin` for event handling capabilities
+    and from `ABC` to allow abstract methods, making it suitable for creating a variety of node types.
     """
 
-    node_id: str = ""
-    PURE = True
-    trigger_on_create: bool = True
-    requirements: List[dict] = []
+    node_id: str
+    node_name: str
+    default_reset_inputs_on_trigger: bool = False
+    description: Optional[str] = None
+
+    @abstractmethod
+    async def func(self, *args, **kwargs):
+        """The function to be executed when the node is triggered."""
 
     def __init__(
         self,
-        properties: NodeProperties | Dict[str, Any] | None = None,
-        default_listener: Dict[str, List[EventCallback]] = {},
-        **kwargs,
+        uuid: Optional[str] = None,
+        reset_inputs_on_trigger: Optional[bool] = None,
+        name: Optional[str] = None,
+        id: Optional[str] = None,  # fallback for uuid
     ):
         super().__init__()
-        self.min_trigger_interval = 5
-        self._in_trigger: bool = False
-        self._triggertask: TriggerTask | None = None
-        self._initialized: bool = False
-        self._request_trigger = False
-        self._last_trigger_time: float = 0
-        self._triggerdelay: int = 0
-        self._nodespace: NodeSpace | None = None
-
-        self._io: NodeIODict = NodeIODict()
         self._inputs: List[NodeInput] = []
         self._outputs: List[NodeOutput] = []
-        self._data: Dict[NodeDataName, Any] = {}
+        self._triggerstack: Optional[TriggerStack] = None
+        self._requests_trigger = False
+        self.asynceventmanager = AsyncEventManager(self)
+        if uuid is None and id is not None:
+            uuid = id
+        self._uuid = uuid or uuid4().hex
+        self._reset_inputs_on_trigger = reset_inputs_on_trigger
+        self._name = name or f"{self.__class__.__name__}({self.uuid})"
+        self._disabled = False
+        _parse_nodeclass_io(self)
 
-        if properties is None:
-            properties = {}
-        for key, val in kwargs.items():
-            properties[key] = val
+    # region serialization
+    @classmethod
+    def serialize_cls(cls) -> SerializedNodeClass:
+        """Serializes the node class into a dictionary."""
+        ser = SerializedNodeClass(
+            node_id=cls.node_id,
+            inputs=[ip.serialize_class() for ip in _get_nodeclass_inputs(cls)],
+            outputs=[op.serialize_class() for op in _get_nodeclass_outputs(cls)],
+            description=cls.description,
+            node_name=cls.node_name,
+        )
+        if cls.default_reset_inputs_on_trigger != Node.default_reset_inputs_on_trigger:
+            ser["reset_inputs_on_trigger"] = cls.default_reset_inputs_on_trigger
 
-        self._properties: NodeProperties = self.set_default_properties(properties)
-        self._make_io()
-        for event, listeners in default_listener.items():
-            for listener in listeners:
-                self.on(event, listener)
+        return ser
 
-    def _make_io(self):
-        inputlist: List[IOProperties] = []
-        outputlist: List[IOProperties] = []
-        for key in self._attributeorder:
-            try:
-                value = getattr(self, key)
-                if isinstance(value, NodeIO):
-                    if isinstance(value, NodeInput):
-                        props: IOProperties = value.properties
-                        props["id"] = key
-                        inputlist.append(props)
-
-                    elif isinstance(value, NodeOutput):
-                        props: IOProperties = value.properties
-                        props["id"] = key
-                        outputlist.append(props)
-                    else:
-                        raise NodeStructureError(
-                            f"NodeIO '{key}' of node '{self.name}' has an invalid type"
-                        )
-            except AttributeError:
-                pass
-
-        ios: PropIODict = {"ip": inputlist, "op": outputlist}
-
-        ios_ip_map = {d["id"]: i for i, d in enumerate(ios["ip"])}
-        ios_op_map = {d["id"]: i for i, d in enumerate(ios["op"])}
-
-        # check for backwardscompatibility where the
-        # ios in to properties where not seperated in ip and op
-        if "io" not in self._properties:
-            self._properties["io"] = {}
-        if "ip" not in self._properties["io"]:
-            self._properties["io"]["ip"] = []
-        if "op" not in self._properties["io"]:
-            self._properties["io"]["op"] = []
-
-        if isinstance(self._properties["io"]["ip"], dict):
-            nip = []
-            for key, val in self._properties["io"]["ip"].items():
-                val["id"] = key
-                nip.append(val)
-            self._properties["io"]["ip"] = nip
-
-        if isinstance(self._properties["io"]["op"], dict):
-            nop = []
-            for key, val in self._properties["io"]["op"].items():
-                val["id"] = key
-                nop.append(val)
-            self._properties["io"]["op"] = nop
-
-        # prop id maps miught be incomplete if no id is set in the properties, the IO will later have a random id
-        prop_ip_map = {
-            d["id"]: i for i, d in enumerate(self._properties["io"]["ip"]) if "id" in d
-        }
-        prop_op_map = {
-            d["id"]: i for i, d in enumerate(self._properties["io"]["op"]) if "id" in d
+    def full_serialize(self) -> FullNodeJSON:
+        ser: FullNodeJSON = {
+            "name": self.name,
+            "id": self.uuid,
+            "node_id": self.node_id,
+            "io": {iod.uuid: iod._repr_json_() for iod in self._inputs + self._outputs},
+            "status": self.status(),
+            "node_name": self.node_name,
         }
 
-        for k, v in self._properties["io"].items():
-            if k not in ["ip", "op"]:
-                if k in ios_ip_map:
-                    if k in prop_ip_map:
-                        # already in the properties, no update for now, this can be changed later
-                        continue
-                    v["id"] = k
-                    self._properties["io"]["ip"].append(v)
-                    prop_ip_map[k] = len(self._properties["io"]["ip"]) - 1
-                elif k in ios_op_map:
-                    if k in prop_op_map:
-                        # already in the properties, no update for now, this can be changed later
-                        continue
-                    v["id"] = k
-                    self._properties["io"]["op"].append(v)
-                    prop_op_map[k] = len(self._properties["io"]["op"]) - 1
-                elif k in prop_ip_map and k in prop_op_map:
-                    raise NodeStructureError(
-                        f"NodeIO '{k}' of node '{self.name}' is defined as input and output at the same time"
-                    )
-                elif k in prop_ip_map:
-                    # already in the properties, no update for now, this can be changed later
-                    continue
-                elif k in prop_op_map:
-                    # already in the properties, no update for now, this can be changed later
-                    continue
-                else:
-                    raise NodeStructureError(
-                        f"NodeIO '{k}' of node '{self.name}' is not defined in the node class and not in the properties"
-                    )
+        return ser
 
-        for inputentry in ios["ip"]:
-            ipid = inputentry["id"]
-            found = False
-            for origip in self._properties["io"]["ip"]:
-                if origip["id"] == ipid:
-                    deep_fill_dict(origip, inputentry)
-                    found = True
-                    break
-            if not found:
-                self._properties["io"]["ip"].append(inputentry)
+    def deserialize(self, data: NodeJSON):
+        """
+        Deserializes a node from a json serializable dict.
 
-        for outputentry in ios["op"]:
-            opid = outputentry["id"]
-            found = False
-            for origop in self._properties["io"]["op"]:
-                if origop["id"] == opid:
-                    deep_fill_dict(origop, outputentry)
-                    found = True
-                    break
-            if not found:
-                self._properties["io"]["op"].append(outputentry)
+        Args:
+            data (NodeJSON): The data to deserialize
 
-        # sort self._properties["io"]["ip"] by occurence in ios["ip"], if not present in ios["ip"] add to end
-        ios_ip_map_list = list(ios_ip_map.keys())
-        ios_op_map_list = list(ios_op_map.keys())
+        Returns:
+            None
+        """
+        if data["node_id"] != self.node_id:
+            raise ValueError(
+                f"Node id {data['node_id']} does not match node class id {self.node_id}"
+            )
 
-        self._properties["io"]["ip"] = sorted(
-            self._properties["io"]["ip"],
-            key=lambda x: ios_ip_map_list.index(x["id"])
-            if x["id"] in ios_ip_map_list
-            else len(ios_ip_map_list),
+        if "name" in data:
+            self._name = data["name"]
+        if "id" in data:
+            self._uuid = data["id"]
+        if "reset_inputs_on_trigger" in data:
+            self._reset_inputs_on_trigger = data["reset_inputs_on_trigger"]
+
+        if "io" in data:
+            for iod in self._inputs + self._outputs:
+                if iod.uuid in data["io"]:
+                    iod.deserialize(data["io"][iod.uuid])  # type: ignore
+
+    def serialize(self) -> NodeJSON:
+        """
+        returns a json serializable dict of the node
+        """
+
+        ser = NodeJSON(
+            name=self.name,
+            id=self.uuid,
+            node_id=self.node_id,
+            node_name=self.node_name,
+            status=self.status(),
+            io={iod.uuid: iod.serialize() for iod in self._inputs + self._outputs},
         )
+        #
 
-        self._properties["io"]["op"] = sorted(
-            self._properties["io"]["op"],
-            key=lambda x: ios_op_map_list.index(x["id"])
-            if x["id"] in ios_op_map_list
-            else len(ios_op_map_list),
-        )
+        return ser
 
-        # io is always present due to deepfill
-        for ipdata in self._properties["io"]["ip"]:
-            self.add_input(NodeInput(ipdata))
+    def _repr_json_(self) -> NodeJSON:
+        return self.serialize()
 
-        for opdata in self._properties["io"]["op"]:  # type: ignore
-            self.add_output(NodeOutput(opdata))
+    # endregion serialization
 
-    def initialize(self) -> Self:
-        """
-        Initialize the node.
-        This method is called by the NodeSpace when the node is added to it.
-        Returns the node.
-        -------
-        Node: self
-        """
-        if self._initialized:
-            raise NodeInitalizationError(f"Node '{self.name}' is already initialized")
-        self._initialized = True
-        self.check_status()
-        if self.operable and self.initial_trigger:
-            self.request_trigger("trigger_on_create")
-
-        if not self.disabled:
-            self.enable()
-        return self
-
-    def enable(self) -> Self:
-        """
-        Enable the node.
-        Returns
-        -------
-        Node: self
-
-        """
-        self.logger.info("enable")
-        self.disabled = False
-        if self.has_trigger_request and self.operable:
-            self.trigger()
-        return self
-
-    def remove(self):
-        """Remove the node from the nodespace and clear all references.
-        Then delete the node."""
-        try:
-            if self._nodespace is not None:
-                self._nodespace.remove_node(self)
-                return
-        except NodeSpaceError:
-            # this is excpected to happen since NodeSpace.remove_node calls Node.remove
-            pass
-        for node_input in [ip for ip in self._inputs]:
-            self.remove_input(node_input)
-
-        for node_output in [op for op in self._outputs]:
-            self.remove_output(node_output)
-
-        for nio in list(self._io.values()):
-            self._remove_io(nio)
-        self.emit("remove")
-
-    # region Properties
-
-    def set_default_properties(
-        self, properties: Dict[str, Any] | NodeProperties
-    ) -> NodeProperties:
-        """Set default properties for the node. This method is called by the constructor.
-        Parameters
-        ----------
-        properties: Dict[str, Any] | NodeProperties
-            The target container for the properties
-        Returns
-        -------
-        NodeProperties: The updated properties
-        """
-        properties = json.loads(json.dumps(properties))
-        out_properties = NodeProperties(
-            id=properties.get("id", uuid.uuid4().hex),
-            name=properties.get("name", self.__class__.__name__),
-            disabled=properties.get("disabled", False),
-            io=properties.get("io", {}),
-            trigger_on_create=properties.get(
-                "trigger_on_create", self.trigger_on_create
-            ),
-        )
-        return out_properties
+    # region properties
+    @property
+    def uuid(self):
+        """The unique identifier of the node."""
+        return self._uuid
 
     @property
-    def initial_trigger(self) -> bool:
-        """Getter for the node initial trigger state.
-        Returns
-        -------
-        bool: The node initial trigger state
-        """
-        return self._properties.get("trigger_on_create", self.trigger_on_create)
-
-    @property
-    def id(self) -> NodeIdType:
-        """Getter for the node id
-        Returns
-        -------
-        str: The node id
-
-        """
-        return self._properties["id"]  # type: ignore since id is always present
-
-    @property
-    def name(self) -> str:
-        """Getter and setter for the node name.
-        If the name is empty, the class name is used.
-        If the name is longer than the maximum length, it is truncated.
-
-        Parameters
-        ----------
-        value: str
-            The new name
-
-        Returns
-        -------
-        str: The node name
-
-        """
-
-        return self._properties.get("name", self.__class__.__name__)
+    def name(self):
+        """The name of the node."""
+        return self._name
 
     @name.setter
-    def name(self, value: str):
-        """Setter for the node name."""
-        # assert string and strip
-        value = str(value).strip()
-        # assert length
-        value = value[: self.max_name_length].strip()
-
-        # assert not empty
-        if value == "":
-            value = self.__class__.__name__
-        self._properties["name"] = value
-
-    def change_name(self, name: str) -> str:
-        """Change the name of the node.
-        Parameters
-        ----------
-        name: str
-            The new name
-        Returns
-        -------
-        str: The new name
-        """
-        self.name = name
-        return self.name
-
-    def __str__(self) -> str:
-        return f"{self.name}({self.id})"
-
-    def __repr__(self) -> str:
-        repstr = self.__str__() + ": "
-        repstr += ", ".join([f"{ip.id}" for ip in self._inputs])
-        repstr += " --> "
-        repstr += ", ".join([f"{ip.id}" for ip in self._outputs])
-        return repstr
+    def name(self, value):
+        self._name = value or f"{self.__class__.__name__}({self.uuid})"
 
     @property
-    def max_name_length(self) -> int:
-        """Maximum length of the node name"""
-        return NODE_MAX_NAME_LENGTH
+    def reset_inputs_on_trigger(self):
+        """Whether to reset the inputs of the node when it is triggered."""
+        return (
+            self._reset_inputs_on_trigger
+            if self._reset_inputs_on_trigger is not None
+            else self.default_reset_inputs_on_trigger
+        )
 
     @property
-    def properties(self) -> NodeProperties:
-        """Getter for the node properties
-        Returns
-        -------
-        NodeProperties: Copy of the node properties (JSON serializable)
-        """
-        try:
-            return json.loads(json.dumps(self._properties))
-        except TypeError as err:
-            raise TypeError(
-                "cannot serialize node properties:" + str(self._properties)
-            ) from err
+    def triggerstack(self) -> Optional[TriggerStack]:
+        """The trigger stack associated with the node's execution."""
+        return self._triggerstack
+
+    @property
+    def outputs(self):
+        return {op.uuid: op for op in self._outputs}
+
+    @property
+    def inputs(self):
+        return {ip.uuid: ip for ip in self._inputs}
+
+    @property
+    def in_trigger(self):
+        """Whether the node is currently in a trigger state."""
+        if self._triggerstack is not None:
+            if self._triggerstack.done():
+                self._triggerstack = None
+        return self._triggerstack is not None
 
     @property
     def disabled(self) -> bool:
@@ -647,68 +314,32 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
         -------
         bool: The node disabled state
         """
-        return self._properties.get("disabled", False)
+        return self._disabled
 
-    @disabled.setter
-    def disabled(self, value: bool):
-        """Setter for the node disabled state."""
-        self._properties["disabled"] = value
+    # endregion properties
 
-    @property
-    def enabled(self) -> bool:
-        """Getter for the node enabled state.
-        Returns
-        -------
-        bool: The node enabled state
-        """
-        return not self.disabled
+    # region node methods
+    def ready(self):
+        """Whether the node is ready"""
+        return self.inputs_ready()
 
-    def disable(self) -> Self:
-        """Disable the node.
-        Returns
-        -------
-        Node: self
-        """
+    def ready_to_trigger(self):
+        """Whether the node is ready to be triggered"""
+        return self.ready() and not self.in_trigger
 
-        self.logger.info("disable")
-        self.disabled = True
-        return self
+    def __str__(self) -> str:
+        """Returns a string representation of the node."""
+        return f"{self.__class__.__name__}({self.uuid})"
 
-    @property
-    def initialized(self) -> bool:
-        """Getter for the node initialized state.
-        Returns
-        -------
-        bool: The node initialized state
-        """
-        return self._initialized
-
-    @property
-    def io(self) -> NodeIODict:
-        """Getter for the node ios.
-        Returns
-        -------
-        NodeIODict: The node ios
-        """
-        return self._io
-
-    @property
-    def operable(self) -> bool:
-        """Getter for the node operable state.
-        Returns
-        -------
-        bool: The node operable state
-        """
-        return self.is_operable()[0]
-
-    @property
-    def ready(self) -> bool:
-        """Getter for the node ready state.
-        Returns
-        -------
-        bool: The node ready state
-        """
-        return self.operable and not self.disabled
+    def status(self) -> NodeStatus:
+        """Returns a dictionary containing the status of the node."""
+        return NodeStatus(
+            ready=self.ready(),
+            in_trigger=self.in_trigger,
+            requests_trigger=self._requests_trigger,
+            inputs={ip.uuid: ip.status() for ip in self._inputs},
+            outputs={op.uuid: op.status() for op in self._outputs},
+        )
 
     @property
     def is_working(self) -> bool:
@@ -717,1111 +348,329 @@ class Node(EventEmitterMixin, ObjectLoggerMixin, metaclass=NodeMetaClass):
         -------
         bool: The node working state
         """
-        self._handle_trigger_task()
 
-        if self._in_trigger or self._triggertask is not None:
+        if self.in_trigger:
             return True
 
         return False
 
-    @property
-    def nodespace(self) -> NodeSpace | None:
-        """Getter and Setter for the node's nodespace.
-        Parameters
-        ----------
-        nodespace: NodeSpace
-            The new nodespace
+    # endregion node methods
 
-        Returns
-        -------
-        NodeSpace: The node nodespace or None if the node is not added to a nodespace
+    # region input/output methods
 
-        Raises
-        -------
-        NodeError: If the node is already added to a nodespace
-
+    def add_input(self, node_input: NodeInput):
         """
-        return self._nodespace
+        Adds a NodeInput object to the node's inputs and sets it as an attribute of the node.
 
-    @nodespace.setter
-    def nodespace(self, nodespace: NodeSpace):
-        if self._nodespace == nodespace:
-            return
-        if self._nodespace is not None:
-            raise NodeError("Node is already added to a nodespace")
-        self._nodespace = nodespace
-        self.emit("set.nodespace", Message_Node_SetNodeSpace(nodespace=nodespace))
+        Args:
+            node_input (NodeInput): The NodeInput object to add.
 
-    @property
-    def has_trigger_request(self) -> bool:
-        """Getter for the node trigger request state.
-        Returns
-        -------
-        bool: The node trigger request state
+        Returns:
+            None
         """
-
-        return self._request_trigger
-
-    @property
-    def triggerdelay(self) -> float:
-        """Getter and setter for the trigger delay in ms.
-        Parameters
-        ----------
-        value: float
-            The new trigger delay
-
-        Returns
-        -------
-        float: The trigger delay
-        """
-        return self._triggerdelay
-
-    @triggerdelay.setter
-    def triggerdelay(self, value: int):
-        """Setter for the trigger delay."""
-        value = int(value)
-        self._triggerdelay = value
-
-    # endregion Properties
-
-    # region IO
-
-    def get_input_or_output(self, io_id: NodeIOId) -> NodeIO | None:
-        """Get an node_input or node_output by id.
-        Parameters
-        ----------
-        id: NodeIOId
-            The id of the node_input or node_output
-        Returns
-        -------
-        NodeIO | None: The node_input or node_output or None if not found
-        """
-        return self._io.get(io_id, None)
-
-    def change_io_id(self, old_id: NodeIOId, new_id: NodeIOId):
-        """Change the io_id of an node_input or node_output.
-        Parameters
-        ----------
-        old_id: NodeIOId
-            The old io_id of the node_input or node_output
-        new_id: NodeIOId
-            The new io_id of the node_input or node_output
-
-        Raises
-        ------
-        NodeError: If the old io_id is not found or the new io_id is already in use
-        """
-
-        if self.get_input_or_output(old_id) is None:
-            raise NodeError(f"{old_id} not found in io")
-
-        if self.get_input_or_output(new_id) is not None:
-            raise NodeError(f"{new_id} already in io")
-
-        self._io[new_id] = self._io[old_id]
-        self._io[new_id].id = new_id
-        self._data[new_id] = self._data[old_id]
-        del self._data[old_id]
-        del self._io[old_id]
-
-    def _add_io(self, io: GenericNodeIO) -> GenericNodeIO:
-        """Add an node_input or node_output to the node.
-        The io_id of the io is checked and if it is already in use, a number is added to the end.
-
-        Parameters
-        ----------
-        io: GenericNodeIO
-            The node_input or node_output to add
-        Returns
-        -------
-        GenericNodeIO: The added node_input or node_output
-        Raises
-        ------
-        IOError: If the io is not of type NodeIO or is already in the node
-        """
-
-        if not isinstance(io, NodeIO):
-            raise NodeIOError(
-                f"only NodeIO objects can be added to Nodes, not '{type(io)}'"
-            )
-
-        # if the io is already in the node, return it
-        if io in self._io.values():
-            raise NodeIOError(f"IO '{io.id}' is already in node '{self.name}'")
-
-        # check if the io_id is already taken, if so, add a number to the end
-        base_id = io.id
-        if base_id in self._io:
-            k = 1
-            while f"{base_id}{k}" in self._io:
-                k += 1
-            io.id = f"{base_id}{k}"
-
-        self._io[io.id] = io
-        io.node = self
-
-        self.logger.debug("adding io %s", io.id)
-
-        # if self.<io.id> is not set or of NodeIO type, set it to the new io
-        # this overwrites the default value of the io
-
-        if getattr(self, io.id, None) is None or isinstance(
-            getattr(self, io.id, None), NodeIO
-        ):
-            if (
-                isinstance(getattr(self, io.id, None), NodeIO)
-                and io.id in self._attributeorder
-            ):
-                if getattr(self, "__default_io_" + io.id, None) is None:
-                    setattr(self, "__default_io_" + io.id, getattr(self, io.id))
-                else:
-                    raise NodeIOError(
-                        f"DefaultNodeIO '__default_io_{io.id}'"
-                        f" is already set for node '{self.name}'"
-                    )
-
-            setattr(self, io.id, io)
-
-        self._data[io.id] = io.value_or_none
-
-        self.emit("add_io", Message_Node_AddIO(io=io))
-        if self.nodespace is not None:
-            self.nodespace.emit("add_io", Message_Node_AddIO(io=io, node=self))
-        return io
-
-    def add_input(self, node_input: NodeInput) -> NodeInput:
-        """Add an node_input to the node.
-
-        Parameters
-        ----------
-        node_input: NodeInput
-            The node_input to add
-
-        Returns
-        -------
-        NodeInput: The added node_input
-
-        Raises
-        ------
-        IOError: If the node_input is not of type NodeInput or is already in the node
-
-        """
-        self.logger.debug("adding input %s", node_input)
-        # assert node_input is NodeInput
-        if not isinstance(node_input, NodeInput):
-            raise NodeIOError(
-                f"only NodeInput objects can be added to Nodes as node_input,"
-                f" not '{type(node_input)}'"
-            )
-
-        # if the node_input is already in the node, return it
-        if node_input in self._inputs:
-            return node_input
-
+        ipid = node_input.uuid
+        if ipid in map(lambda x: x.uuid, self._inputs):
+            raise ValueError(f"Input with id {ipid} already exists")
         self._inputs.append(node_input)
-        node_input = self._add_io(node_input)
-        if node_input.default_value is not None:
-            node_input.set_value(
-                node_input.default_value, quiet=True, mark_for_trigger=False
-            )
+        node_input.node = self
 
-        self.emit("add_input", Message_Node_AddInput(node_input=node_input))
-        if self.nodespace is not None:
-            self.nodespace.emit(
-                "add_input", Message_Node_AddInput(node_input=node_input, node=self)
-            )
-
-        return node_input
-
-    def add_output(self, node_output: NodeOutput) -> NodeOutput:
-        """Add an node_output to the node.
-
-        Parameters
-        ----------
-        node_output: NodeOutput
-            The node_output to add
-
-        Returns
-        -------
-        NodeOutput: The added node_output
-
-        Raises
-        ------
-        IOError: If the node_output is not of type NodeOutput or is already in the node
+    def add_output(self, node_output: NodeOutput):
         """
+        Adds a NodeOutput object to the node's outputs and sets it as an attribute of the node.
 
-        self.logger.debug("adding output %s", node_output)
+        Args:
+            node_output (NodeOutput): The NodeOutput object to add.
 
-        # assert node_output is NodeOutput
-        if not isinstance(node_output, NodeOutput):
-            raise NodeIOError(
-                f"only NodeOutput objects can be added to Nodes as node_output,"
-                f" not '{type(node_output)}'"
-            )
+        Returns:
+            None
+        """
+        opid = node_output.uuid
+        if opid in map(lambda x: x.uuid, self._outputs):
+            raise ValueError(f"Output with id {opid} already exists")
 
-        # if the node_output is already in the node, return it
-        if node_output in self._outputs:
-            return node_output
-
+        node_output.node = self
         self._outputs.append(node_output)
-        node_output = self._add_io(node_output)
-        if node_output.default_value is not None:
-            node_output.set_value(node_output.default_value, True, False)
 
-        self.emit("add_output", Message_Node_AddOutput(node_output=node_output))
-        if self.nodespace is not None:
-            self.nodespace.emit(
-                "add_output", Message_Node_AddOutput(node_output=node_output, node=self)
-            )
-        return node_output
+    def inputs_ready(self):
+        """Whether all the node's inputs are ready."""
+        return all(map(lambda x: x.ready(), self._inputs))
 
-    def push_output(self, node_output: NodeOutput, mark_for_trigger: bool = True):
-        """Push the data of an node_output to the connected node_inputs.
+    def get_input(self, uuid: str) -> NodeInput:
+        """Returns the input with the given uuid.
 
-        Parameters
-        ----------
-        node_output: NodeOutput
-            The node_output to push
-        mark_for_trigger: bool
-            If True, the connected node_inputs will be marked for trigger
+        Args:
+            uuid (str): The uuid of the input to return.
 
-        Raises
-        ------
-        NodeError: If the node_output is not in the node
-
+        Returns:
+            NodeInput: The input with the given uuid.
         """
-        node_output.push(mark_for_trigger)
+        for ip in self._inputs:
+            if ip.uuid == uuid:
+                return ip
+        raise KeyError(f"Input with uuid {uuid} not found")
 
-    def push_all_outputs(self, mark_for_trigger: bool = True):
-        """Push the data of all node_outputs to the connected node_inputs.
+    def get_output(self, uuid: str) -> NodeOutput:
+        """Returns the output with the given uuid.
 
-        Parameters
-        ----------
-        mark_for_trigger: bool
-            If True, the connected node_inputs will be marked for trigger
+        Args:
+            uuid (str): The uuid of the output to return.
 
+        Returns:
+            NodeOutput: The output with the given uuid.
         """
-        for node_output in self._outputs:
-            node_output.push(mark_for_trigger)
+        for op in self._outputs:
+            if op.uuid == uuid:
+                return op
+        raise KeyError(f"Output with uuid {uuid} not found")
 
-    def node_output_bound_nodes(
-        self,
-        node_outputs: List[NodeOutput] | None = None,
-        no_grabbing: bool = False,
-    ) -> List[Node]:
-        """Get a list of nodes that are connected to the node_outputs of this node.
+    def get_input_or_output(self, uuid: str) -> NodeInput | NodeOutput:
+        """Returns the input or output with the given uuid.
 
-        Parameters
-        ----------
-        node_outputs: List[NodeOutput] | None
-            The node_outputs to check. If None, all node_outputs are used.
+        Args:
+            uuid (str): The uuid of the input or output to return.
 
-        Returns
-        -------
-        List[Node]: A list of nodes that are connected to the node_outputs
-
+        Returns:
+            NodeInput | NodeOutput: The input or output with the given uuid.
         """
 
-        nodes: List[Node] = []
-        if node_outputs is None:
-            node_outputs = self._outputs
-        for node_output in node_outputs:
-            for edge in node_output.get_edges():
-                if no_grabbing and edge.is_grabbing():
-                    continue
-                node = edge.other_node(self)
-                nodes.append(node)
-        return nodes
+        try:
+            return self.get_input(uuid)
+        except KeyError:
+            pass
+        try:
+            return self.get_output(uuid)
+        except KeyError:
+            pass
+        raise KeyError(f"Input or Output with uuid {uuid} not found")
 
-    def node_input_bound_nodes(
-        self,
-        node_inputs: List[NodeInput] | None = None,
-        no_grabbing: bool = False,
-    ) -> List[Node]:
-        """Get a list of nodes that are connected to the node_inputs of this node.
+    # endregion input/output methods
 
-        Parameters
-        ----------
-        node_inputs: List[NodeInput] | None
-            The node_inputs to check. If None, all node_inputs are used.
+    # region triggering
 
-        Returns
-        -------
-        List[Node]: A list of nodes that are connected to the node_inputs
+    def __call__(self) -> asyncio.Task:
+        """
+        Executes the node's function asynchronously and returns an asyncio.Task object.
+        This method also handles the triggering of events before and after the function execution.
 
+        Returns:
+            asyncio.Task: The task object representing the asynchronous operation of the node's function.
         """
 
-        nodes: List[Node] = []
-        if node_inputs is None:
-            node_inputs = self._inputs
-        for node_input in node_inputs:
-            for edge in node_input.get_edges():
-                if no_grabbing and edge.is_grabbing():
-                    continue
-                node = edge.other_node(self)
-                nodes.append(node)
-        return nodes
+        kwargs = {ip.uuid: ip.value for ip in self._inputs if ip.value is not NoValue}
 
-    def _remove_io(self, io: NodeIO) -> bool:
-        """Remove an io from the node.
+        async def _wrapped_func(**kwargs):
+            """Wraps the node's function to handle the triggering of events before and after its execution."""
+            # set the trigger event
+            await self.asynceventmanager.set_and_clear("triggered")
+            # run the function
+            ans = await self.func(**kwargs)
 
-        Parameters
-        ----------
-        io: NodeIO
-            The io to remove
+            # reset the inputs if requested
+            if self.reset_inputs_on_trigger:
+                for ip in self._inputs:
+                    ip.value = NoValue
 
-        Returns
-        -------
-        bool: True if the io was removed, False if not
+            # set the triggerdone event
+            await self.asynceventmanager.set_and_clear("triggerdone")
+            return ans
 
-        Raises
-        ------
-        IOError: If the io is not of type NodeIO or is not in the node
+        # create the task
+        task = asyncio.create_task(_wrapped_func(**kwargs))
+        return task
 
+    def trigger_if_requested(self, triggerstack: Optional[TriggerStack] = None):
         """
+        Triggers the node if it is ready to be triggered and a trigger has been requested.
 
-        if not isinstance(io, NodeIO):
-            raise NodeIOError(
-                f"only NodeIO objects can be removed from Nodes, not '{type(io)}'"
-            )
-        if io.id not in self._io:
-            raise NodeIOError(f"IO '{io.id}' not in node '{self.name}'")
+        Args:
+            triggerstack (Optional[TriggerStack]): The trigger stack to use for the operation, if any.
 
-        del self._io[io.id]
-        if hasattr(self, "__default_io_" + io.id):
-            delattr(self, "__default_io_" + io.id)
-
-        if io.id in self._data:
-            del self._data[io.id]
-
-        io.remove()
-        self.emit("remove_io", Message_Node_RemoveIO(io=io))
-        if self.nodespace is not None:
-            self.nodespace.emit("remove_io", Message_Node_RemoveIO(io=io.id, node=self))
-        return True
-
-    def remove_input(self, node_input: NodeInput) -> bool:
-        """Remove an node_input from the node.
-
-        Parameters
-        ----------
-        node_input: NodeInput
-            The node_input to remove
-
-        Returns
-        -------
-        bool: True if the node_input was removed, False if not
-
-        Raises
-        ------
-        IOError: If the node_input is not of type NodeInput or is not in the node
+        Returns:
+            None
         """
-        if not isinstance(node_input, NodeInput):
-            raise NodeIOError(
-                f"only NodeInput objects can be removed from Nodes, not '{type(node_input)}'"
-            )
-        if node_input not in self._inputs:
-            raise NodeIOError(f"node_input '{node_input.id}' not in node '{self.name}'")
+        if self._requests_trigger and self.ready_to_trigger():
+            self.trigger(triggerstack)
 
-        self._inputs.remove(node_input)
-        return self._remove_io(node_input)
-
-    def remove_output(self, node_output: NodeOutput) -> bool:
-        """Remove an node_output from the node.
-
-        Parameters
-        ----------
-        node_output: NodeOutput
-            The node_output to remove
-
-        Returns
-        -------
-        bool: True if the node_output was removed, False if not
-
-        Raises
-        ------
-        IOError: If the node_output is not of type NodeOutput or is not in the node
+    @emit_before()
+    @emit_after()
+    def request_trigger(self):
+        """Requests the node to be triggered.
+        If the node is ready to trigger, it triggers it, otherwise it sets the _requests_trigger attribute to True.
         """
-        if not isinstance(node_output, NodeOutput):
-            raise NodeIOError(
-                f"only NodeOutput objects can be removed from Nodes, not '{type(node_output)}'"
-            )
-        if node_output not in self._outputs:
-            raise NodeIOError(
-                f"node_output '{node_output.id}' not in node '{self.name}'"
-            )
-
-        self._outputs.remove(node_output)
-        return self._remove_io(node_output)
-
-    def has_input(self, node_input: NodeInput) -> bool:
-        """Check if the node has an node_input.
-
-        Parameters
-        ----------
-        node_input: NodeInput
-            The node_input to check
-
-        Returns
-        -------
-        bool: True if the node_input is in the node, False if not
-        """
-        return node_input in self._inputs
-
-    def has_output(self, node_output: NodeOutput) -> bool:
-        """Check if the node has an node_output.
-
-        Parameters
-        ----------
-        node_output: NodeOutput
-            The node_output to check
-
-        Returns
-        -------
-        bool: True if the node_output is in the node, False if not
-        """
-
-        return node_output in self._outputs
-
-    def remove_io(self, io: NodeIO) -> bool:
-        """Remove an io from the node.
-
-        Parameters
-        ----------
-        io: NodeIO
-            The io to remove
-
-        Returns
-        -------
-        bool: True if the io was removed, False if not
-
-        Raises
-        ------
-        NodeError: If the io is not of type NodeIO or is not in the node
-
-        """
-        if isinstance(io, NodeInput) and self.has_input(io):
-            return self.remove_input(io)
-        if isinstance(io, NodeOutput) and self.has_output(io):
-            return self.remove_output(io)
-
-        raise NodeError(f"IO '{io.id}' not found in node '{self.name}'")
-
-    def get_input(self, input_id: NodeIOId) -> NodeInput:
-        """Get an node_input by id.
-
-        Parameters
-        ----------
-        input_id: NodeInputName
-            The id of the node_input
-
-        Returns
-        -------
-        NodeInput: The node_input
-
-        Raises
-        ------
-        NodeIOError: If the node_input is not found
-        TypeError: If the node_input is not of type NodeInput
-
-        """
-        node_input = self.get_input_or_output(input_id)
-
-        if node_input is None or node_input not in self._inputs:
-            raise NodeIOError(
-                f"node_input '{input_id}' not found in node '{self.name}'"
-            )
-
-        if not isinstance(node_input, NodeInput):
-            raise TypeError(f"node_input '{input_id}' is not of type NodeInput")
-
-        return node_input
-
-    def get_output(self, output_id: NodeIOId) -> NodeOutput:
-        """Get an node_output by id.
-
-        Parameters
-        ----------
-        output_id: NodeOutputName
-            The id of the node_output
-
-        Returns
-        -------
-        NodeOutput: The node_output
-
-        Raises
-        ------
-        NodeIOError: If the node_output is not found
-        TypeError: If the node_output is not of type NodeOutput
-        """
-        output = self.get_input_or_output(output_id)
-        if output is None or output not in self._outputs:
-            raise NodeIOError(
-                f"node_output '{output_id}' not found in node '{self.name}'"
-            )
-
-        if not isinstance(output, NodeOutput):
-            raise TypeError(f"node_output '{output_id}' is not of type NodeOutput")
-
-        return output
-
-    def get_inputs(self) -> List[NodeInput]:
-        """Get all node_inputs of the node.
-
-        Returns
-        -------
-        List[NodeInput]: The node_inputs
-
-        """
-        return [ip for ip in self._inputs]
-
-    def get_outputs(self) -> List[NodeOutput]:
-        """Get all node_outputs of the node.
-
-        Returns
-        -------
-        List[NodeOutput]: The node_outputs
-
-        """
-        return [op for op in self._outputs]
-
-    def get_edges(self) -> Set[Edge]:
-        """Get all edges connected to the node.
-
-        Returns
-        -------
-        List[Edge]: The edges connected to the node's inputs and outputs
-        """
-        edges = set()
-        for io in self.get_inputs() + self.get_outputs():
-            edges.update(io.get_edges())
-
-        return edges
-
-    def has_grabbing_input(self) -> bool:
-        """Check if the node has a grabbing input.
-
-        Returns
-        -------
-        bool: True if the node has a grabbing input, False if not
-        """
-        for ip in self.get_inputs():
-            if ip.is_grabbing_input():
-                return True
-
-        return False
-
-    def get_grabbable_inputs(self) -> List[NodeInput]:
-        """Get all grabbing inputs of the node.
-
-        Returns
-        -------
-        List[NodeInput]: The grabbable inputs
-        """
-
-        return [ip for ip in self.get_inputs() if ip.is_grabbing_input()]
-
-    async def _trigger_grabbing_inputs(self):
-        """Trigger all grabbing inputs of the node."""
-        other_outputs: Set[NodeIO] = set()
-        for ip in self.get_grabbable_inputs():
-            other_outputs.update(ip.get_other_io())
-
-        triggernodes: Set[Node] = set()
-        for output in other_outputs:
-            if output.node is None:
-                continue
-            if output.node.has_grabbing_input():
-                triggernodes.add(output.node)
-            if output.trigger_on_get:
-                triggernodes.add(output.node)
-
-        triggers = []
-        for node in triggernodes:
-            node.trigger()
-            triggers.append(node.await_done())
-
-        await asyncio.gather(*triggers)
-
-        for ip in self.get_grabbable_inputs():
-            ip.update_value(mark_for_trigger=False)
-
-    # endregion IO
-
-    # region Data
-
-    def get_data(self, data_id: NodeDataName) -> Any:
-        """Get the data of the node.
-
-        Parameters
-        ----------
-        data_id: NodeDataName
-            The id of the data to get
-
-        Returns
-        -------
-        Any: The data or None if not found
-
-        """
-
-        return self._data.get(data_id, None)
-
-    def get_all_data(self) -> NodeDataDict:
-        """Get all data of the node.
-
-        Returns
-        -------
-        Dict[NodeDataName, Any]: The data
-
-        """
-        return {k: v for k, v in self._data.items()}
-
-    def _set_data(self, name: NodeDataName, value: Any, quiet: bool = False):
-        """base method for setting data (internally called)
-
-        Parameters
-        ----------
-        name: NodeDataName
-            The name of the data to set
-        value: Any
-            The value to set
-        quiet: bool
-            If True, no signals are emitted
-        """
-        # base method for setting data (internally called)
-        # if the data is set via an node_input or node_output, use the respective method
-        old = self.get_data(name)
-        self._data[name] = copy.deepcopy(value)
-        self.logger.info("set data '%s' to '%s'", name, value)
-        if not quiet:
-            self.emit(
-                "set.data",
-                Message_Node_SetData(
-                    name=name,
-                    old=old,
-                    new=value,
-                ),
-            )
-
-    def get_state(self) -> NodeStateInterface:
-        """Get the state of the node."""
-
-        state = NodeStateInterface(
-            inputs={nio.id: nio.state for nio in self._inputs},
-            outputs={nio.id: nio.state for nio in self._outputs},
-            data=self.get_all_data(),
-            status=self.check_status(quiet=True),
-        )
-        return state
-
-    # endregion Data
-
-    # region Serialization
-
-    def serialize(self) -> NodeSerializationInterface:
-        """
-        returns a json serializable dict of the node
-        """
-        full_properties: NodeProperties = self.properties
-        default_properties = self.set_default_properties({})
-
-        del full_properties["io"]
-
-        deep_remove_dict_on_equal(full_properties, default_properties)  # type: ignore
-        # add io serialization
-        iodict: PropIODict = PropIODict()
-        iodict["ip"] = []
-        iodict["op"] = []
-        full_properties["io"] = iodict
-        for node_input in self._inputs:
-            # serialize the node_input
-            ioser = node_input.serialize()
-            # remove the id, since it is not needed
-            del ioser["id"]  # type: ignore
-            # check if the node_input has a default value
-            if hasattr(self, "__default_io_" + node_input.id):
-                defaultio = getattr(self, "__default_io_" + node_input.id)
-                # remove the default values from the serialization
-                deep_remove_dict_on_equal(ioser, defaultio.serialize())  # type: ignore
-                # if the serialization is empty, skip it
-                if len(ioser) == 0:
-                    continue
-            ioser["id"] = node_input.id
-            iodict["ip"].append(ioser)
-        # if all node_inputs are empty, remove the ip dict
-        if len(iodict["ip"]) == 0:
-            del iodict["ip"]
-
-        for node_output in self._outputs:
-            # serialize the node_output
-            ioser = node_output.serialize()
-            # remove the id, since it is not needed
-            del ioser["id"]  # type: ignore
-            # check if the node_output has a default value
-            if hasattr(self, "__default_io_" + node_output.id):
-                defaultio = getattr(self, "__default_io_" + node_output.id)
-                # remove the default values from the serialization
-                deep_remove_dict_on_equal(ioser, defaultio.serialize())  # type: ignore
-                # if the serialization is empty, skip it
-                if len(ioser) == 0:
-                    continue
-            ioser["id"] = node_output.id
-            iodict["op"].append(ioser)
-
-        # if all node_outputs are empty, remove the op dict
-        if len(full_properties["io"]["op"]) == 0:
-            del full_properties["io"]["op"]
-
-        # if all io dicts are empty, remove the io dict
-        if len(full_properties["io"]) == 0:
-            del full_properties["io"]
-
-        if len(self.requirements) > 0:
-            full_properties["requirements"] = self.requirements
-
-        ser = NodeSerializationInterface(**full_properties, nid=self.node_id)
-        return ser
-
-    def full_serialize(self) -> FullNodeJSON:
-        ser: FullNodeJSON = {
-            "name": self.name,
-            "id": self.id,
-            "node_id": self.node_id,
-            "io": [v._repr_json_() for v in self._inputs + self._outputs],
-            "data": self.get_all_data(),
-            "requirements": self.requirements,
-            "disabled": self.disabled,
-            "status": {
-                "operable": False,
-                "disabled": True,
-                "ready": False,
-                "miss_inputs": [],
-                "miss_data": [],
-                "is_working": False,
-                "has_trigger_request": False,
-            },
-        }
-        if self.initialized:
-            ser["status"] = self.check_status(quiet=True)
-
-        return ser
-
-    def _repr_json_(self):
-        return {
-            "name": self.name,
-            "id": self.id,
-            "node_id": self.node_id,
-            "inputs": [nio.id for nio in self._inputs],
-            "outputs": [nio.id for nio in self._outputs],
-            "io": [v._repr_json_() for v in self._inputs + self._outputs],
-            "requirements": self.requirements,
-        }
-
-    # endregion Serialization
-
-    # region trigger
-    def _handle_trigger_task(self):
-        """Handles the trigger task and raises exceptions if needed
-        is called in multiple trigger relevant functions
-        """
-        if self._triggertask is not None:
-            if self._triggertask.done():
-                ex = self._triggertask.exception()
-                self._triggertask = None
-                self._in_trigger = False
-
-                if ex is not None:
-                    raise ex
-
-            else:
-                self._in_trigger = True
+        # if the node is ready to trigger, trigger it
+        if self.ready_to_trigger():
+            self.trigger()
         else:
-            self._in_trigger = False
+            # otherwise set the _requests_trigger attribute to True
+            self._requests_trigger = True
 
-    def request_trigger(self, src: str | None):
-        """Request a trigger from the node
-        The node will not be triggered directly but can be via trigger_if_requested
-
-        Parameters
-        ----------
-        src : str | None
-            The source of the request
+    async def await_trigger(self):
         """
+        Asynchronously waits for the node to be ready to trigger and then triggers it
+        or if node is in trigger waits for the trigger process to finish.
 
-        if src is not None:
-            self.logger.info("request trigger from '%s'", src)
-
-        self._request_trigger = True
-
-    def request_trigger_and_trigger(
-        self, src: str | None, trigger_queue: TriggerQueue | None = None
-    ) -> None | TriggerQueue:
-        """Request a trigger from the node and trigger it directly
-
-        Parameters
-        ----------
-        src : str | None
-            The source of the request
+        Returns:
+            The result of the trigger operation.
         """
-        self.request_trigger(src)
-        if self.initialized:
-            return self.trigger_if_requested(trigger_queue)
+        # if the node is ready to trigger, trigger it
+        if self.ready_to_trigger():
+            return await self.trigger()
+        else:
+            self._requests_trigger = True
 
-    @requires_init
-    def check_status(self, quiet=False) -> NodeStatus:
-        """Checks the status of the node and returns a NodeStatus object"""
+        # wait for the trigger process to finish
+        await self.asynceventmanager.wait("triggered")
+        a = await self._triggerstack
+        return a
 
-        miss_inputs: List[NodeIOId] = []
-        miss_data: List[NodeDataName] = []
-        for node_input in self._inputs:
-            if node_input.required:
-                if node_input.length == 0:
-                    miss_inputs.append(node_input.id)
-                if node_input.value_or_none is None:
-                    miss_data.append(node_input.id)
+    async def wait_for_trigger_finish(self):
+        if self.in_trigger:
+            await self.asynceventmanager.wait("triggerdone")
 
-        stat = NodeStatus(
-            operable=self.operable,
-            disabled=self.disabled,
-            ready=self.ready,
-            miss_inputs=miss_inputs,
-            miss_data=miss_data,
-            is_working=self.is_working,
-            has_trigger_request=self.has_trigger_request,
-        )
-        if not quiet:
-            self.emit("check.status", Message_Node_CheckStatus(**stat))
-        return stat
-
-    def is_operable(self) -> Tuple[bool, str]:
-        """Returns True if the node is operable"""
-        if not self.initialized:
-            return False, "node is not initialized"
-
-        # check if all required node_inputs are set
-        for node_input in self._inputs:
-            if not node_input.ready:
-                return (
-                    False,
-                    f"node_input '{node_input.id}' is not ready: {node_input.is_ready()[1]}",
-                )
-        return True, ""
-
-    @abstractmethod
-    async def on_trigger(self) -> bool:
-        """The trigger function of the node
-        This function is called when the node is triggered.
-        It is async bu default but for now sync functions are also supported
-        Should Return if the node was triggered successfully
-        For now everything returned but False is considered as success
-
+    def __await__(self):
         """
-
-    @requires_init
-    def trigger_all_outputs_if_requested(
-        self, trigger_queue: TriggerQueue | None = None
-    ):
-        """Triggers all node_outputs if requested"""
-        for node in self.node_output_bound_nodes(no_grabbing=True):
-            if node.operable and node.enabled:
-                node.trigger_if_requested(trigger_queue)
-
-    def _post_trigger_success(self, result: Any, trigger_queue: TriggerQueue):
-        """Called after a trigger without an exception.
-        here:
-        - push all node_outputs,w/o mark_for_trigger
-        - trigger all node_outputs if requested
-
-        Parameters
-        ----------
-        result : Any
-            The result of the trigger function, everything but False is considered as success
+        Allows an instance of Node to be awaited. This will request the node to be triggered and
+        waits for the trigger process to finish.
+        Yields:
+            The result of awaiting the last task in the stack.
         """
-        if result is False:
-            return
-        self.logger.debug("trigger success")
-        # self.push_all_outputs(mark_for_trigger=False) # should be handeled by the output
-        self.trigger_all_outputs_if_requested(trigger_queue)
+        self.request_trigger()
+        return run_until_complete(self).__await__()
 
-    def _post_trigger(self, trigger_queue: TriggerQueue):
-        """Called after a trigger, no matter if it was successful or not
-        here:
-        - reset the trigger flag
-        - reset node_output changed
-        - check status
-        - trigger if requested
+    @emit_before()
+    @emit_after()
+    def trigger(self, triggerstack: Optional[TriggerStack] = None) -> TriggerStack:
         """
-        self.emit("trigger_done")
-        self._in_trigger = False
-        self.check_status(quiet=True)
-        return self.trigger_if_requested(trigger_queue)
+        Triggers the node's execution. If the node is already in a trigger state, it raises an InTriggerError.
 
-    @requires_init
-    def trigger_if_requested(
-        self, trigger_queue: TriggerQueue | None = None
-    ) -> None | TriggerQueue:
-        """Triggers the node if requested
-        Returns if the node was triggered
+        Args:
+            triggerstack (Optional[TriggerStack]): The trigger stack to use for the operation, if any.
+
+        Returns:
+            TriggerStack: The trigger stack associated with the node's execution.
+
+        Raises:
+            InTriggerError: If the node is already in a trigger state.
         """
-        if not self.operable:
-            return None
-        if self.has_trigger_request:
-            return self.trigger(trigger_queue=trigger_queue)
-        return None
+        if self.in_trigger:
+            raise InTriggerError("Node is already in trigger")
+        if triggerstack is None:
+            triggerstack = TriggerStack()
+        self._triggerstack = triggerstack
+        self._triggerstack.append(self())
+        self._requests_trigger = False
+        return self._triggerstack
 
-    @requires_init
-    def trigger(
-        self, *args, trigger_queue: TriggerQueue | None = None, **kwargs
-    ) -> None | TriggerQueue:
-        """Triggers the node
-        for this the Node has to be:
-        - operable
-        - not disabled
-        - not working
+    # endregion triggering
 
-        if the last trigger was to fast the trigger is delayed.
-        See min_trigger_interval
+    def __del__(self):
+        for ip in self._inputs:
+            del ip
+        self._inputs.clear()
+        for op in self._outputs:
+            del op
+        self._outputs.clear()
 
 
-        Returns if the node was triggered
-        """
-        if not self.operable:
-            self.error(
-                NotOperableException(
-                    f"cannot trigger {self}, not operable:{self.is_operable()[1]}"
-                )
-            )
-            return None
+class NodeStatus(TypedDict):
+    """A dictionary containing the status of a node.
 
-        if self.disabled:
-            self.error(DisabledException(f"cannot trigger {self}, disabled"))
-            return None
+    Attributes:
+        ready (bool): Whether the node is ready.
+        in_trigger (bool): Whether the node is in trigger.
+        requests_trigger (bool): Whether the node requests a trigger.
+        inputs (Dict[str, NodeInputStatus]): The status of the node's inputs.
+        outputs (Dict[str, NodeOutputStatus]): The status of the node's outputs.
 
-        if self.is_working:
-            self.logger.debug("is working")
-            self.request_trigger("working but trigger")
-            if self._triggertask is not None:
-                return self._triggertask.trigger_queue
+    """
 
-        if trigger_queue is None:
-            trigger_queue = TriggerQueue()
+    ready: bool
+    in_trigger: bool
 
-        _time = _deltatimer() * 1000
-        loop = asyncio.get_event_loop()
+    requests_trigger: bool
+    inputs: Dict[str, NodeInputStatus]
+    outputs: Dict[str, NodeOutputStatus]
 
-        # now the real trigger starts
-        self._in_trigger = True
-        dtime = _time - self._last_trigger_time
-        self._last_trigger_time = _time
-        self._request_trigger = False
-        self.emit("trigger")
 
-        async def _trigger():
-            if trigger_queue is None:
-                return
-            if self._triggerdelay > 0:
-                await asyncio.sleep(self._triggerdelay / 1000)
-            if dtime < self.min_trigger_interval:
-                wait = self.min_trigger_interval - dtime
-                self.logger.debug(f"trigger to fast,delay {wait} ms")
-                await asyncio.sleep(wait / 1000)
+class BaseNodeJSON(TypedDict):
+    node_id: str
+    node_name: str
 
-            try:
-                try:
-                    await self._trigger_grabbing_inputs()
-                    res = self.on_trigger(*args, **kwargs)
-                    if asyncio.iscoroutine(res):
-                        res = await res
 
-                    self._post_trigger_success(res, trigger_queue)
+class SerializedNodeClass(BaseNodeJSON, total=False):
+    """A dictionary containing the serialized data of a node.
 
-                except Exception as err:  # pylint: disable=broad-except
-                    raise TriggerException(f"trigger failed for {self}: {err}") from err
-            except TriggerException as err:
-                self.error(err)
+    Attributes:
+        node_id (str): The id of the node.
+        node_name (str): The name of the node.
+        inputs (Dict[str, NodeInput]): The inputs of the node.
+        outputs (Dict[str, NodeOutput]): The outputs of the node.
+        description (Optional[str]): The description of the node.
+        reset_inputs_on_trigger (bool): Whether to reset the inputs of the node when it is triggered.
+    """
 
-            finally:
-                self._post_trigger(trigger_queue=trigger_queue)
+    inputs: List[NodeIOClassSerialization]
+    outputs: List[NodeIOClassSerialization]
+    description: Optional[str]
+    reset_inputs_on_trigger: Optional[bool]
+    trigger_on_create: bool
 
-        self._triggertask = TriggerTask(loop.create_task(_trigger()))
-        trigger_queue.append(self._triggertask)
-        return trigger_queue
 
-    def cancel_trigger(self):
-        """
-        cancel the current trigger process and open request
-        """
-        self._request_trigger = False
-        if self._triggertask is not None:
-            self._triggertask.cancel()
+class NodeJSON(BaseNodeJSON):
+    name: str
+    id: str
+    io: Dict[str, NodeIOSerialization]
+    status: NodeStatus
 
-    async def await_done(self, timeout: float | None = 10, sleep: float = 0.01):
-        """
-        wait until node is done with its trigger processes and whatever results in a working state
-        the node is triggered if requested before waiting and during waiting
-        if the timeout is reached a TimeoutError is raised
 
-        Parameters
-        ----------
-        timeout : float, optional
-            timeout in seconds, by default None
-        sleep : float, optional
-            delta time between checks, by default 0.05
+class FullNodeJSON(BaseNodeJSON):
+    name: str
+    id: str
+    io: Dict[str, FullNodeIOJSON]
+    status: NodeStatus
 
-        """
-        self.trigger_if_requested()
-        start = _deltatimer()
-        while True:
-            if not self.is_working:
-                self.trigger_if_requested()
-            else:
-                await asyncio.sleep(sleep)
-            if not self.is_working:
-                break
 
-            if timeout is not None:
-                if _deltatimer() - start > timeout:
-                    raise TimeoutError("await_done timeout")
+# region node registry
+REGISTERED_NODES: Dict[str, Type[Node]] = {}
 
-        self._handle_trigger_task()
 
-    @staticmethod
-    async def await_all(*nodes: Node, timeout: float = -1, sleep: float = 0.01):
-        """
-        wait until all nodes are done with their trigger processes and whatever
-        results in a working state
-        the nodes are triggered if requested before waiting and during waiting
-        if the timeout is reached a TimeoutError is raised
+def register_node(node_class: Type[Node]):
+    """
+    Registers a node class by adding it to the REGISTERED_NODES dictionary with its 'node_id' as the key.
+    If the 'node_id' already exists in the dictionary, it raises a NodeIdAlreadyExistsError.
 
-        Parameters
-        ----------
-        *nodes : Node
-            nodes to wait for
-        timeout : float, optional
-            timeout in seconds, by default None
-        sleep : float, optional
-            delta time between checks, by default 0.05
-        """
-        for node in nodes:
-            node.trigger_if_requested()
-        start = _deltatimer()
-        while any((node.is_working for node in nodes)):
-            await asyncio.sleep(sleep)
-            for node in nodes:
-                if not node.is_working:
-                    node.trigger_if_requested()
+    Args:
+        node_class (Type[Node]): The class of the node to register.
 
-            if timeout > 0:
-                if _deltatimer() - start > timeout:
-                    raise TimeoutError("await_all timeout")
+    Raises:
+        NodeIdAlreadyExistsError: If a node with the same 'node_id' is already registered.
+    """
+    node_id = node_class.node_id
+    if node_id in REGISTERED_NODES:
+        raise NodeIdAlreadyExistsError(f"Node with id {node_id} already exists")
 
-    # endregion trigger
+    REGISTERED_NODES[node_id] = node_class
 
-    @classmethod
-    def full_class_serialize(cls) -> FullNodeClassJSON:
-        """returns a dict with all information to recreate the node class"""
-        return {
-            "name": cls.__name__,
-            "node_id": cls.node_id,
-            "trigger_on_create": cls.trigger_on_create,
-        }
+
+class NodeKeyError(KeyError):
+    """Exception raised when a node with a given id is not registered."""
+
+
+def get_nodeclass(node_id: str) -> Type[Node]:
+    """Returns the node class with the given id
+
+    Args:
+        node_id (str): The id of the node class to return
+
+    Raises:
+        NodeKeyError: If the node with the given id is not registered
+
+    Returns:
+        Type[Node]: The node class with the given id
+    """
+    if node_id not in REGISTERED_NODES:
+        raise NodeKeyError(f"Node with id {node_id} not registered")
+    return REGISTERED_NODES[node_id]
+
+
+# endregion node registry

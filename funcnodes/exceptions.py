@@ -1,0 +1,2 @@
+class NodeIdAlreadyExistsError(Exception):
+    pass

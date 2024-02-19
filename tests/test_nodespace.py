@@ -1,188 +1,98 @@
-"""
-Test the NodeSpace
-"""
-from funcnodes.io import NodeInput, NodeOutput
-from funcnodes.nodespace import NodeSpace
-from funcnodes.node import Node
 import unittest
-import logging
-
-logging.basicConfig(level=logging.INFO)
+from funcnodes import NodeSpace, Node, NodeInput, NodeOutput
+import gc
 
 
 class DummyNode(Node):
-    """Dummy node for testing"""
+    node_id = "ns_dummy_node"
+    node_name = "Dummy Node"
+    myinput = NodeInput(id="input", type=int, default=1)
+    myoutput = NodeOutput(id="output", type=int)
 
-    node_id = "dummy_node_test_nodespace"
-    right = NodeInput()
-    left = NodeInput()
-    output = NodeOutput()
-
-    async def on_trigger(self):
-        self.output.value = self.left.value + self.right.value
-        return True
+    async def func(self, input: int) -> int:
+        return input
 
 
-class TestNodeSpace(unittest.TestCase):
-    """Test NodeSpace"""
+class TestNodeSpace(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.nodespace = NodeSpace()
+        self.nodespace.lib.add_node(DummyNode, "basic")
 
-    def test_create(self):
-        """Test the creation of a NodeSpace"""
-        ns = NodeSpace()
-        self.assertListEqual(ns.nodes, [])
-        self.assertListEqual(ns.edges, [])
+    def test_add_node_instance(self):
+        node = DummyNode()
+        self.nodespace.add_node_instance(node)
+        self.assertIn(node, self.nodespace.nodes)
 
-    def test_add_node(self):
-        """Test adding a node"""
-        ns = NodeSpace()
-        ns.lib.add_nodeclass(DummyNode)
-        ns.add_node(DummyNode())
-        self.assertEqual(len(ns.nodes), 1)
+    def test_add_node_by_id(self):
+        node_id = "ns_dummy_node"
+        nodeuuid = self.nodespace.add_node_by_id(node_id).uuid
+        self.assertIn(nodeuuid, [node.uuid for node in self.nodespace.nodes])
 
-    def test_remove_node(self):
-        """Test removing a node"""
-        ns = NodeSpace()
-        ns.lib.add_nodeclass(DummyNode)
-        ns.add_node(DummyNode(id="n_0"))
-        ns.add_node(DummyNode(id="n_1"))
-        ns.get_node("n_0").io.output.connect_to(ns.get_node("n_1").io.left)
+    def test_get_node_by_id(self):
+        node_id = "ns_dummy_node"
+        nodeuuid = self.nodespace.add_node_by_id(node_id).uuid
+        node = self.nodespace.get_node_by_id(nodeuuid)
+        self.assertEqual(nodeuuid, node.uuid)
+        self.assertEqual(node_id, node.node_id)
 
-        import gc
+    def test_serialize_nodes(self):
+        node = DummyNode()
+        self.nodespace.add_node_instance(node)
+        serialized_nodes = self.nodespace.serialize_nodes()
+        self.assertEqual(len(serialized_nodes), 1)
 
-        # node = ns.get_node("n_0")
-        self.assertEqual(len(ns.nodes), 2)
-        self.assertEqual(len(ns.edges), 1)
-
-        gc.disable()
-        gc.collect()
-        #
-        n = ns.nodes[0]
-        # refered by the line, node space, the logger (sometimes not?), left, right and output
-
-        assert (
-            5 <= len(gc.get_referrers(n)) <= 6
-        ), f"{len(gc.get_referrers(n))} referrers: {gc.get_referrers(n)}"
-        ns.remove_node(ns.nodes[0])
-        # only the logger(or not) should be referencing the node and the line
-        assert (
-            1 <= len(gc.get_referrers(n)) <= 2
-        ), f"{len(gc.get_referrers(n))} referrers: {gc.get_referrers(n)}"
-        n = None
-        gc.collect()
-        gc.enable()
-
-        self.assertEqual(len(ns.nodes), 1)
-        self.assertEqual(len(ns.edges), 0)
-
-    def test_add_connected(self):
-        ns = NodeSpace()
-        ns.lib.add_nodeclass(DummyNode)
-        n_0 = DummyNode(id="n_0")
-        n_1 = DummyNode(id="n_1")
-        n_2 = DummyNode(id="n_2")
-        n_3 = DummyNode(id="n_3")
-        n_4 = DummyNode(id="n_4")
-
-        n_0.io.output.connect_to(n_1.io.left)
-        n_1.io.output.connect_to(n_2.io.left)
-        n_2.io.output.connect_to(n_3.io.left)
-        n_3.io.output.connect_to(n_4.io.left)
-        added: list = ns.add_node(n_1) or []
-        self.assertEqual(len(added), 5, "Should have added 3 nodes")
-        self.assertEqual(len(ns.edges), 4, "Should have added 2 edges")
-        self.assertEqual(len(ns.nodes), 5, "Should have added 3 nodes")
-        self.assertEqual(len(ns.add_node(n_4) or []), 0, "Should have added 0 nodes")
-
-    def test_connection(self):
-        ns = NodeSpace()
-        ns.lib.add_nodeclass(DummyNode)
-        ns.add_node(DummyNode(id="n_0"))
-        ns.add_node(DummyNode(id="n_1"))
-        ns.connect_by_id("n_0", "output", "n_1", "right")
-        self.assertEqual(len(ns.edges), 1)
-        ns.disconnect_by_id("n_0", "output", "n_1", "right")
-        self.assertEqual(len(ns.edges), 0)
+    def test_deserialize_nodes(self):
+        node = DummyNode()
+        self.nodespace.add_node_instance(node)
+        self.assertEqual(len(self.nodespace.nodes), 1)
+        serialized_nodes = self.nodespace.serialize_nodes()
+        print(serialized_nodes)
+        self.nodespace._nodes = {}
+        self.nodespace.deserialize_nodes(serialized_nodes)
+        self.assertEqual(len(self.nodespace.nodes), 1)
 
     def test_serialize(self):
-        ns = NodeSpace()
-        ns.lib.add_nodeclass(DummyNode)
-        ns.add_node(DummyNode(id="n_0"))
-        ns.add_node(DummyNode(id="n_1"))
-        ns.get_node("n_0").io.output.connect_to(ns.get_node("n_1").io.left)
-
-        ser = ns.serialize()
-        self.maxDiff = None
-        self.assertDictEqual(
-            ser,
-            {
-                "nodes": [
-                    {"id": "n_0", "nid": "dummy_node_test_nodespace"},
-                    {"id": "n_1", "nid": "dummy_node_test_nodespace"},
-                ],
-                "edges": [["n_0", "output", "n_1", "left"]],
-                "prop": {},
-            },
-        )
-
-        ns.get_node("n_0").left.set_value_and_default(1)
-        ser = ns.serialize()
-        self.maxDiff = None
-        self.assertDictEqual(
-            ser,
-            {
-                "nodes": [
-                    {
-                        "id": "n_0",
-                        "nid": "dummy_node_test_nodespace",
-                        "io": {"ip": [{"default_value": 1, "id": "left"}]},
-                    },
-                    {"id": "n_1", "nid": "dummy_node_test_nodespace"},
-                ],
-                "edges": [["n_0", "output", "n_1", "left"]],
-                "prop": {},
-            },
-        )
+        node = DummyNode()
+        self.nodespace.add_node_instance(node)
+        serialized_nodespace = self.nodespace.serialize()
+        self.assertIn("nodes", serialized_nodespace)
+        self.assertIn("edges", serialized_nodespace)
+        self.assertIn("prop", serialized_nodespace)
 
     def test_deserialize(self):
-        ns = NodeSpace()
-        ns.lib.add_nodeclass(DummyNode)
-        d1 = {
-            "nodes": [
-                {
-                    "id": "n_0",
-                    "nid": "dummy_node_test_nodespace",
-                    "io": {
-                        "ip": {"right": {"default_value": 0}},
-                    },
-                },
-                {"id": "n_1", "nid": "dummy_node_test_nodespace"},
-            ],
-            "edges": [["n_0", "output", "n_1", "left"]],
-            "prop": {},
-        }
-        d11 = {
-            "nodes": [
-                {
-                    "id": "n_0",
-                    "nid": "dummy_node_test_nodespace",
-                    "io": {
-                        "ip": [{"default_value": 0, "id": "right"}],
-                    },
-                },
-                {"id": "n_1", "nid": "dummy_node_test_nodespace"},
-            ],
-            "edges": [["n_0", "output", "n_1", "left"]],
-            "prop": {},
-        }
-        ns.deserialize(d1)
+        node = DummyNode()
+        self.nodespace.add_node_instance(node)
+        serialized_nodespace = self.nodespace.serialize()
+        self.nodespace._nodes = {}
+        self.nodespace.deserialize(serialized_nodespace)
+        self.assertEqual(len(self.nodespace.nodes), 1)
 
-        d2 = ns.serialize()
-        print(d2)
-        self.maxDiff = None
-        self.assertDictEqual(d11, d2)
+    def test_remove_node(self):
+        gc.collect()
+        gc.set_debug(gc.DEBUG_LEAK)
+        node1 = DummyNode()
+        node2 = DummyNode()
 
-        ns.deserialize(d11)
+        self.nodespace.add_node_instance(node1)
+        self.nodespace.add_node_instance(node2)
+        self.assertEqual(len(self.nodespace.nodes), 2)
+        self.assertEqual(
+            len(gc.get_referrers(node1)), 3, gc.get_referrers(node1)
+        )  # 3 because of the nodespace, the input and the output
 
-        d2 = ns.serialize()
-        self.maxDiff = None
-        self.assertDictEqual(d11, d2)
+        self.assertTrue(
+            self.nodespace._nodes in gc.get_referrers(node1),
+            gc.get_referrers(node1),
+        )
+        self.nodespace.remove_node_by_id(self.nodespace.nodes[0].uuid)
+        self.assertEqual(len(self.nodespace.nodes), 1)
+
+        gc.collect()
+        node1.__del__()
+        self.assertEqual(len(gc.get_referrers(node1)), 0, gc.get_referrers(node1))
+        del node1
+        gc.collect()
+        garb = gc.garbage
+        gc.set_debug(0)
+
+        self.assertEqual(garb, [])

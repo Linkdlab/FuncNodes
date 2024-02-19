@@ -1,0 +1,18 @@
+[run]
+branch = True
+command_line =  -m unittest discover -s ./tests -p test_*.py
+source =
+    funcnodes/
+    
+[html]
+directory = coverage/html
+
+[lcov]
+output = coverage/coverage.lcov
+
+[report]
+exclude_lines = 
+    pragma: no cover
+    if TYPE_CHECKING:
+    except NodeIdAlreadyExistsError: 
+    if sys.version_info >= 
