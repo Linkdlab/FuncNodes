@@ -371,8 +371,24 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         ipid = node_input.uuid
         if ipid in map(lambda x: x.uuid, self._inputs):
             raise ValueError(f"Input with id {ipid} already exists")
+        node_input.on("*", self.on_nodeio_event)
         self._inputs.append(node_input)
         node_input.node = self
+
+    def remove_input(self, node_input: NodeInput):
+        """
+        Removes a NodeInput object from the node's inputs and unsets it as an attribute of the node.
+
+        Args:
+            node_input (NodeInput): The NodeInput object to remove.
+
+        Returns:
+            None
+        """
+        if node_input not in self._inputs:
+            raise ValueError(f"Input with id {node_input.uuid} not found")
+        node_input.off("*", self.on_nodeio_event)
+        self._inputs.remove(node_input)
 
     def add_output(self, node_output: NodeOutput):
         """
@@ -387,9 +403,39 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         opid = node_output.uuid
         if opid in map(lambda x: x.uuid, self._outputs):
             raise ValueError(f"Output with id {opid} already exists")
-
+        node_output.on("*", self.on_nodeio_event)
         node_output.node = self
         self._outputs.append(node_output)
+
+    def remove_output(self, node_output: NodeOutput):
+        """
+        Removes a NodeOutput object from the node's outputs and unsets it as an attribute of the node.
+
+        Args:
+            node_output (NodeOutput): The NodeOutput object to remove.
+
+        Returns:
+            None
+        """
+        if node_output not in self._outputs:
+            raise ValueError(f"Output with id {node_output.uuid} not found")
+        node_output.off("*", self.on_nodeio_event)
+        self._outputs.remove(node_output)
+
+    def on_nodeio_event(self, event: str, src: NodeInput | NodeOutput, **data):
+        """
+        Handles events emitted by the node's inputs and outputs.
+
+        Args:
+            event (str): The event name.
+            src (NodeInput | NodeOutput): The source of the event.
+            **data: The event data.
+
+        Returns:
+            None
+        """
+        msg = {"io": src.uuid, **data}
+        self.emit(event, msg)
 
     def inputs_ready(self):
         """Whether all the node's inputs are ready."""
@@ -564,11 +610,11 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
     # endregion triggering
 
     def __del__(self):
-        for ip in self._inputs:
-            del ip
+        for ip in list(self._inputs):
+            self.remove_input(ip)
         self._inputs.clear()
-        for op in self._outputs:
-            del op
+        for op in list(self._outputs):
+            self.remove_output(op)
         self._outputs.clear()
 
 

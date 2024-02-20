@@ -62,6 +62,9 @@ class LoopManager:
         self._loops.remove(loop)
         loop.stop()
 
+    def async_call(self, croutine: asyncio.Coroutine):
+        return self._loop.create_task(croutine)
+
     def run_forever(self):
         asyncio.set_event_loop(self._loop)
 

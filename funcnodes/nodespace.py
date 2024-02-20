@@ -69,7 +69,7 @@ class NodeSpace(EventEmitterMixin):
 
     def full_serialize(self) -> FullNodeSpaceJSON:
         return {
-            "nodes": [node.full_serialize() for name, node in self._nodes.items()],
+            "nodes": [node.full_serialize() for node in self.nodes],
             "prop": self._properties,
             "lib": self.lib.full_serialize(),
             "edges": self.serialize_edges(),
@@ -89,7 +89,8 @@ class NodeSpace(EventEmitterMixin):
         Dict[str, Node]
             the deserialized nodes
         """
-        ret = {}
+        for node in self.nodes:
+            self.remove_node_instance(node)
         for node in data:
             node_cls = self.lib.get_node_by_id(node["node_id"])
             if node_cls is None:
@@ -98,9 +99,7 @@ class NodeSpace(EventEmitterMixin):
                 )
             node_instance = node_cls()
             node_instance.deserialize(node)
-            ret[node_instance.uuid] = node_instance
-        self._nodes = ret
-        return ret
+            self.add_node_instance(node_instance)
 
     def serialize_nodes(self) -> List[NodeJSON]:
         """serialize_nodes serializes the nodes in the nodespace
@@ -111,7 +110,7 @@ class NodeSpace(EventEmitterMixin):
             the serialized nodes
         """
         ret = []
-        for name, node in self._nodes.items():
+        for node in self.nodes:
             ret.append(node.serialize())
         return json.loads(json.dumps(ret, cls=JSONEncoder), cls=JSONDecoder)
 
@@ -165,16 +164,23 @@ class NodeSpace(EventEmitterMixin):
         if node.uuid in self._nodes:
             raise ValueError(f"node with uuid '{node.uuid}' already exists")
         self._nodes[node.uuid] = node
+        node.on("*", self.on_node_event)
         node_ser = node.serialize()
         msg = MessageInArgs(node=node_ser)
         self.emit("node_added", msg)
+
         return node
+
+    def on_node_event(self, event: str, src: Node, **data):
+        msg = MessageInArgs(node=src.uuid, **data)
+        self.emit(event, msg)
 
     def remove_node_instance(self, node: Node):
         if node.uuid not in self._nodes:
             raise ValueError(f"node with uuid '{node.uuid}' not found in nodespace")
 
         node = self._nodes.pop(node.uuid)
+        node.off("*", self.on_node_event)
 
         for output in node.outputs.values():
             for input in output.connections:
@@ -200,17 +206,15 @@ class NodeSpace(EventEmitterMixin):
         node = node_cls(**kwargs)
         return self.add_node_instance(node)
 
-    def remove_node_by_id(self, id: str):
-        if id not in self._nodes:
-            raise ValueError(f"node with id '{id}' not found in nodespace")
-        return self.remove_node_instance(self._nodes[id])
+    def remove_node_by_id(self, nid: str):
+        return self.remove_node_instance(self.get_node_by_id(nid))
 
     # endregion add/remove nodes
 
-    def get_node_by_id(self, id: str) -> Node:
-        if id not in self._nodes:
-            raise ValueError(f"node with id '{id}' not found in nodespace")
-        return self._nodes[id]
+    def get_node_by_id(self, nid: str) -> Node:
+        if nid not in self._nodes:
+            raise ValueError(f"node with id '{nid}' not found in nodespace")
+        return self._nodes[nid]
 
     # endregion nodes
     async def await_done(

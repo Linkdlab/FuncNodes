@@ -46,8 +46,7 @@ class TestNodeSpace(unittest.IsolatedAsyncioTestCase):
         self.nodespace.add_node_instance(node)
         self.assertEqual(len(self.nodespace.nodes), 1)
         serialized_nodes = self.nodespace.serialize_nodes()
-        print(serialized_nodes)
-        self.nodespace._nodes = {}
+
         self.nodespace.deserialize_nodes(serialized_nodes)
         self.assertEqual(len(self.nodespace.nodes), 1)
 
@@ -63,7 +62,7 @@ class TestNodeSpace(unittest.IsolatedAsyncioTestCase):
         node = DummyNode()
         self.nodespace.add_node_instance(node)
         serialized_nodespace = self.nodespace.serialize()
-        self.nodespace._nodes = {}
+
         self.nodespace.deserialize(serialized_nodespace)
         self.assertEqual(len(self.nodespace.nodes), 1)
 

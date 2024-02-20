@@ -309,6 +309,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             value: The value to set.
         """
         self._value = value
+        return self.value
 
     @emit_before()
     @emit_after()
@@ -642,7 +643,7 @@ class NodeOutput(NodeIO):
         """
 
         super().__init__(*args, **kwargs)
-        #self._connected: List[NodeInput] = self._connected
+        # self._connected: List[NodeInput] = self._connected
 
     @classmethod
     def from_serialized_output(

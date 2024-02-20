@@ -446,6 +446,10 @@ class Worker(ABC):
         return self.nodespace.get_node_by_id(id)
 
     @exposed_method()
+    def remove_node(self, id: str):
+        return self.nodespace.remove_node_by_id(id).uuid
+
+    @exposed_method()
     def set_io_value(
         self,
         nid: str,
@@ -745,12 +749,19 @@ class RemoteWorker(Worker):
         """send a message to the frontend"""
 
     def _on_nodespaceevent(self, event, src: NodeSpace, **kwargs):
+        if event in [
+            "before_set_value",
+            "before_request_trigger",
+            "after_request_trigger",
+        ]:
+            return
         event_bundle: NodeSpaceEvent = {
             "type": "nsevent",
             "event": event,
             "data": kwargs,
         }
-        self.send(event_bundle)
+
+        self.loop_manager.async_call(self.send(event_bundle))
         return event_bundle
 
     def _on_nodespaceerror(
@@ -764,7 +775,7 @@ class RemoteWorker(Worker):
             "error": repr(error),
             "tb": list(traceback.TracebackException.from_exception(error).format()),
         }
-        self.send(error_bundle)
+        self.loop_manager.async_call(self.send(error_bundle))
 
     async def targeted_command(self, data):
         target = data["target"]
