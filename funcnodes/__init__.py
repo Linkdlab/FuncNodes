@@ -12,7 +12,7 @@ from .utils import run_until_complete, JSONEncoder, JSONDecoder
 
 from .node import Node, get_nodeclass, NodeJSON
 from .nodespace import NodeSpace, FullNodeSpaceJSON, NodeSpaceJSON
-from .lib import FullLibJSON, Shelf, Library, find_shelf
+from .lib import FullLibJSON, Shelf, Library, find_shelf, NodeClassNotFoundError
 from .nodemaker import NodeClassMixin, NodeDecorator
 
 __all__ = [
@@ -39,6 +39,7 @@ __all__ = [
     "find_shelf",
     "JSONEncoder",
     "JSONDecoder",
+    "NodeClassNotFoundError",
 ]
 
 __version__ = "0.1.0"

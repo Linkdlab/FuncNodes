@@ -2,11 +2,15 @@ from typing import List, Dict, TypedDict, Tuple, Any
 from funcnodes import Node, run_until_complete
 import json
 from uuid import uuid4
-from .node import FullNodeJSON, NodeJSON
+from .node import FullNodeJSON, NodeJSON, PlaceHolderNode, NodeTriggerError
 from .io import NodeInput, NodeOutput
-from .lib import FullLibJSON, Library
+from .lib import FullLibJSON, Library, NodeClassNotFoundError
 from .eventmanager import EventEmitterMixin, MessageInArgs
 from .utils.serialization import JSONEncoder, JSONDecoder
+
+
+class NodeException(Exception):
+    pass
 
 
 class FullNodeSpaceJSON(TypedDict):
@@ -92,11 +96,10 @@ class NodeSpace(EventEmitterMixin):
         for node in self.nodes:
             self.remove_node_instance(node)
         for node in data:
-            node_cls = self.lib.get_node_by_id(node["node_id"])
-            if node_cls is None:
-                raise ValueError(
-                    f"node with node_id '{node['node_id']}' not found in lib"
-                )
+            try:
+                node_cls = self.lib.get_node_by_id(node["node_id"])
+            except NodeClassNotFoundError:
+                node_cls = PlaceHolderNode
             node_instance = node_cls()
             node_instance.deserialize(node)
             self.add_node_instance(node_instance)
@@ -165,6 +168,7 @@ class NodeSpace(EventEmitterMixin):
             raise ValueError(f"node with uuid '{node.uuid}' already exists")
         self._nodes[node.uuid] = node
         node.on("*", self.on_node_event)
+        node.on_error(self.on_node_error)
         node_ser = node.serialize()
         msg = MessageInArgs(node=node_ser)
         self.emit("node_added", msg)
@@ -174,6 +178,12 @@ class NodeSpace(EventEmitterMixin):
     def on_node_event(self, event: str, src: Node, **data):
         msg = MessageInArgs(node=src.uuid, **data)
         self.emit(event, msg)
+
+    def on_node_error(self, src: Node, error: Exception):
+        key = "node_error"
+        if isinstance(error, NodeTriggerError):
+            key = "node_trigger_error"
+        self.emit(key, MessageInArgs(node=src.uuid, error=error))
 
     def remove_node_instance(self, node: Node):
         if node.uuid not in self._nodes:

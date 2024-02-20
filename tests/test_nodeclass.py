@@ -52,11 +52,13 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
     async def test_node_ready_to_trigger(self):
         """Test if the node correctly reports its readiness to trigger."""
         test_node = DummyNode()
+        await test_node
         self.assertTrue(test_node.ready_to_trigger())
 
     async def test_node_trigger(self):
         """Test triggering a node."""
         test_node = DummyNode()
+        await test_node
         trigger_stack = test_node.trigger()
         self.assertIsInstance(trigger_stack, TriggerStack)
 
@@ -83,6 +85,7 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
     async def test_trigger_stack(self):
         """Test the trigger stack."""
         test_node = DummyNode()
+        await test_node
         trigger_stack = test_node.trigger()
         await trigger_stack
         self.assertTrue(trigger_stack.done())

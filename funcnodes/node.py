@@ -27,6 +27,12 @@ from .eventmanager import (
 from .utils import run_until_complete
 
 
+class NodeTriggerError(Exception):
+    @classmethod
+    def from_error(cls, error: Exception):
+        return cls(str(error)).with_traceback(error.__traceback__)
+
+
 def _get_nodeclass_inputs(node: Type[Node] | Node) -> List[NodeInput]:
     """
     Iterates over the attributes of a Node instance and returns the ones that are instances of NodeInput.
@@ -181,6 +187,9 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         self._disabled = False
         _parse_nodeclass_io(self)
 
+        if self.ready_to_trigger():
+            self.request_trigger()
+
     # region serialization
     @classmethod
     def serialize_cls(cls) -> SerializedNodeClass:
@@ -325,6 +334,11 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
 
     def ready_to_trigger(self):
         """Whether the node is ready to be triggered"""
+        # check wherer a running eventloop is present
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return False
         return self.ready() and not self.in_trigger
 
     def __str__(self) -> str:
@@ -509,8 +523,11 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             # set the trigger event
             await self.asynceventmanager.set_and_clear("triggered")
             # run the function
-            ans = await self.func(**kwargs)
-
+            try:
+                ans = await self.func(**kwargs)
+            except Exception as e:
+                self.error(NodeTriggerError.from_error(e))
+                ans = e
             # reset the inputs if requested
             if self.reset_inputs_on_trigger:
                 for ip in self._inputs:
@@ -720,3 +737,37 @@ def get_nodeclass(node_id: str) -> Type[Node]:
 
 
 # endregion node registry
+
+
+class PlaceHolderNode(Node):
+    node_id = "placeholder"
+    node_name = "placeholder node"
+
+    async def func(self, *args, **kwargs):
+        raise NotImplementedError(
+            "This is a placeholder node and should not be triggered"
+        )
+
+    def deserialize(self, data: NodeJSON):
+        self.node_id = data["node_id"]
+        self.node_name = data["node_name"]
+
+        for ip in self._inputs:
+            self.remove_input(ip)
+
+        for op in self._outputs:
+            self.remove_output(op)
+
+        if "name" in data:
+            self._name = data["name"]
+        if "id" in data:
+            self._uuid = data["id"]
+        if "reset_inputs_on_trigger" in data:
+            self._reset_inputs_on_trigger = data["reset_inputs_on_trigger"]
+
+        if "io" in data:
+            for iod in data["io"]:
+                if data["io"][iod]["is_input"]:
+                    self.add_input(NodeInput.from_serialized_nodeio(data["io"][iod]))
+                else:
+                    self.add_output(NodeOutput.from_serialized_nodeio(data["io"][iod]))

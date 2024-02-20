@@ -76,8 +76,8 @@ class TestNodeSpace(unittest.IsolatedAsyncioTestCase):
         self.nodespace.add_node_instance(node2)
         self.assertEqual(len(self.nodespace.nodes), 2)
         self.assertEqual(
-            len(gc.get_referrers(node1)), 3, gc.get_referrers(node1)
-        )  # 3 because of the nodespace, the input and the output
+            len(gc.get_referrers(node1)), 5, gc.get_referrers(node1)
+        )  # 5 because of the nodespace, the input and the output and the io event listener
 
         self.assertTrue(
             self.nodespace._nodes in gc.get_referrers(node1),

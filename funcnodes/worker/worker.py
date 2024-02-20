@@ -1,6 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
+from functools import wraps
 from typing import (
     List,
     Type,
@@ -35,6 +36,7 @@ from funcnodes import (
     NodeJSON,
     JSONEncoder,
     JSONDecoder,
+    NodeClassNotFoundError,
 )
 from funcnodes.lib import find_shelf
 import traceback
@@ -241,6 +243,16 @@ class SaveLoop(CustomLoop):
         self.save_requested = False
 
 
+def requests_save(func):
+    @wraps(func)
+    async def wrapper(self: Worker, *args, **kwargs):
+        res = func(self, *args, **kwargs)
+        self.request_save()
+        return res
+
+    return wrapper
+
+
 class Worker(ABC):
     def __init__(
         self,
@@ -392,7 +404,10 @@ class Worker(ABC):
         if "nodes" in data["backend"]:
             nodes = data["backend"]["nodes"]
             for node in nodes:
-                await self.install_node(node)
+                try:
+                    await self.install_node(node)
+                except NodeClassNotFoundError:
+                    pass
 
         if "meta" in data:
             if "id" in data["meta"]:
@@ -437,6 +452,7 @@ class Worker(ABC):
 
     # region nodes
 
+    @requests_save
     @exposed_method()
     def add_node(self, id: str, **kwargs):
         return self.nodespace.add_node_by_id(id, **kwargs)
@@ -445,6 +461,7 @@ class Worker(ABC):
     def get_node(self, id: str) -> Node:
         return self.nodespace.get_node_by_id(id)
 
+    @requests_save
     @exposed_method()
     def remove_node(self, id: str):
         return self.nodespace.remove_node_by_id(id).uuid
@@ -463,7 +480,6 @@ class Worker(ABC):
         if set_default:
             io.set_default(value)
         io.set_value(value)
-        print("set value", value, trigger)
         if trigger:
             node.request_trigger()
         return io.value
@@ -475,11 +491,17 @@ class Worker(ABC):
         return io.value
 
     @exposed_method()
+    def trigger_node(self, nid: str):
+        node = self.get_node(nid)
+        node.request_trigger()
+        return True
+
+    @requests_save
+    @exposed_method()
     def set_default_value(self, nid: str, ioid: str, value: Any):
         node = self.get_node(nid)
         io = node.get_input(ioid)
         io.set_default(value)
-        self.request_save()
         return True
 
     @exposed_method()
@@ -493,6 +515,7 @@ class Worker(ABC):
         node.request_trigger()
         return True
 
+    @requests_save
     @exposed_method()
     def update_node(self, nid: str, data: NodeUpdateJSON):
         node = self.get_node(nid)
@@ -507,9 +530,10 @@ class Worker(ABC):
             n = data["name"]
             node.name = n
             ans["name"] = node.name
-        self.request_save()
+
         return ans
 
+    @requests_save
     @exposed_method()
     def update_node_view(self, nid: str, data: NodeViewState):
         if nid not in self.viewdata["nodes"]:
@@ -537,7 +561,7 @@ class Worker(ABC):
         if self.nodespace.lib.has_node_id(nideid):
             return
 
-        raise ValueError(f"Node with id {nideid} not found")
+        raise NodeClassNotFoundError(f"Node with id {nideid} not found")
 
     def _set_nodespace_id(self, nsid: str):
         if nsid is None:

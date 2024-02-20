@@ -146,7 +146,8 @@ class NodeInputStatus(NodeIOStatus):
     required: bool
 
 
-class NodeOutputStatus(NodeIOStatus): ...
+class NodeOutputStatus(NodeIOStatus):
+    ...
 
 
 def raise_allow_connections(src: NodeIO, trg: NodeIO):
@@ -571,6 +572,24 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
         if "default" in data:
             self._default = data["default"]
 
+    @classmethod
+    def from_serialized_nodeio(
+        cls, serialized_nodeio: NodeInputSerialization
+    ) -> NodeInput:
+        """
+        Creates a NodeInput instance from serialized input data.
+
+        Args:
+            serialized_nodeio: A dictionary containing serialized data for the node input.
+
+        Returns:
+            An instance of NodeInput initialized with the serialized data.
+        """
+
+        ins = cls(**serialized_nodeio)
+        ins.deserialize(serialized_nodeio)
+        return ins
+
     def set_value(self, value: object, does_trigger: Optional[bool] = None) -> None:
         super().set_value(value)
 
@@ -675,6 +694,23 @@ class NodeOutput(NodeIO):
 
     def deserialize(self, data: NodeIOSerialization) -> None:
         return super().deserialize(data)
+
+    @classmethod
+    def from_serialized_nodeio(
+        cls, serialized_nodeio: NodeOutputSerialization
+    ) -> NodeOutput:
+        """
+        Creates a NodeOutput instance from serialized output data.
+
+        Args:
+            serialized_nodeio: A dictionary containing serialized data for the node output.
+
+        Returns:
+            An instance of NodeOutput initialized with the serialized data.
+        """
+        ins = cls(**serialized_nodeio)
+        ins.deserialize(serialized_nodeio)
+        return ins
 
     @property
     def connections(self) -> List[NodeInput]:
