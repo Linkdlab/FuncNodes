@@ -37,6 +37,8 @@ from funcnodes import (
     JSONEncoder,
     JSONDecoder,
     NodeClassNotFoundError,
+    NodeOutput,
+    NodeInput,
 )
 from funcnodes.lib import find_shelf
 import traceback
@@ -145,7 +147,7 @@ class LocalWorkerLookupLoop(CustomLoop):
         for root, dirs, files in os.walk(self.path):  # pylint: disable=unused-variable
             for file in files:
                 if file.endswith(".py") and file not in self._parsed_files:
-                    print(os.path.join(root, file))
+
                     module_name = file[:-3]
                     spec = importlib.util.spec_from_file_location(
                         module_name, os.path.join(root, file)
@@ -244,13 +246,24 @@ class SaveLoop(CustomLoop):
 
 
 def requests_save(func):
-    @wraps(func)
-    async def wrapper(self: Worker, *args, **kwargs):
-        res = func(self, *args, **kwargs)
-        self.request_save()
-        return res
+    if asyncio.iscoroutinefunction(func):
 
-    return wrapper
+        @wraps(func)
+        async def async_wrapper(self: Worker, *args, **kwargs):
+            res = func(self, *args, **kwargs)
+            self.request_save()
+            return res
+
+        return async_wrapper
+    else:
+
+        @wraps(func)
+        def wrapper(self: Worker, *args, **kwargs):
+            res = func(self, *args, **kwargs)
+            self.request_save()
+            return res
+
+        return wrapper
 
 
 class Worker(ABC):
@@ -467,21 +480,13 @@ class Worker(ABC):
         return self.nodespace.remove_node_by_id(id).uuid
 
     @exposed_method()
-    def set_io_value(
-        self,
-        nid: str,
-        ioid: str,
-        value: Any,
-        set_default: bool = False,
-        trigger: bool = False,
-    ):
+    def set_io_value(self, nid: str, ioid: str, value: Any, set_default: bool = False):
         node = self.get_node(nid)
         io = node.get_input(ioid)
         if set_default:
             io.set_default(value)
         io.set_value(value)
-        if trigger:
-            node.request_trigger()
+
         return io.value
 
     @exposed_method()
@@ -542,6 +547,30 @@ class Worker(ABC):
             self.viewdata["nodes"][nid].update(data)
         return self.viewdata["nodes"][nid]
 
+    # endregion nodes
+    # region edges
+    @requests_save
+    @exposed_method()
+    def add_edge(
+        self,
+        src_nid: str,
+        src_ioid: str,
+        trg_nid: str,
+        trg_ioid: str,
+        replace: bool = False,
+    ):
+        src = self.get_node(src_nid)
+        tgt = self.get_node(trg_nid)
+        srcio = src.get_input_or_output(src_ioid)
+        tgtio = tgt.get_input_or_output(trg_ioid)
+        if isinstance(srcio, NodeOutput) and isinstance(tgtio, NodeInput):
+            return srcio.connect(tgtio, replace=replace)
+        else:
+            return tgtio.connect(srcio, replace=replace)
+        srcio.connect(tgtio)
+        return True
+
+    # endregion edges
     # endregion nodespace interaction
 
     async def install_node(self, nodedata: NodeJSON):
@@ -698,55 +727,6 @@ class TriggerNode(TypedDict):
     id: str
 
 
-class TriggerOutLoop(CustomLoop):
-    def __init__(self, client: RemoteWorker, delay=0.2) -> None:
-        super().__init__(delay=delay)
-        self._last_states = {}
-        self._client = client
-
-    async def loop(self):
-        new_states = {}
-        for node in self._client.nodespace.nodes:
-            new_states[node.uuid] = node.is_working
-
-        changed_states = {
-            node_id: new_state
-            for node_id, new_state in new_states.items()
-            if new_state != self._last_states.get(node_id, None)
-        }
-        self._last_states = new_states
-
-        if len(changed_states) == 0:
-            return
-
-        new_triggers: List[TriggerNode] = [
-            {"id": node_id}
-            for node_id, new_state in changed_states.items()
-            if new_state
-        ]
-        new_trigger_dones: List[TriggerNode] = [
-            {"id": node_id}
-            for node_id, new_state in changed_states.items()
-            if not new_state
-        ]
-
-        if len(new_triggers) > 0:
-            event_bundle: MEvent = {
-                "type": "mevent",
-                "event": "trigger",
-                "data": new_triggers,
-            }
-            self._client.send(event_bundle)
-
-        if len(new_trigger_dones) > 0:
-            event_bundle: MEvent = {
-                "type": "mevent",
-                "event": "trigger_done",
-                "data": new_trigger_dones,
-            }
-            await self._client.send(event_bundle)
-
-
 class NodeSpaceEvent(TypedDict):
     type: Literal["nsevent"]
     event: str
@@ -756,8 +736,6 @@ class NodeSpaceEvent(TypedDict):
 class RemoteWorker(Worker):
     def __init__(self, *args, trigger_delay=0.05, data_delay=0.2, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.trigger_out_loop = TriggerOutLoop(self, delay=trigger_delay)
-        self.loop_manager.add_loop(self.trigger_out_loop)
 
         self._messagehandlers: List[
             Callable[[dict], Awaitable[Tuple[bool | None, str]]]
@@ -777,6 +755,8 @@ class RemoteWorker(Worker):
             "before_set_value",
             "before_request_trigger",
             "after_request_trigger",
+            "before_disconnect",
+            "before_connect",
         ]:
             return
         event_bundle: NodeSpaceEvent = {
