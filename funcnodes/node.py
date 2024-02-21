@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Type, Optional, TypedDict, List
+from typing import Dict, Type, Optional, TypedDict, List, NotRequired
 from abc import ABC, ABCMeta, abstractmethod
 import asyncio
 from uuid import uuid4
@@ -24,7 +24,16 @@ from .eventmanager import (
     EventEmitterMixin,
 )
 
-from .utils import run_until_complete
+
+from .utils import (
+    run_until_complete,
+    deep_fill_dict,
+    deep_remove_dict_on_equal,
+)
+from logging import getLogger
+from funcnodes.logging import get_logger
+
+triggerlogger = get_logger("trigger")
 
 
 class NodeTriggerError(Exception):
@@ -150,6 +159,14 @@ class NodeMeta(ABCMeta):
         return new_cls
 
 
+class RenderOptionsData(TypedDict, total=False):
+    src: str
+
+
+class RenderOptions(TypedDict, total=False):
+    data: RenderOptionsData
+
+
 class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
     """
     The base class for all nodes, making use of the custom metaclass `NodeMeta` to handle
@@ -162,6 +179,8 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
     default_reset_inputs_on_trigger: bool = False
     description: Optional[str] = None
 
+    default_render_options: RenderOptions = {}
+
     @abstractmethod
     async def func(self, *args, **kwargs):
         """The function to be executed when the node is triggered."""
@@ -172,6 +191,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         reset_inputs_on_trigger: Optional[bool] = None,
         name: Optional[str] = None,
         id: Optional[str] = None,  # fallback for uuid
+        render_options: Optional[RenderOptions] = None,
     ):
         super().__init__()
         self._inputs: List[NodeInput] = []
@@ -184,6 +204,10 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         self._uuid = uuid or uuid4().hex
         self._reset_inputs_on_trigger = reset_inputs_on_trigger
         self._name = name or f"{self.__class__.__name__}({self.uuid})"
+        self._render_options = deep_fill_dict(
+            render_options or RenderOptions(),  # type: ignore
+            self.default_render_options,  # type: ignore
+        )
         self._disabled = False
         _parse_nodeclass_io(self)
 
@@ -211,11 +235,16 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             "name": self.name,
             "id": self.uuid,
             "node_id": self.node_id,
-            "io": {iod.uuid: iod._repr_json_() for iod in self._inputs + self._outputs},
+            "io": {
+                iod.uuid: iod.full_serialize() for iod in self._inputs + self._outputs
+            },
             "status": self.status(),
             "node_name": self.node_name,
         }
 
+        renderopt = self.render_options
+        if renderopt:
+            ser["render_options"] = renderopt
         return ser
 
     def deserialize(self, data: NodeJSON):
@@ -255,15 +284,23 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             id=self.uuid,
             node_id=self.node_id,
             node_name=self.node_name,
-            status=self.status(),
             io={iod.uuid: iod.serialize() for iod in self._inputs + self._outputs},
         )
-        #
+
+        if self.reset_inputs_on_trigger != self.default_reset_inputs_on_trigger:
+            ser["reset_inputs_on_trigger"] = self.reset_inputs_on_trigger
+
+        if self.description != self.__class__.description:
+            ser["description"] = self.description
+
+        renderopt = self.render_options
+        if renderopt:
+            ser["render_options"] = renderopt
 
         return ser
 
-    def _repr_json_(self) -> NodeJSON:
-        return self.serialize()
+    def _repr_json_(self) -> FullNodeJSON:
+        return self.full_serialize()
 
     # endregion serialization
 
@@ -290,6 +327,10 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             if self._reset_inputs_on_trigger is not None
             else self.default_reset_inputs_on_trigger
         )
+
+    @property
+    def render_options(self):
+        return self._render_options
 
     @property
     def triggerstack(self) -> Optional[TriggerStack]:
@@ -619,6 +660,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             raise InTriggerError("Node is already in trigger")
         if triggerstack is None:
             triggerstack = TriggerStack()
+        triggerlogger.debug(f"triggering {self}")
         self._triggerstack = triggerstack
         self._triggerstack.append(self())
         self._requests_trigger = False
@@ -683,7 +725,9 @@ class NodeJSON(BaseNodeJSON):
     name: str
     id: str
     io: Dict[str, NodeIOSerialization]
-    status: NodeStatus
+    reset_inputs_on_trigger: NotRequired[Optional[bool]]
+    description: NotRequired[Optional[str]]
+    render_options: NotRequired[RenderOptions]
 
 
 class FullNodeJSON(BaseNodeJSON):
@@ -691,6 +735,7 @@ class FullNodeJSON(BaseNodeJSON):
     id: str
     io: Dict[str, FullNodeIOJSON]
     status: NodeStatus
+    render_options: NotRequired[RenderOptions]
 
 
 # region node registry
@@ -766,8 +811,8 @@ class PlaceHolderNode(Node):
             self._reset_inputs_on_trigger = data["reset_inputs_on_trigger"]
 
         if "io" in data:
-            for iod in data["io"]:
-                if data["io"][iod]["is_input"]:
-                    self.add_input(NodeInput.from_serialized_nodeio(data["io"][iod]))
+            for iod, iodate in data["io"].items():
+                if iodate["is_input"]:
+                    self.add_input(NodeInput.from_serialized_nodeio(iodate))  # type: ignore
                 else:
-                    self.add_output(NodeOutput.from_serialized_nodeio(data["io"][iod]))
+                    self.add_output(NodeOutput.from_serialized_nodeio(iodate))  # type: ignore
