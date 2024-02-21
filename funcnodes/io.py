@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from .node import Node
 
 
-class NodeIOSerialization(TypedDict, total=False):
+class NodeIOSerialization(TypedDict):
     """Typing definition for serialized Node Input/Output serialization."""
 
     name: str
@@ -40,6 +40,8 @@ class NodeIOSerialization(TypedDict, total=False):
     id: Required[str]
     value: Required[Any]
     is_input: bool
+    render_options: RenderOptions
+    value_options: ValueOptions
 
 
 class NodeInputSerialization(NodeIOSerialization, total=False):
@@ -76,6 +78,8 @@ class FullNodeIOJSON(TypedDict):
     node: str | None
     value: Any
     does_trigger: bool
+    render_options: RenderOptions
+    value_options: ValueOptions
 
 
 # A unique object that represents the absence of a value
@@ -146,8 +150,7 @@ class NodeInputStatus(NodeIOStatus):
     required: bool
 
 
-class NodeOutputStatus(NodeIOStatus):
-    ...
+class NodeOutputStatus(NodeIOStatus): ...
 
 
 def raise_allow_connections(src: NodeIO, trg: NodeIO):
@@ -178,12 +181,11 @@ def raise_allow_connections(src: NodeIO, trg: NodeIO):
     # the other node has to be removed first since in the connection process
     # a node might be added and then the check would fail in the creation of the reverse connection
     src_connections: List[NodeInput | NodeOutput] = list(src.connections)
-    print(src_connections, trg)
     if trg in src_connections:
         src_connections.remove(trg)
 
     trg_connections: List[NodeInput | NodeOutput] = list(trg.connections)
-    print(trg_connections, trg)
+
     if src in trg_connections:
         trg_connections.remove(src)
 
@@ -197,6 +199,20 @@ def raise_allow_connections(src: NodeIO, trg: NodeIO):
             f"Target {trg} already connected: {trg_connections}"
         )
     return True
+
+
+class RenderOptions(TypedDict, total=False):
+    """Typing definition for Node Input/Output render options."""
+
+    step: str
+
+
+class ValueOptions(TypedDict, total=False):
+    """Typing definition for Node Input/Output value options."""
+
+    min: int
+    max: int
+    step: int
 
 
 NodeIOType = TypeVar("NodeIOType")
@@ -215,7 +231,10 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         allow_multiple: Optional[bool] = None,
         uuid: Optional[str] = None,
         id: Optional[str] = None,  # fallback for uuid
-        **kwargs,
+        render_options: Optional[RenderOptions] = None,
+        value_options: Optional[ValueOptions] = None,
+        is_input: Optional[bool] = None,  # catch and ignore
+        #  **kwargs,
     ) -> None:
         """Initializes a new instance of NodeIO.
 
@@ -235,8 +254,10 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._connected: List[NodeIO] = []
         self._allow_multiple: Optional[bool] = allow_multiple
         self._node: Optional[Node] = None
-        self._typestr: str = str(type)
+        self._typestr: str = getattr(type, "__name__", str(type))
         self.eventmanager = AsyncEventManager(self)
+        self._default_render_options = render_options or {}
+        self._default_value_options = value_options or {}
 
     def deserialize(self, data: NodeIOSerialization) -> None:
         if "name" in data:
@@ -256,12 +277,14 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         """
         ser = NodeIOSerialization(
             name=self._name,
-            description=self._description,
             type=self._typestr,
             id=self._uuid,
-            value=self.value,
             is_input=self.is_input(),
+            render_options=self.render_options,
+            value_options=self.value_options,
         )
+        if self._description is not None:
+            ser["description"] = self._description
         if (
             self.allow_multiple is not None
             and self.allow_multiple is not self.default_allow_multiple
@@ -336,6 +359,19 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._connected.append(other)
         other.connect(self, replace=replace)
         self.post_connect(other)
+        if self.is_input():
+            src = other
+            trg = self
+        else:
+            src = self
+            trg = other
+
+        return [
+            src.node.uuid if src.node else None,
+            src.uuid,
+            trg.node.uuid if trg.node else None,
+            trg.uuid,
+        ]
 
     def c(self, *args, **kwargs):
         """Alias for connect."""
@@ -357,6 +393,12 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             return
         self._connected.remove(other)
         other.disconnect(self)
+        return [
+            self.node.uuid if self.node else None,
+            self.uuid,
+            other.node.uuid if other.node else None,
+            other.uuid,
+        ]
 
     def d(self, *args, **kwargs):
         """Alias for disconnect."""
@@ -442,6 +484,8 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             node=self._node.uuid if self._node else None,
             value=self.value,
             does_trigger=self.does_trigger,
+            render_options=self.render_options,
+            value_options=self.value_options,
         )
 
     def _repr_json_(self) -> FullNodeIOJSON:
@@ -462,6 +506,14 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             if self._allow_multiple is not None
             else self.default_allow_multiple
         )
+
+    @property
+    def render_options(self) -> RenderOptions:
+        return self._default_render_options
+
+    @property
+    def value_options(self) -> ValueOptions:
+        return self._default_value_options
 
     def is_connected(self) -> bool:
         """Returns whether this NodeIO is connected to another NodeIO.

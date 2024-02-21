@@ -31,11 +31,11 @@ class TestNodeIO(unittest.TestCase):
             serialized_input,
             {
                 "name": "input1",
-                "description": None,
                 "id": "input1",
                 "is_input": True,
                 "type": "Any",
-                "value": NoValue,
+                "render_options": {},
+                "value_options": {},
             },
         )
         serialized_output = self.output_1.serialize()
@@ -43,11 +43,11 @@ class TestNodeIO(unittest.TestCase):
             serialized_output,
             {
                 "name": "output1",
-                "description": None,
                 "type": "Any",
                 "id": "output1",
-                "value": NoValue,
                 "is_input": False,
+                "render_options": {},
+                "value_options": {},
             },
         )
 

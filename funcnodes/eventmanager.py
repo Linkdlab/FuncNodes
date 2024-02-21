@@ -289,6 +289,8 @@ class EventEmitterMixin:
         bool
             True if the event had listeners, False otherwise.
         """
+        if not hasattr(self, "_events"):
+            return False
         if msg is None:
             msg = MessageInArgs(src=self)
         if "src" in msg and msg["src"] is not self:
@@ -328,7 +330,8 @@ class EventEmitterMixin:
         Exception
             Raises the passed Exception of the error event had no listeners.
         """
-
+        if not hasattr(self, "_error_events"):
+            raise e
         if len(self._error_events) > 0:
             for callback in self._error_events:
                 callback(error=e, src=self)
