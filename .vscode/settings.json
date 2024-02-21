@@ -14,5 +14,8 @@
   "python.linting.flake8Args": ["--config=.flake8"],
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "command-runner.commands": {
+    "coverage": "coverage run & coverage html& coverage lcov & coverage report"
   }
 }
