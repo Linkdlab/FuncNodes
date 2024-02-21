@@ -79,7 +79,7 @@ class NodeSpace(EventEmitterMixin):
             "edges": self.serialize_edges(),
         }
 
-    def deserialize_nodes(self, data: List[NodeJSON]) -> Dict[str, Node]:
+    def deserialize_nodes(self, data: List[NodeJSON]):
         """
         deserialize_nodes deserializes a list of nodes
 
@@ -103,6 +103,15 @@ class NodeSpace(EventEmitterMixin):
             node_instance = node_cls()
             node_instance.deserialize(node)
             self.add_node_instance(node_instance)
+
+    def deserialize_edges(self, data: List[Tuple[str, str, str, str]]):
+        for output_uuid, output_id, input_uuid, input_id in data:
+            output = self.get_node_by_id(output_uuid).get_input_or_output(output_id)
+            input = self.get_node_by_id(input_uuid).get_input_or_output(input_id)
+            if isinstance(output, NodeOutput) and isinstance(input, NodeInput):
+                input.connect(output)
+            else:
+                output.connect(input)
 
     def serialize_nodes(self) -> List[NodeJSON]:
         """serialize_nodes serializes the nodes in the nodespace
@@ -135,6 +144,7 @@ class NodeSpace(EventEmitterMixin):
         """
         self._properties = data.get("prop", {})
         self.deserialize_nodes(data.get("nodes", []))
+        self.deserialize_edges(data.get("edges", []))
 
     def serialize(self) -> NodeSpaceJSON:
         """serialize serializes the nodespace to a dictionary
