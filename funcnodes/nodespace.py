@@ -142,6 +142,7 @@ class NodeSpace(EventEmitterMixin):
         data : NodeSpaceJSON
             the data to deserialize
         """
+        self.clear()
         self._properties = data.get("prop", {})
         self.deserialize_nodes(data.get("nodes", []))
         self.deserialize_edges(data.get("edges", []))
@@ -160,6 +161,13 @@ class NodeSpace(EventEmitterMixin):
             prop=self._properties,
         )
         return json.loads(json.dumps(ret, cls=JSONEncoder), cls=JSONDecoder)
+
+    def clear(self):
+        """clear removes all nodes and edges from the nodespace"""
+        for node in self.nodes:
+            self.remove_node_instance(node)
+
+        self._properties = {}
 
     # endregion serialization
 

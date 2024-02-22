@@ -393,11 +393,16 @@ class Worker(ABC):
     def request_save(self):
         self.saveloop.request_save()
 
+    @exposed_method()
     def save(self):
         data: State = self.get_state()
         with open(self.local_nodespace, "w+", encoding="utf-8") as f:
             f.write(json.dumps(data, indent=2, cls=JSONEncoder))
         return data
+
+    @exposed_method()
+    def load_data(self, data: State):
+        return self.loop_manager.async_call(self.load(data))
 
     async def load(self, data: State | str | None = None):
         if data is None:
@@ -464,6 +469,9 @@ class Worker(ABC):
     # endregion library
 
     # region nodes
+    @exposed_method()
+    def clear(self):
+        self.nodespace.clear()
 
     @requests_save
     @exposed_method()
