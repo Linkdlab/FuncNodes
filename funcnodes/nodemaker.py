@@ -46,7 +46,7 @@ def node_class_maker(id: str, func: Callable[..., ReturnType]) -> Type[Node]:
     cls_dict = {
         "node_id": id,
         "func": _wrapped_func,
-        "node_name": exfunc.__name__,
+        "node_name": in_func.ef_funcmeta.get("name", id),
     }
     if "docstring" in exfunc.ef_funcmeta and exfunc.ef_funcmeta["docstring"]:
         cls_dict["description"] = exfunc.ef_funcmeta["docstring"]["summary"]

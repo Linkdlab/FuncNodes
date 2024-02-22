@@ -1,3 +1,5 @@
+"""basic math nodes"""
+
 import math
 import sys
 from typing import List
@@ -16,8 +18,10 @@ def value_node(value: float) -> float:
 
 @NodeDecorator(
     "add_node",
+    name="Add",
 )
 def add_node(a: float, b: float) -> float:
+    """Add two numbers"""
     return a + b
 
 
@@ -206,8 +210,10 @@ def math_nan_node() -> float:
 # region 1 float in, 1 float out
 @NodeDecorator(
     "math.acos",
+    name="Acos",
 )
 def math_acos_node(a: float) -> float:
+    """Return the arc cosine of a."""
     return math.acos(a)
 
 
@@ -639,4 +645,4 @@ if sys.version_info >= (3, 12):
 
 # endregion vector, vector in float out
 
-NODE_SHELFE = module_to_shelf(sys.modules[__name__])
+NODE_SHELFE = module_to_shelf(sys.modules[__name__], name="math")

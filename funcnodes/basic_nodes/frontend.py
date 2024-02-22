@@ -1,4 +1,8 @@
+"""Frontend nodes for displaying data."""
+
 from funcnodes import Node, NodeInput, NodeOutput
+from funcnodes.lib import module_to_shelf
+import sys
 
 
 class DataDisplayNode(Node):
@@ -34,3 +38,6 @@ try:
 
 except ModuleNotFoundError:
     pass
+
+
+NODE_SHELFE = module_to_shelf(sys.modules[__name__], name="frontend")

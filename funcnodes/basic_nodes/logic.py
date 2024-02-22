@@ -1,7 +1,11 @@
+"""Logic Nodes for control flow and decision making."""
+
 from funcnodes.node import Node, TriggerStack
 from typing import Any, List
 from funcnodes.io import NodeInput, NodeOutput, NoValue
 import asyncio
+from funcnodes.lib import module_to_shelf
+import sys
 
 
 class IfNode(Node):
@@ -96,3 +100,6 @@ class CollectorNode(Node):
 
         self.collection.append(input)
         self.outputs["output"].value = self.collection
+
+
+NODE_SHELFE = module_to_shelf(sys.modules[__name__], name="logic")
