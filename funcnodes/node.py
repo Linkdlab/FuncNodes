@@ -31,7 +31,7 @@ from .utils import (
     deep_remove_dict_on_equal,
 )
 from logging import getLogger
-from funcnodes.logging import get_logger
+from funcnodes._logging import get_logger
 
 triggerlogger = get_logger("trigger")
 

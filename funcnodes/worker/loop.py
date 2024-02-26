@@ -49,21 +49,32 @@ class CustomLoop(ABC):
 class LoopManager:
     def __init__(self, worker) -> None:
         self._loops: List[CustomLoop] = []
-        self._loop = asyncio.new_event_loop()
+        self._loop = asyncio.get_event_loop()
         self._worker = worker
         asyncio.set_event_loop(self._loop)
+        self._tasks: List[asyncio.Task] = []
 
     def add_loop(self, loop: CustomLoop):
         self._loops.append(loop)
         loop.manager = self
-        self._loop.create_task(loop.continuous_run())
+        t = self._loop.create_task(loop.continuous_run())
+        self._tasks.append(t)
+        return t
 
     def remove_loop(self, loop: CustomLoop):
-        self._loops.remove(loop)
-        loop.stop()
+        if loop in self._loops:
+            idx = self._loops.index(loop)
+            task = self._tasks.pop(idx)
+            loop = self._loops.pop(idx)
+            task.cancel()
+            loop.stop()
 
     def async_call(self, croutine: asyncio.Coroutine):
         return self._loop.create_task(croutine)
+
+    def __del__(self):
+        for loop in list(self._loops):
+            self.remove_loop(loop)
 
     def run_forever(self):
         asyncio.set_event_loop(self._loop)

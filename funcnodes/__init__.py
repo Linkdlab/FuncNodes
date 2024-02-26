@@ -13,8 +13,9 @@ from .utils import run_until_complete, JSONEncoder, JSONDecoder
 from .node import Node, get_nodeclass, NodeJSON
 from .nodespace import NodeSpace, FullNodeSpaceJSON, NodeSpaceJSON
 from .lib import FullLibJSON, Shelf, Library, find_shelf, NodeClassNotFoundError
-from .nodemaker import NodeClassMixin, NodeDecorator
-from .logging import FUNCNODES_LOGGER, get_logger
+from .nodemaker import NodeClassMixin, NodeDecorator  # , instance_nodefunction
+from ._logging import FUNCNODES_LOGGER, get_logger
+from .worker import FuncNodesExternalWorker, RemoteWorker
 
 __all__ = [
     "NodeInput",
@@ -43,8 +44,11 @@ __all__ = [
     "NodeClassNotFoundError",
     "FUNCNODES_LOGGER",
     "get_logger",
+    "instance_nodefunction",
+    "FuncNodesExternalWorker",
+    "RemoteWorker",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 DEBUG = True
