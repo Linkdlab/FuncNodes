@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Dict, List
 from funcnodes.worker.loop import CustomLoop
 from funcnodes import NodeClassMixin  # , instance_nodefunction
-
 from weakref import WeakValueDictionary
 
 
@@ -14,9 +13,9 @@ class FuncNodesExternalWorker(NodeClassMixin, CustomLoop):
         super().__init__(delay=1)
         self.uuid = workerid
         if self.NODECLASSID not in FuncNodesExternalWorker.RUNNING_WORKERS:
-            FuncNodesExternalWorker.RUNNING_WORKERS[
-                self.NODECLASSID
-            ] = WeakValueDictionary()
+            FuncNodesExternalWorker.RUNNING_WORKERS[self.NODECLASSID] = (
+                WeakValueDictionary()
+            )
         FuncNodesExternalWorker.RUNNING_WORKERS[self.NODECLASSID][self.uuid] = self
 
     @classmethod
