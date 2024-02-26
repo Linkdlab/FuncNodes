@@ -8,7 +8,7 @@ class NodeClassNotFoundError(Exception):
 
 
 class Shelf(TypedDict):
-    nodes: Dict[str, Type[Node]]
+    nodes: List[Type[Node]]
     subshelves: List[Shelf]
     name: str
     description: str
@@ -35,20 +35,37 @@ def serialize_shelfe(shelve: Shelf) -> SerializedShelf:
     }
 
 
+def get_node_in_shelf(shelf: Shelf, nodeid: str) -> Tuple[int, Type[Node]]:
+    """
+    Returns the index and the node with the given id
+    """
+    for i, node in enumerate(shelf["nodes"]):
+        if node.node_id == nodeid:
+            return i, node
+    raise ValueError(f"Node with id {nodeid} not found")
+
+
 def update_nodes_in_shelf(shelf: Shelf, nodes: List[Type[Node]]):
     """
     Adds nodes to a shelf
     """
     for node in nodes:
-        shelf["nodes"][node.node_id] = node
+        try:
+            i, _ = get_node_in_shelf(shelf, node.node_id)
+            shelf["nodes"][i] = node
+        except ValueError:
+            shelf["nodes"].append(node)
 
 
 def deep_find_node(shelf: Shelf, nodeid: str, all=True) -> List[List[str]]:
     paths = []
-    if nodeid in shelf["nodes"]:
+    try:
+        i, node = get_node_in_shelf(shelf, nodeid)
         paths.append([shelf["name"]])
         if not all:
             return paths
+    except ValueError:
+        pass
 
     for subshelf in shelf["subshelves"]:
         path = deep_find_node(subshelf, nodeid)
@@ -63,14 +80,14 @@ def deep_find_node(shelf: Shelf, nodeid: str, all=True) -> List[List[str]]:
 
 class Library:
     def __init__(self) -> None:
-        self._shelves: Dict[str, Shelf] = {}
+        self._shelves: List[Shelf] = []
         self._dependencies: Dict[str, Set[str]] = {
             "modules": set(),
         }
 
     @property
     def shelves(self) -> List[Shelf]:
-        return list(self._shelves.values())
+        return list(self._shelves)
 
     def add_dependency(self, module: str):
         self._dependencies["modules"].add(module)
@@ -79,12 +96,38 @@ class Library:
         return {k: list(v) for k, v in self._dependencies.items()}
 
     def add_shelf(self, shelf: Shelf):
-        if shelf["name"] in self._shelves and self._shelves[shelf["name"]] != shelf:
+        shelf_dict = {s["name"]: s for s in self._shelves}
+        if shelf["name"] in shelf_dict and shelf_dict[shelf["name"]] != shelf:
             raise ValueError(f"Shelf with name {shelf['name']} already exists")
-        self._shelves[shelf["name"]] = shelf
+        self._shelves.append(shelf)
+        return shelf
+
+    def add_shelf_recursively(self, path: List[str]):
+        subshelfes: List[Shelf] = self._shelves
+        current_shelf = None
+        for _shelf in path:
+            if _shelf not in [subshelfes["name"] for subshelfes in subshelfes]:
+                current_shelf = Shelf(
+                    nodes=[], subshelves=[], name=_shelf, description=""
+                )
+                subshelfes.append(current_shelf)
+            else:
+                for subshelf in subshelfes:
+                    if subshelf["name"] == _shelf:
+                        current_shelf = subshelf
+                        break
+            if current_shelf is None:
+                raise ValueError("shelf must not be empty")
+            subshelfes = current_shelf["subshelves"]
+        if current_shelf is None:
+            raise ValueError("shelf must not be empty")
+        return current_shelf
 
     def get_shelf(self, name: str) -> Shelf:
-        return self._shelves[name]
+        for shelf in self._shelves:
+            if shelf["name"] == name:
+                return shelf
+        raise ValueError(f"Shelf with name {name} not found")
 
     def full_serialize(self) -> FullLibJSON:
         return {"shelves": [serialize_shelfe(shelf) for shelf in self.shelves]}
@@ -94,34 +137,35 @@ class Library:
         nodes: List[Type[Node]],
         shelf: str | List[str],
     ):
+
         if isinstance(shelf, str):
             shelf = [shelf]
 
-        subshelfes: Dict[str, Shelf] = self._shelves
         if len(shelf) == 0:
             raise ValueError("shelf must not be empty")
-        current_shelf = None
-        for _shelf in shelf:
-            if _shelf not in subshelfes:
-                subshelfes[_shelf] = Shelf(
-                    nodes={}, subshelves=[], name=_shelf, description=""
-                )
-            current_shelf = subshelfes[_shelf]
-            subshelfes = {s["name"]: s for s in subshelfes[_shelf]["subshelves"]}
-        if current_shelf is None:
-            raise ValueError("shelf must not be empty")
+
+        current_shelf = self.add_shelf_recursively(shelf)
         update_nodes_in_shelf(current_shelf, nodes)
 
     def add_node(self, node: Type[Node], shelf: str | List[str]):
         self.add_nodes([node], shelf)
 
     def get_shelf_from_path(self, path: List[str]) -> Shelf:
-        subshelfes: Dict[str, Shelf] = self._shelves
-        for _shelf in path[:-1]:
-            if _shelf not in subshelfes:
+        subshelfes: List[Shelf] = self._shelves
+        current_shelf = None
+        for _shelf in path:
+            new_subshelfes = None
+            for subshelf in subshelfes:
+                if subshelf["name"] == _shelf:
+                    new_subshelfes = subshelf["subshelves"]
+                    current_shelf = subshelf
+                    break
+            if new_subshelfes is None:
                 raise ValueError(f"shelf {_shelf} does not exist")
-            subshelfes = {s["name"]: s for s in subshelfes[_shelf]["subshelves"]}
-        return subshelfes[path[-1]]
+            subshelfes = new_subshelfes
+        if current_shelf is None:
+            raise ValueError("shelf must not be empty")
+        return current_shelf
 
     def find_nodeid(self, nodeid: str, all=True) -> List[List[str]]:
         paths = []
@@ -143,7 +187,8 @@ class Library:
         paths = self.find_nodeclass(node)
         for path in paths:
             shelf = self.get_shelf_from_path(path)
-            del shelf["nodes"][node.node_id]
+            i, _ = get_node_in_shelf(shelf, node.node_id)
+            shelf["nodes"].pop(i)
 
     def remove_nodeclasses(self, nodes: List[Type[Node]]):
         for node in nodes:
@@ -151,12 +196,13 @@ class Library:
 
     def get_node_by_id(self, nodeid: str) -> Type[Node]:
         paths = self.find_nodeid(nodeid, all=False)
+
         if len(paths) == 0:
             raise NodeClassNotFoundError(f"Node with id '{nodeid}' not found")
 
-        print(paths)
         shelf = self.get_shelf_from_path(paths[0])
-        return shelf["nodes"][nodeid]
+
+        return get_node_in_shelf(shelf, nodeid)[1]
 
 
 class FullLibJSON(TypedDict):
