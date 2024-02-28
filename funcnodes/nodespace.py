@@ -203,7 +203,7 @@ class NodeSpace(EventEmitterMixin):
             key = "node_trigger_error"
         self.emit(key, MessageInArgs(node=src.uuid, error=error))
 
-    def remove_node_instance(self, node: Node):
+    def remove_node_instance(self, node: Node) -> str:
         if node.uuid not in self._nodes:
             raise ValueError(f"node with uuid '{node.uuid}' not found in nodespace")
 
@@ -223,7 +223,10 @@ class NodeSpace(EventEmitterMixin):
 
         msg = MessageInArgs(node=node.uuid)
         self.emit("node_removed", msg)
-        return node
+        uuid = node.uuid
+        node.prepdelete()
+        del node
+        return uuid
 
     def add_node_by_id(self, id: str, **kwargs):
         # find node in lib
@@ -234,7 +237,7 @@ class NodeSpace(EventEmitterMixin):
         node = node_cls(**kwargs)
         return self.add_node_instance(node)
 
-    def remove_node_by_id(self, nid: str):
+    def remove_node_by_id(self, nid: str) -> str:
         return self.remove_node_instance(self.get_node_by_id(nid))
 
     # endregion add/remove nodes
