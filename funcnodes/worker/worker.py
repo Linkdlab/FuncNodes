@@ -143,7 +143,6 @@ class LocalWorkerLookupLoop(CustomLoop):
     async def loop(self):
         # get all .py files in path (deep)
 
-        print("looking for workers", self.worker_classes)
         for root, dirs, files in os.walk(self.path):  # pylint: disable=unused-variable
             for file in files:
                 if file.endswith(".py") and file not in self._parsed_files:
@@ -332,6 +331,9 @@ class Worker(ABC):
 
     # endregion properties
 
+    def add_local_worker(self, worker_class: Type[FuncNodesExternalWorker], nid: str):
+        return self.local_worker_lookup_loop.start_local_worker(worker_class, nid)
+
     # region states
     @exposed_method()
     def view_state(self) -> ViewState:
@@ -484,8 +486,8 @@ class Worker(ABC):
 
     @requests_save
     @exposed_method()
-    def remove_node(self, id: str):
-        return self.nodespace.remove_node_by_id(id).uuid
+    def remove_node(self, id: str) -> str:
+        return self.nodespace.remove_node_by_id(id)
 
     @exposed_method()
     def set_io_value(self, nid: str, ioid: str, value: Any, set_default: bool = False):

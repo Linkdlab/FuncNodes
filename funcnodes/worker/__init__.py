@@ -1,6 +1,13 @@
-from funcnodes.worker.worker import Worker, RemoteWorker
-from funcnodes.worker.external_worker import FuncNodesExternalWorker
-from funcnodes.worker.loop import CustomLoop
+from .worker import Worker, RemoteWorker
+from .external_worker import FuncNodesExternalWorker
+from .loop import CustomLoop
+from .websocket import WSWorker
 
 
-__all__ = ["Worker", "RemoteWorker", "FuncNodesExternalWorker", "CustomLoop"]
+__all__ = [
+    "Worker",
+    "RemoteWorker",
+    "FuncNodesExternalWorker",
+    "CustomLoop",
+    "WSWorker",
+]

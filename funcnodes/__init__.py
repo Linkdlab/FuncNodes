@@ -13,9 +13,9 @@ from .utils import run_until_complete, JSONEncoder, JSONDecoder
 from .node import Node, get_nodeclass, NodeJSON
 from .nodespace import NodeSpace, FullNodeSpaceJSON, NodeSpaceJSON
 from .lib import FullLibJSON, Shelf, Library, find_shelf, NodeClassNotFoundError
-from .nodemaker import NodeClassMixin, NodeDecorator  # , instance_nodefunction
+from .nodemaker import NodeClassMixin, NodeDecorator, instance_nodefunction
 from ._logging import FUNCNODES_LOGGER, get_logger
-from .worker import FuncNodesExternalWorker, RemoteWorker
+from .worker import FuncNodesExternalWorker, RemoteWorker, WSWorker
 
 __all__ = [
     "NodeInput",
@@ -47,6 +47,7 @@ __all__ = [
     "instance_nodefunction",
     "FuncNodesExternalWorker",
     "RemoteWorker",
+    "WSWorker",
 ]
 
 __version__ = "0.1.2"
