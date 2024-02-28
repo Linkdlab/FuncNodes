@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Type, Optional, TypedDict, List, NotRequired
+from typing import Dict, Type, Optional, TypedDict, List, NotRequired, Literal
 from abc import ABC, ABCMeta, abstractmethod
 import asyncio
 from uuid import uuid4
@@ -23,7 +23,8 @@ from .eventmanager import (
     emit_after,
     EventEmitterMixin,
 )
-
+from .utils.serialization import JSONEncoder, JSONDecoder
+import json
 
 from .utils import (
     run_until_complete,
@@ -161,10 +162,38 @@ class NodeMeta(ABCMeta):
 
 class RenderOptionsData(TypedDict, total=False):
     src: str
+    type: str
 
 
 class RenderOptions(TypedDict, total=False):
     data: RenderOptionsData
+
+
+class NodeClassDict(TypedDict, total=False):
+    node_id: str
+    node_name: str
+    default_reset_inputs_on_trigger: Optional[bool]
+    description: Optional[str]
+    default_render_options: Optional[RenderOptions]
+    default_trigger_on_create: Optional[bool]
+
+
+NodeClassDictKeysValues = Literal[
+    "node_id",
+    "node_name",
+    "default_reset_inputs_on_trigger",
+    "description",
+    "default_render_options",
+    "default_trigger_on_create",
+]
+NodeClassDictsKeys: List[NodeClassDictKeysValues] = [
+    "node_id",
+    "node_name",
+    "default_reset_inputs_on_trigger",
+    "description",
+    "default_render_options",
+    "default_trigger_on_create",
+]
 
 
 class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
@@ -180,6 +209,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
     description: Optional[str] = None
 
     default_render_options: RenderOptions = {}
+    default_trigger_on_create: bool = False
 
     @abstractmethod
     async def func(self, *args, **kwargs):
@@ -192,6 +222,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         name: Optional[str] = None,
         id: Optional[str] = None,  # fallback for uuid
         render_options: Optional[RenderOptions] = None,
+        trigger_on_create: Optional[bool] = None,
     ):
         super().__init__()
         self._inputs: List[NodeInput] = []
@@ -210,9 +241,13 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         )
         self._disabled = False
         _parse_nodeclass_io(self)
-
-        if self.ready_to_trigger():
-            self.request_trigger()
+        if trigger_on_create is None:
+            self.trigger_on_create = self.default_trigger_on_create
+        else:
+            self.trigger_on_create = trigger_on_create
+        if self.trigger_on_create:
+            if self.ready_to_trigger():
+                self.request_trigger()
 
     # region serialization
     @classmethod
@@ -300,7 +335,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         return ser
 
     def _repr_json_(self) -> FullNodeJSON:
-        return self.full_serialize()
+        return JSONEncoder.apply_custom_encoding(self.full_serialize())
 
     # endregion serialization
 
@@ -668,13 +703,16 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
 
     # endregion triggering
 
-    def __del__(self):
+    def prepdelete(self):
         for ip in list(self._inputs):
             self.remove_input(ip)
         self._inputs.clear()
         for op in list(self._outputs):
             self.remove_output(op)
-        self._outputs.clear()
+        self.cleanup()
+
+    def __del__(self):
+        self.prepdelete()
 
 
 class NodeStatus(TypedDict):

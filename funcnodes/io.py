@@ -24,6 +24,8 @@ from .triggerstack import TriggerStack
 from .utils.serialization import MimeTyper
 
 from .utils.serialization import JSONEncoder, JSONDecoder
+import json
+import weakref
 
 if TYPE_CHECKING:
     # Avoid circular import
@@ -94,8 +96,8 @@ class NoValueType:
     def __repr__(self):
         return "<NoValue>"
 
-    def _repr_json_(self):
-        return self.__repr__()
+    def __str__(self):
+        return "<NoValue>"
 
 
 NoValue: NoValueType = NoValueType()
@@ -253,7 +255,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
 
         self._connected: List[NodeIO] = []
         self._allow_multiple: Optional[bool] = allow_multiple
-        self._node: Optional[Node] = None
+        self._node: Optional[weakref.ref[Node]] = None
         self._typestr: str = getattr(type, "__name__", str(type))
         self.eventmanager = AsyncEventManager(self)
         self._default_render_options = render_options or {}
@@ -418,15 +420,18 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
     @property
     def node(self) -> Optional[Node]:
         """Gets the Node instance that this NodeIO belongs to."""
-        return self._node
+        return self._node() if self._node is not None else None
 
     @node.setter
     def node(self, node: Node) -> None:
         if self._node is not None:
-            if self._node is node:
+            if self._node() is node:
                 return
             raise NodeAlreadyDefinedError("NodeIO already belongs to a node")
-        self._node = node
+        if node is not None:
+            self._node = weakref.ref(node)
+        else:
+            self._node = None
 
     def ready(self) -> bool:
         return self.node is not None
@@ -481,7 +486,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             type=self._typestr,
             is_input=self.is_input(),
             connected=self.is_connected(),
-            node=self._node.uuid if self._node else None,
+            node=self.node.uuid if self.node else None,
             value=self.value,
             does_trigger=self.does_trigger,
             render_options=self.render_options,
@@ -489,8 +494,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         )
 
     def _repr_json_(self) -> FullNodeIOJSON:
-        ser = self.full_serialize()
-        return ser
+        return JSONEncoder.apply_custom_encoding(self.full_serialize())  # type: ignore
 
     @property
     def allow_multiple(self) -> bool:
