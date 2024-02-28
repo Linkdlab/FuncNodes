@@ -6,7 +6,7 @@ from funcnodes import (
     NodeConnectionError,
     MultipleConnectionsError,
 )
-
+import json
 from funcnodes.io import raise_allow_connections, NodeAlreadyDefinedError, NoValue
 
 
@@ -24,6 +24,46 @@ class TestNodeIO(unittest.TestCase):
     def test_connections(self):
         self.assertEqual(len(self.output_1.connections), 0)
         self.assertEqual(self.output_1.connections, self.output_1._connected)
+
+    def test_json(self):
+        serialized_input = self.input_1._repr_json_()
+        self.assertEqual(
+            serialized_input,
+            {
+                "name": "input1",
+                "id": "input1",
+                "is_input": True,
+                "type": "Any",
+                "node": None,
+                "value": "<NoValue>",
+                "render_options": {},
+                "value_options": {},
+                "connected": False,
+                "does_trigger": True,
+                "full_id": None,
+            },
+        )
+
+        self.assertEqual(json.loads(json.dumps(serialized_input)), serialized_input)
+
+    def test_full_ser(self):
+        serialized_input = self.input_1.full_serialize()
+        self.assertEqual(
+            serialized_input,
+            {
+                "name": "input1",
+                "id": "input1",
+                "is_input": True,
+                "type": "Any",
+                "node": None,
+                "value": NoValue,
+                "render_options": {},
+                "value_options": {},
+                "connected": False,
+                "does_trigger": True,
+                "full_id": None,
+            },
+        )
 
     def test_serialize_node_io(self):
         serialized_input = self.input_1.serialize()

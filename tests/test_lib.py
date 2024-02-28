@@ -3,7 +3,7 @@
 import unittest
 import sys
 from funcnodes.nodemaker import NodeDecorator
-from funcnodes.lib import module_to_shelf, serialize_shelfe
+from funcnodes.lib import module_to_shelf, serialize_shelfe, get_node_in_shelf
 
 
 @NodeDecorator("test_lib_testfunc")
@@ -58,8 +58,6 @@ class TestLib(unittest.TestCase):
         self.maxDiff = None
         from pprint import pprint
 
-        pprint(serialize_shelfe(module_to_shelf(sys.modules[self.__module__])))
-        pprint(expected)
         self.assertEqual(
             expected, serialize_shelfe(module_to_shelf(sys.modules[self.__module__]))
         )
