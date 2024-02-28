@@ -26,7 +26,7 @@ def module_to_shelf(mod, name: Optional[str] = None) -> Shelf:
         ):
             return shelf
 
-    shelf = Shelf(nodes={}, subshelves=[], name=name, description=mod.__doc__)
+    shelf = Shelf(nodes=[], subshelves=[], name=name, description=mod.__doc__)
 
     mod_dict = mod.__dict__
     for name, obj in inspect.getmembers(mod):
@@ -41,7 +41,7 @@ def module_to_shelf(mod, name: Optional[str] = None) -> Shelf:
                     f"interfered Node name {obj.__name__} is defined elsewhere in module {mod.__name__}"
                 )
 
-            shelf["nodes"][obj.node_id] = obj
+            shelf["nodes"].append(obj)
     #            if obj.__name__ != name:
     #                shelf["nodes"][name] = obj
     #                if obj.__name__ not in mod_dict:

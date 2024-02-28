@@ -27,7 +27,7 @@ def serialize_shelfe(shelve: Shelf) -> SerializedShelf:
     """
     return {
         "nodes": [
-            node.serialize_cls() for node in set(shelve["nodes"].values())
+            node.serialize_cls() for node in shelve["nodes"]
         ],  # unique nodes, necessary since somtimes nodes are added multiple times if they have aliases
         "subshelves": [serialize_shelfe(shelf) for shelf in shelve["subshelves"]],
         "name": shelve["name"],
