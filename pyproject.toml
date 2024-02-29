@@ -6,8 +6,8 @@ authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
-exposedfunctionality = "^0.1.8"
+python = "^3.9"
+exposedfunctionality = "^0.1.10"
 fastapi = "^0.105.0"
 uvicorn = "^0.24.0.post1"
 websockets = "^12.0"
