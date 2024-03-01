@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Dict, Type, Optional, TypedDict, List, NotRequired, Literal
 from abc import ABC, ABCMeta, abstractmethod
 import asyncio
+import inspect
 from uuid import uuid4
 from .exceptions import NodeIdAlreadyExistsError
 from .io import (
@@ -146,8 +147,11 @@ class NodeMeta(ABCMeta):
             if not issubclass(new_cls, Node):
                 raise TypeError("NodeMeta can only be used with Node subclasses")
             # Register the new class in the global registry of node classes.
-
-            register_node(new_cls)
+            if (
+                not inspect.isabstract(new_cls)
+                or new_cls.__dict__.get("node_id") is not None
+            ):
+                register_node(new_cls)
         except NameError:
             # This block catches the `NameError` that is thrown when `Node` is being defined.
             # Since `Node` itself is not yet defined when it's being created, it's normal to
@@ -210,6 +214,14 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
 
     default_render_options: RenderOptions = {}
     default_trigger_on_create: bool = False
+
+    triggerinput = NodeInput(
+        id="_triggerinput",
+        name="( )",
+        description="Trigger the node",
+        default=None,
+        required=False,
+    )
 
     @abstractmethod
     async def func(self, *args, **kwargs):
@@ -593,6 +605,8 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         """
 
         kwargs = {ip.uuid: ip.value for ip in self._inputs if ip.value is not NoValue}
+        if "_triggerinput" in kwargs:
+            del kwargs["_triggerinput"]
 
         async def _wrapped_func(**kwargs):
             """Wraps the node's function to handle the triggering of events before and after its execution."""

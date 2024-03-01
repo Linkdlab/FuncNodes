@@ -41,6 +41,7 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
 
             class ExternalWorker2(FuncNodesExternalWorker):
+
                 async def loop(self):
                     pass
 

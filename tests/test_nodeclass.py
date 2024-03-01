@@ -175,7 +175,9 @@ class NodeClassMetaTest(unittest.TestCase):
         with patch("funcnodes.node.register_node") as mock_register_node:
 
             class BaseNodeClass(Node):
-                pass
+
+                async def func(self, *args, **kwargs):
+                    """The function to be executed when the node is triggered."""
 
             NewNodeClass = NodeMeta(
                 "NewNodeClass", (BaseNodeClass,), {"node_id": "new_node_class"}
