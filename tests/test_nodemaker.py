@@ -55,7 +55,7 @@ class TestNodeClassMaker(unittest.IsolatedAsyncioTestCase):
 
         node = nodecls()
         self.assertEqual(node.node_id, "test_node_decorator_registers_node_class")
-        self.assertEqual(len(node._inputs), 1)
+        self.assertEqual(len(node._inputs), 2) # input1 and trigger
         self.assertEqual(len(node._outputs), 1)
 
         self.assertEqual(node.get_input("input1").name, "input1")

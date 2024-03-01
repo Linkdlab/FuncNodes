@@ -290,7 +290,11 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         """Serializes the node class into a dictionary."""
         ser = SerializedNodeClass(
             node_id=cls.node_id,
-            inputs=[ip.serialize_class() for ip in _get_nodeclass_inputs(cls)],
+            inputs=[
+                ip.serialize_class()
+                for ip in _get_nodeclass_inputs(cls)
+                if ip.uuid != "_triggerinput"
+            ],
             outputs=[op.serialize_class() for op in _get_nodeclass_outputs(cls)],
             description=cls.description,
             node_name=cls.node_name,
@@ -354,7 +358,11 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             id=self.uuid,
             node_id=self.node_id,
             node_name=self.node_name,
-            io={iod.uuid: iod.serialize() for iod in self._inputs + self._outputs},
+            io={
+                iod.uuid: iod.serialize()
+                for iod in self._inputs + self._outputs
+                if iod.uuid != "_triggerinput"
+            },
         )
 
         if self.reset_inputs_on_trigger != self.default_reset_inputs_on_trigger:

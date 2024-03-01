@@ -46,7 +46,7 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
         self.assertIn("test_input", test_node.inputs)
         self.assertIn("test_output", test_node.outputs)
 
-        self.assertEqual(len(test_node.inputs), 2)
+        self.assertEqual(len(test_node.inputs), 3)  # input and test_input and trigger
         self.assertEqual(len(test_node.outputs), 2)
 
     async def test_node_ready_to_trigger(self):
@@ -100,6 +100,7 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
 
     def test_node_status(self):
         test_node = DummyNode()
+        self.maxDiff = None
         self.assertEqual(
             test_node.status(),
             {
@@ -113,7 +114,14 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
                         "has_value": True,
                         "ready": True,
                         "required": True,
-                    }
+                    },
+                    "_triggerinput": {
+                        "connected": False,
+                        "has_node": True,
+                        "has_value": True,
+                        "ready": True,
+                        "required": False,
+                    },
                 },
                 "outputs": {
                     "output": {
