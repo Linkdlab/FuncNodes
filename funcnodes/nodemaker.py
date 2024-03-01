@@ -90,11 +90,16 @@ def node_class_maker(
         cls_dict["input_" + ip._name] = ip
     for op in outputs:
         cls_dict["output_" + op._name] = op
-
-    name = "".join(
-        x.capitalize()
-        for x in in_func.ef_funcmeta.get("name", exfunc.__name__).lower().split("_")
-    )
+    try:
+        name = "".join(
+            x.capitalize()
+            for x in in_func.ef_funcmeta.get("name", in_func.__name__)
+            .lower()
+            .split("_")
+        )
+    except AttributeError:
+        print(in_func, exfunc)
+        raise
     if name.endswith("node"):
         name = name[:-4]
     if not name.endswith("Node"):
@@ -154,6 +159,8 @@ def instance_nodefunction(
         func._instance_node_specials = {"trigger_on_call": trigger_on_call}
 
         func.triggers = trigger_decorator(func)
+        func.nodes = lambda self: self.get_nodes(func.__name__)
+        func.nodeclass = lambda self: self.get_nodeclass(func.__name__)
 
         return func
 
@@ -242,7 +249,7 @@ def _create_node(nodeclassmixininst: NodeClassMixin, method, method_name):
     )  # default name is the method name
 
     # create a partial method that is bound to the nodeclassmixininst
-    partial_method = partial(method, nodeclassmixininst)
+    partial_method = wraps(method)(partial(method, nodeclassmixininst))
 
     # create the node class
     nodeclass: Type[Node] = NodeDecorator(**_node_create_params)(partial_method)
@@ -335,6 +342,14 @@ class NodeClassMixin(ABC, metaclass=NodeClassMixinMeta):
                 _create_node(self, method, name)
 
         self._nodes_created = True
+
+    def get_nodes(self, method_name):
+        self.create_nodes()
+        return self._node_classes[method_name]._instances.values()
+
+    def get_nodeclass(self, method_name):
+        self.create_nodes()
+        return self._node_classes[method_name]
 
     def get_all_nodeclasses(self) -> List[Type[Node]]:
         self.create_nodes()
