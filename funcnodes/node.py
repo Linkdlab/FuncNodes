@@ -16,6 +16,7 @@ from .io import (
     FullNodeIOJSON,
     NodeIOSerialization,
     NodeIOClassSerialization,
+    IORenderOptions,
 )
 from .triggerstack import TriggerStack
 from .eventmanager import (
@@ -95,10 +96,31 @@ def _parse_nodeclass_io(node: Node):
 
     outputs = _get_nodeclass_outputs(node)
     for ip in inputs:
-        node.add_input(NodeInput(**ip.serialize()))
+        ser = ip.serialize()
+        node_io_render: NodeInputSerialization = node.render_options.get("io", {}).get(
+            ip.uuid, {}
+        )
+        if node_io_render:
+            deep_fill_dict(ser, node_io_render, overwrite_existing=True)
+        node.add_input(
+            NodeInput(
+                **ser,
+            )
+        )
 
     for op in outputs:
-        node.add_output(NodeOutput(**op.serialize()))
+        ser = op.serialize()
+        node_io_render: NodeOutputSerialization = node.render_options.get("io", {}).get(
+            op.uuid, {}
+        )
+        if node_io_render:
+            deep_fill_dict(ser, node_io_render, overwrite_existing=True)
+
+        node.add_output(
+            NodeOutput(
+                **ser,
+            )
+        )
 
 
 class InTriggerError(Exception):
@@ -171,6 +193,7 @@ class RenderOptionsData(TypedDict, total=False):
 
 class RenderOptions(TypedDict, total=False):
     data: RenderOptionsData
+    io: Dict[str, IORenderOptions]
 
 
 class NodeClassDict(TypedDict, total=False):

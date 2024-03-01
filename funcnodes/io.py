@@ -21,7 +21,7 @@ from .eventmanager import (
     EventEmitterMixin,
 )
 from .triggerstack import TriggerStack
-from .utils.serialization import MimeTyper
+from .utils.data import deep_fill_dict, deep_remove_dict_on_equal
 
 from .utils.serialization import JSONEncoder, JSONDecoder
 import json
@@ -42,7 +42,7 @@ class NodeIOSerialization(TypedDict):
     id: Required[str]
     value: Required[Any]
     is_input: bool
-    render_options: RenderOptions
+    render_options: IORenderOptions
     value_options: ValueOptions
 
 
@@ -80,7 +80,7 @@ class FullNodeIOJSON(TypedDict):
     node: str | None
     value: Any
     does_trigger: bool
-    render_options: RenderOptions
+    render_options: IORenderOptions
     value_options: ValueOptions
 
 
@@ -203,7 +203,7 @@ def raise_allow_connections(src: NodeIO, trg: NodeIO):
     return True
 
 
-class RenderOptions(TypedDict, total=False):
+class IORenderOptions(TypedDict, total=False):
     """Typing definition for Node Input/Output render options."""
 
     step: str
@@ -215,6 +215,7 @@ class ValueOptions(TypedDict, total=False):
     min: int
     max: int
     step: int
+    options: List[int | str | float]
 
 
 NodeIOType = TypeVar("NodeIOType")
@@ -233,7 +234,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         allow_multiple: Optional[bool] = None,
         uuid: Optional[str] = None,
         id: Optional[str] = None,  # fallback for uuid
-        render_options: Optional[RenderOptions] = None,
+        render_options: Optional[IORenderOptions] = None,
         value_options: Optional[ValueOptions] = None,
         is_input: Optional[bool] = None,  # catch and ignore
         #  **kwargs,
@@ -258,6 +259,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._node: Optional[weakref.ref[Node]] = None
         self._typestr: str = getattr(type, "__name__", str(type))
         self.eventmanager = AsyncEventManager(self)
+        self._value_options: ValueOptions = {}
         self._default_render_options = render_options or {}
         self._default_value_options = value_options or {}
 
@@ -512,12 +514,26 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         )
 
     @property
-    def render_options(self) -> RenderOptions:
+    def render_options(self) -> IORenderOptions:
         return self._default_render_options
 
     @property
     def value_options(self) -> ValueOptions:
-        return self._default_value_options
+
+        return deep_fill_dict(
+            self._value_options, self._default_value_options, inplace=False
+        )
+
+    @value_options.setter
+    def value_options(self, value_options: ValueOptions):
+        self._value_options = deep_remove_dict_on_equal(
+            value_options, self._default_value_options, inplace=False
+        )
+
+    @emit_after()
+    def update_value_options(self, **kwargs):
+        deep_fill_dict(self._value_options, kwargs, inplace=True)
+        return self.value_options
 
     def is_connected(self) -> bool:
         """Returns whether this NodeIO is connected to another NodeIO.
