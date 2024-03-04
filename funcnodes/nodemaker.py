@@ -229,12 +229,14 @@ def _create_node(nodeclassmixininst: NodeClassMixin, method, method_name):
     )
 
     # hecking if the method is actually in the class
-    if method_name not in nodeclassmixininst.__class__.__dict__:
+    if getattr(nodeclassmixininst, method_name) is None:
         raise ValueError("method not found in class")
 
-    if nodeclassmixininst.__class__.__dict__[method_name] != method:
+    if (
+        getattr(nodeclassmixininst, method_name).__func__ != method
+    ):  # __func__  is the unbound method
         raise ValueError(
-            "class method is not the same as the method passed to the function."
+            f"class method is not the same as the method passed to the function. {getattr(nodeclassmixininst, method_name)}, {method}"
         )
 
     # then we create the node class
@@ -306,6 +308,13 @@ class NodeClassMixinMeta(ABCMeta):
             raise ValueError(f"NODECLASSID not set for {cls.__name__}")
 
 
+def get_all_nodefunctions(cls: Type[NodeClassMixin]):
+    for parent in cls.__mro__:
+        for name, method in parent.__dict__.items():
+            if hasattr(method, "_is_instance_nodefunction"):
+                yield method, name
+
+
 class NodeClassMixin(ABC, metaclass=NodeClassMixinMeta):
     NODECLASSID: str = None  # type: ignore
     IS_ABSTRACT = True
@@ -330,16 +339,15 @@ class NodeClassMixin(ABC, metaclass=NodeClassMixinMeta):
         self._uuid = None
         self._nodes_created = False
 
-        for name, method in self.__class__.__dict__.items():
+        for method, name in get_all_nodefunctions(self.__class__):
             if hasattr(method, "_is_instance_nodefunction"):
                 _make_get_node_method(self, method, name)
 
     def create_nodes(self):
         if self._nodes_created:
             return
-        for name, method in self.__class__.__dict__.items():
-            if hasattr(method, "_is_instance_nodefunction"):
-                _create_node(self, method, name)
+        for method, name in get_all_nodefunctions(self.__class__):
+            _create_node(self, method, name)
 
         self._nodes_created = True
 

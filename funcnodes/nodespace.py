@@ -2,6 +2,7 @@ from typing import List, Dict, TypedDict, Tuple, Any
 from funcnodes import Node, run_until_complete
 import json
 from uuid import uuid4
+import traceback
 from .node import FullNodeJSON, NodeJSON, PlaceHolderNode, NodeTriggerError
 from .io import NodeInput, NodeOutput
 from .lib import FullLibJSON, Library, NodeClassNotFoundError
@@ -201,7 +202,12 @@ class NodeSpace(EventEmitterMixin):
         key = "node_error"
         if isinstance(error, NodeTriggerError):
             key = "node_trigger_error"
-        self.emit(key, MessageInArgs(node=src.uuid, error=error))
+        self.emit(
+            key,
+            MessageInArgs(
+                node=src.uuid, error=error, tb=traceback.format_exception(error)
+            ),
+        )
 
     def remove_node_instance(self, node: Node) -> str:
         if node.uuid not in self._nodes:

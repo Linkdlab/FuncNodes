@@ -521,7 +521,10 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
     def value_options(self) -> ValueOptions:
 
         return deep_fill_dict(
-            self._value_options, self._default_value_options, inplace=False
+            self._default_value_options,
+            self._value_options,
+            inplace=False,
+            overwrite_existing=True,
         )
 
     @value_options.setter
@@ -532,7 +535,10 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
 
     @emit_after()
     def update_value_options(self, **kwargs):
-        deep_fill_dict(self._value_options, kwargs, inplace=True)
+        deep_fill_dict(
+            self._value_options, kwargs, inplace=True, overwrite_existing=True
+        )
+
         return self.value_options
 
     def is_connected(self) -> bool:
