@@ -30,7 +30,7 @@ class CustomLoop(ABC):
     async def _loop(self):
         return await self.loop()
 
-    def stop(self):
+    async def stop(self):
         self._running = False
 
     async def continuous_run(self):
@@ -53,6 +53,7 @@ class LoopManager:
         self._worker = worker
         asyncio.set_event_loop(self._loop)
         self._tasks: List[asyncio.Task] = []
+        self._running = False
 
     def add_loop(self, loop: CustomLoop):
         self._loops.append(loop)
@@ -66,21 +67,30 @@ class LoopManager:
             idx = self._loops.index(loop)
             task = self._tasks.pop(idx)
             loop = self._loops.pop(idx)
+            asyncio.run(loop.stop())
             task.cancel()
-            loop.stop()
 
     def async_call(self, croutine: asyncio.Coroutine):
         return self._loop.create_task(croutine)
 
     def __del__(self):
+        self.stop()
+
+    def stop(self):
+
+        for task in self._tasks:
+            task.cancel()
+
         for loop in list(self._loops):
             self.remove_loop(loop)
+        self._running = False
 
     def run_forever(self):
         asyncio.set_event_loop(self._loop)
+        self._running = True
 
         async def _rf():
-            while True:
+            while self._running:
                 await asyncio.sleep(1)
 
         try:
@@ -88,7 +98,7 @@ class LoopManager:
         except KeyboardInterrupt:
             print("Interrupt received, shutting down.")
         finally:
-            self._loop.close()
+            self.stop()
 
 
 class NodeSpaceLoop(CustomLoop):

@@ -619,7 +619,18 @@ class Worker(ABC):
 
     def run_forever(self):
         self.initialize_nodespace()
-        self.loop_manager.run_forever()
+        try:
+            self.loop_manager.run_forever()
+        finally:
+            self.stop()
+
+    def stop(self):
+        print("Stopping worker")
+        self.loop_manager.stop()
+
+    def __del__(self):
+        self.stop()
+        super().__del__()
 
     async def install_package(self, package: str):
         import importlib

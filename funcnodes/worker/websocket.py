@@ -64,6 +64,11 @@ class WSLoop(CustomLoop):
     async def loop(self):
         await self._assert_connection()
 
+    async def stop(self):
+        if self.ws_server is None:
+            self.ws_server.stop()
+        await super().stop()
+
 
 class WSWorker(RemoteWorker):
     def __init__(
@@ -116,3 +121,6 @@ class WSWorker(RemoteWorker):
 
     def _on_nodespaceevent(self, event: str, src: NodeSpace, **kwargs):
         return super()._on_nodespaceevent(event, src, **kwargs)
+
+    def stop(self):
+        super().stop()
