@@ -621,6 +621,7 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             description=serialized_input.get("description"),
             type=serialized_input["type"],
             allow_multiple=serialized_input.get("allow_multiple"),
+            default=serialized_input.get("default", NoValue),
         )
 
     def serialize(self) -> NodeInputSerialization:
