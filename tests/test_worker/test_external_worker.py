@@ -69,7 +69,7 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
             NODECLASSID = "testexternalworker"
 
             async def loop(self):
-                self.stop()
+                await self.stop()
 
         worker = ExternalWorker1(workerid="test")
         worker._logger = RaiseErrorLogger()
