@@ -11,6 +11,7 @@ from typing import (
     Union,
     Tuple,
     Required,
+    Callable,
 )
 from uuid import uuid4
 from exposedfunctionality import FunctionInputParam, FunctionOutputParam
@@ -82,6 +83,7 @@ class FullNodeIOJSON(TypedDict):
     does_trigger: bool
     render_options: IORenderOptions
     value_options: ValueOptions
+    valuepreview_type: str
 
 
 # A unique object that represents the absence of a value
@@ -207,6 +209,8 @@ class IORenderOptions(TypedDict, total=False):
     """Typing definition for Node Input/Output render options."""
 
     step: str
+    preview_type: str
+    type: str
 
 
 class ValueOptions(TypedDict, total=False):
@@ -219,6 +223,23 @@ class ValueOptions(TypedDict, total=False):
 
 
 NodeIOType = TypeVar("NodeIOType")
+
+
+class IOOptions(NodeIOSerialization, total=False):
+    valuepreview_generator: Callable[[Any], Any]
+    valuepreview_type: str
+
+
+class NodeInputOptions(IOOptions, NodeInputSerialization, total=False):
+    pass
+
+
+class NodeOutputOptions(IOOptions, NodeOutputSerialization, total=False):
+    pass
+
+
+def identity_preview_generator(value: Any) -> Any:
+    return value
 
 
 class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
@@ -237,6 +258,8 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         render_options: Optional[IORenderOptions] = None,
         value_options: Optional[ValueOptions] = None,
         is_input: Optional[bool] = None,  # catch and ignore
+        valuepreview_generator: Callable[[Any], Any] = identity_preview_generator,
+        valuepreview_type: Optional[str] = None,
         #  **kwargs,
     ) -> None:
         """Initializes a new instance of NodeIO.
@@ -262,6 +285,8 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._value_options: ValueOptions = {}
         self._default_render_options = render_options or {}
         self._default_value_options = value_options or {}
+        self._valuepreview_generator = valuepreview_generator
+        self._valuepreview_type = valuepreview_type or self._typestr
 
     def deserialize(self, data: NodeIOSerialization) -> None:
         if "name" in data:
@@ -324,6 +349,15 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self.set_value(value)
 
     @property
+    def value_preview(self) -> str:
+        """Gets a preview of the value of the NodeIO."""
+        return self._valuepreview_generator(self.value)
+
+    @property
+    def valuepreview_type(self) -> str:
+        return self._valuepreview_type
+
+    @property
     def connections(self) -> List[NodeIO]:
         """Gets a list of NodeIO instances connected to this one."""
         return list(self._connected)
@@ -337,7 +371,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             value: The value to set.
         """
         self._value = value
-        return self.value
+        return self._valuepreview_generator(self.value)
 
     @emit_before()
     @emit_after()
@@ -489,7 +523,8 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             is_input=self.is_input(),
             connected=self.is_connected(),
             node=self.node.uuid if self.node else None,
-            value=self.value,
+            value=self.value_preview,
+            valuepreview_type=self.valuepreview_type,
             does_trigger=self.does_trigger,
             render_options=self.render_options,
             value_options=self.value_options,
@@ -642,6 +677,14 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             ser["default"] = self._default
         return ser
 
+    def to_dict(self) -> NodeInputOptions:
+        ser: IOOptions = NodeInputOptions(
+            valuepreview_generator=self._valuepreview_generator,
+            valuepreview_type=self._valuepreview_type,
+            **self.serialize(),
+        )
+        return ser
+
     def deserialize(self, data: NodeInputSerialization) -> None:
         super().deserialize(data)
         if "required" in data:
@@ -770,6 +813,14 @@ class NodeOutput(NodeIO):
             A dictionary containing the serialized name and description of the node output.
         """
         return NodeOutputSerialization(**super().serialize())
+
+    def to_dict(self) -> NodeOutputOptions:
+        ser: IOOptions = NodeOutputOptions(
+            valuepreview_generator=self._valuepreview_generator,
+            valuepreview_type=self.valuepreview_type,
+            **self.serialize(),
+        )
+        return ser
 
     def deserialize(self, data: NodeIOSerialization) -> None:
         return super().deserialize(data)

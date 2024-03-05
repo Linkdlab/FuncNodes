@@ -772,13 +772,13 @@ class RemoteWorker(Worker):
         """send a message to the frontend"""
 
     def _on_nodespaceevent(self, event, src: NodeSpace, **kwargs):
-        if event in [
+        if event in {
             "before_set_value",
             "before_request_trigger",
             "after_request_trigger",
             "before_disconnect",
             "before_connect",
-        ]:
+        }:
             return
         event_bundle: NodeSpaceEvent = {
             "type": "nsevent",

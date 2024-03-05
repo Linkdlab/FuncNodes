@@ -17,6 +17,8 @@ from .io import (
     NodeIOSerialization,
     NodeIOClassSerialization,
     IORenderOptions,
+    NodeInputOptions,
+    NodeOutputOptions,
 )
 from .triggerstack import TriggerStack
 from .eventmanager import (
@@ -96,12 +98,18 @@ def _parse_nodeclass_io(node: Node):
 
     outputs = _get_nodeclass_outputs(node)
     for ip in inputs:
-        ser = ip.serialize()
+        ser: NodeInputOptions = ip.to_dict()
         node_io_render: NodeInputSerialization = node.render_options.get("io", {}).get(
             ip.uuid, {}
         )
+
+        node_io_options: NodeInputOptions = node.io_options.get(ip.uuid, {})
+
         if node_io_render:
             deep_fill_dict(ser, node_io_render, overwrite_existing=True)
+
+        if node_io_options:
+            deep_fill_dict(ser, node_io_options, overwrite_existing=True)
         node.add_input(
             NodeInput(
                 **ser,
@@ -109,12 +117,17 @@ def _parse_nodeclass_io(node: Node):
         )
 
     for op in outputs:
-        ser = op.serialize()
+        ser: NodeOutputOptions = op.to_dict()
         node_io_render: NodeOutputSerialization = node.render_options.get("io", {}).get(
             op.uuid, {}
         )
+        node_io_options: NodeInputOptions = node.io_options.get(op.uuid, {})
+
         if node_io_render:
             deep_fill_dict(ser, node_io_render, overwrite_existing=True)
+
+        if node_io_options:
+            deep_fill_dict(ser, node_io_options, overwrite_existing=True)
 
         node.add_output(
             NodeOutput(
@@ -186,9 +199,8 @@ class NodeMeta(ABCMeta):
         return new_cls
 
 
-class RenderOptionsData(TypedDict, total=False):
+class RenderOptionsData(IORenderOptions, total=False):
     src: str
-    type: str
 
 
 class RenderOptions(TypedDict, total=False):
@@ -203,6 +215,7 @@ class NodeClassDict(TypedDict, total=False):
     description: Optional[str]
     default_render_options: Optional[RenderOptions]
     default_trigger_on_create: Optional[bool]
+    default_io_options: Optional[Dict[str, NodeInputOptions | NodeOutputOptions]]
 
 
 NodeClassDictKeysValues = Literal[
@@ -212,6 +225,7 @@ NodeClassDictKeysValues = Literal[
     "description",
     "default_render_options",
     "default_trigger_on_create",
+    "default_io_options",
 ]
 NodeClassDictsKeys: List[NodeClassDictKeysValues] = [
     "node_id",
@@ -220,6 +234,7 @@ NodeClassDictsKeys: List[NodeClassDictKeysValues] = [
     "description",
     "default_render_options",
     "default_trigger_on_create",
+    "default_io_options",
 ]
 
 
@@ -236,6 +251,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
     description: Optional[str] = None
 
     default_render_options: RenderOptions = {}
+    default_io_options: Dict[str, NodeInputOptions | NodeOutputOptions] = {}
     default_trigger_on_create: bool = False
 
     triggerinput = NodeInput(
@@ -257,6 +273,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         name: Optional[str] = None,
         id: Optional[str] = None,  # fallback for uuid
         render_options: Optional[RenderOptions] = None,
+        io_options: Optional[Dict[str, NodeInputOptions | NodeOutputOptions]] = None,
         trigger_on_create: Optional[bool] = None,
     ):
         super().__init__()
@@ -274,6 +291,14 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             render_options or RenderOptions(),  # type: ignore
             self.default_render_options,  # type: ignore
         )
+
+        self._io_options: Dict[str, NodeInputOptions | NodeOutputOptions] = (
+            deep_fill_dict(
+                io_options or {},  # type: ignore
+                self.default_io_options,  # type: ignore
+            )
+        )
+
         self._disabled = False
         _parse_nodeclass_io(self)
         if trigger_on_create is None:
@@ -409,6 +434,10 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
     @property
     def render_options(self):
         return self._render_options
+
+    @property
+    def io_options(self):
+        return self._io_options
 
     @property
     def triggerstack(self) -> Optional[TriggerStack]:
