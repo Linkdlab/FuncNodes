@@ -107,12 +107,15 @@ class NodeSpace(EventEmitterMixin):
 
     def deserialize_edges(self, data: List[Tuple[str, str, str, str]]):
         for output_uuid, output_id, input_uuid, input_id in data:
-            output = self.get_node_by_id(output_uuid).get_input_or_output(output_id)
-            input = self.get_node_by_id(input_uuid).get_input_or_output(input_id)
-            if isinstance(output, NodeOutput) and isinstance(input, NodeInput):
-                input.connect(output)
-            else:
-                output.connect(input)
+            try:
+                output = self.get_node_by_id(output_uuid).get_input_or_output(output_id)
+                input = self.get_node_by_id(input_uuid).get_input_or_output(input_id)
+                if isinstance(output, NodeOutput) and isinstance(input, NodeInput):
+                    input.connect(output)
+                else:
+                    output.connect(input)
+            except Exception:
+                pass
 
     def serialize_nodes(self) -> List[NodeJSON]:
         """serialize_nodes serializes the nodes in the nodespace
@@ -254,6 +257,11 @@ class NodeSpace(EventEmitterMixin):
         return self._nodes[nid]
 
     # endregion nodes
+
+    # region edges
+    # region add/remove edges
+    # endregion add/remove edges
+    # endregion edges
     async def await_done(
         self,
     ):
