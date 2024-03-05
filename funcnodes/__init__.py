@@ -50,6 +50,6 @@ __all__ = [
     "WSWorker",
 ]
 
-__version__ = "0.1.4.1"
+__version__ = "0.1.4.2"
 
 DEBUG = True
