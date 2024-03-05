@@ -97,7 +97,7 @@ try:
 
     def from_np(obj):
         if isinstance(obj, np.ndarray):
-            return obj.tolist(), True
+            return str(obj), True  # return obj.tolist(), True
         return obj, False
 
     JSONEncoder.add_encoder(from_np)
