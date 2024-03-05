@@ -533,8 +533,10 @@ class Worker(ABC):
     @requests_save
     @exposed_method()
     def update_node(self, nid: str, data: NodeUpdateJSON):
-        node = self.get_node(nid)
-
+        try:
+            node = self.get_node(nid)
+        except Exception:
+            return {"error": f"Node with id {nid} not found"}
         if not node:
             raise ValueError(f"Node with id {nid} not found")
         ans = {}
@@ -577,7 +579,22 @@ class Worker(ABC):
             return srcio.connect(tgtio, replace=replace)
         else:
             return tgtio.connect(srcio, replace=replace)
-        srcio.connect(tgtio)
+
+    @requests_save
+    @exposed_method()
+    def remove_edge(
+        self,
+        src_nid: str,
+        src_ioid: str,
+        trg_nid: str,
+        trg_ioid: str,
+    ):
+        src = self.get_node(src_nid)
+        tgt = self.get_node(trg_nid)
+        srcio = src.get_input_or_output(src_ioid)
+        tgtio = tgt.get_input_or_output(trg_ioid)
+
+        srcio.disconnect(tgtio)
         return True
 
     # endregion edges
@@ -778,6 +795,8 @@ class RemoteWorker(Worker):
             "after_request_trigger",
             "before_disconnect",
             "before_connect",
+            "before_trigger",
+            "after_trigger",
         }:
             return
         event_bundle: NodeSpaceEvent = {
