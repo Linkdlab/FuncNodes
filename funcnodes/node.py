@@ -672,6 +672,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             """Wraps the node's function to handle the triggering of events before and after its execution."""
             # set the trigger event
             await self.asynceventmanager.set_and_clear("triggered")
+            self.emit("triggerstart")
             # run the function
             try:
                 ans = await self.func(**kwargs)
@@ -683,6 +684,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
                 for ip in self._inputs:
                     ip.value = NoValue
 
+            self.emit("triggerdone")
             # set the triggerdone event
             await self.asynceventmanager.set_and_clear("triggerdone")
             return ans

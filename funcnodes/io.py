@@ -17,6 +17,7 @@ from uuid import uuid4
 from exposedfunctionality import FunctionInputParam, FunctionOutputParam
 from .eventmanager import (
     AsyncEventManager,
+    MessageInArgs,
     emit_before,
     emit_after,
     EventEmitterMixin,
@@ -154,7 +155,8 @@ class NodeInputStatus(NodeIOStatus):
     required: bool
 
 
-class NodeOutputStatus(NodeIOStatus): ...
+class NodeOutputStatus(NodeIOStatus):
+    ...
 
 
 def raise_allow_connections(src: NodeIO, trg: NodeIO):
@@ -228,6 +230,7 @@ NodeIOType = TypeVar("NodeIOType")
 class IOOptions(NodeIOSerialization, total=False):
     valuepreview_generator: Callable[[Any], Any]
     valuepreview_type: str
+    emit_value_set: bool
 
 
 class NodeInputOptions(IOOptions, NodeInputSerialization, total=False):
@@ -260,6 +263,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         is_input: Optional[bool] = None,  # catch and ignore
         valuepreview_generator: Callable[[Any], Any] = identity_preview_generator,
         valuepreview_type: Optional[str] = None,
+        emit_value_set: bool = True,
         #  **kwargs,
     ) -> None:
         """Initializes a new instance of NodeIO.
@@ -287,6 +291,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._default_value_options = value_options or {}
         self._valuepreview_generator = valuepreview_generator
         self._valuepreview_type = valuepreview_type or self._typestr
+        self._emit_value_set = emit_value_set
 
     def deserialize(self, data: NodeIOSerialization) -> None:
         if "name" in data:
@@ -362,8 +367,6 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         """Gets a list of NodeIO instances connected to this one."""
         return list(self._connected)
 
-    @emit_before()
-    @emit_after()
     def set_value(self, value: NodeIOType) -> None:
         """Sets the internal value of the NodeIO.
 
@@ -371,7 +374,12 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             value: The value to set.
         """
         self._value = value
-        return self._valuepreview_generator(self.value)
+
+        if self._emit_value_set:
+            msg = MessageInArgs(src=self)
+            msg["result"] = self._valuepreview_generator(self.value)
+            self.emit("after_set_value", msg=msg)
+        return self.value
 
     @emit_before()
     @emit_after()
@@ -554,7 +562,6 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
 
     @property
     def value_options(self) -> ValueOptions:
-
         return deep_fill_dict(
             self._default_value_options,
             self._value_options,
