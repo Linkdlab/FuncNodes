@@ -1,18 +1,39 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List, Optional, TypedDict, Literal
 import websockets
 from funcnodes import NodeSpace, JSONEncoder
 from funcnodes.worker import RemoteWorker, CustomLoop
-from funcnodes.worker.worker import CmdMessage, ErrorMessage, ResultMessage
+from .worker import (
+    CmdMessage,
+    ErrorMessage,
+    ResultMessage,
+    RemoteWorkerJson,
+)
 from exposedfunctionality import get_exposed_methods
 import json
 import traceback
 import asyncio
 
 
+class WSWorkerJson(RemoteWorkerJson):
+    host: str
+    port: int
+    ssl: bool
+
+
+STARTPORT = 9382
+ENDPORT = 9482
+
+
 class WSLoop(CustomLoop):
     def __init__(
-        self, host: str, port: int, worker: WSWorker, delay=5, *args, **kwargs
+        self,
+        worker: WSWorker,
+        host: str = "localhost",
+        port: int = STARTPORT,
+        delay=5,
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(*args, delay=delay, **kwargs)
         self._host = host
@@ -20,6 +41,7 @@ class WSLoop(CustomLoop):
         self.ws_server: websockets.WebSocketServer | None = None
         self._worker = worker
         self.clients: List[websockets.WebSocketServerProtocol] = []
+        self._use_ssl: bool = False
 
     async def _handle_connection(
         self, websocket: websockets.WebSocketServerProtocol, path
@@ -56,28 +78,38 @@ class WSLoop(CustomLoop):
         )
 
     async def _assert_connection(self):
-        if self.ws_server is None:
-            self.ws_server = await websockets.serve(
-                self._handle_connection, self._host, self._port
-            )
+        while True:
+            try:
+                if self.ws_server is None:
+                    self.ws_server = await websockets.serve(
+                        self._handle_connection, self._host, self._port
+                    )
+                    self._worker._write_config()
+                return
+            except OSError as e:
+                self._port += 1
+                if self._port > ENDPORT:
+                    self._port = STARTPORT
+                    raise Exception("No free ports available")
 
     async def loop(self):
         await self._assert_connection()
 
     async def stop(self):
-        if self.ws_server is None:
-            self.ws_server.stop()
+        if self.ws_server is not None:
+            self.ws_server.close()
+            await self.ws_server.wait_closed()
         await super().stop()
 
 
 class WSWorker(RemoteWorker):
     def __init__(
         self,
-        data_path,
         host="localhost",
         port=9382,
+        **kwargs,
     ) -> None:
-        super().__init__(data_path=data_path)
+        super().__init__(**kwargs)
         self.ws_loop = WSLoop(host=host, port=port, worker=self)
         self.loop_manager.add_loop(self.ws_loop)
 
@@ -88,8 +120,10 @@ class WSWorker(RemoteWorker):
     ):
         cmd = json_msg["cmd"]
         if cmd not in self._exposed_methods:
-            raise Exception(f"Unknown command {cmd}")
-        kwargs = json_msg["kwargs"] or {}
+            raise Exception(
+                f"Unknown command {cmd} , available commands: {', '.join(self._exposed_methods.keys())}"
+            )
+        kwargs = json_msg.get("kwargs", {})
         func = self._exposed_methods[cmd][0]
         if asyncio.iscoroutinefunction(func):
             result = await func(**kwargs)
@@ -124,3 +158,11 @@ class WSWorker(RemoteWorker):
 
     def stop(self):
         super().stop()
+
+    def generate_config(self) -> WSWorkerJson:
+        return WSWorkerJson(
+            **super().generate_config(),
+            host=self.ws_loop._host,
+            port=self.ws_loop._port,
+            ssl=self.ws_loop._use_ssl,
+        )

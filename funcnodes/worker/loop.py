@@ -4,6 +4,7 @@ import asyncio
 from typing import List
 import logging
 from funcnodes import NodeSpace
+import time
 
 
 class CustomLoop(ABC):
@@ -14,6 +15,7 @@ class CustomLoop(ABC):
         self._logger = logger
         self._running = True
         self._manager: LoopManager | None = None
+        self._stop_event = asyncio.Event()
 
     @property
     def manager(self) -> LoopManager | None:
@@ -32,18 +34,19 @@ class CustomLoop(ABC):
 
     async def stop(self):
         self._running = False
+        await asyncio.sleep(min(self._delay, 0.2) * 1.25)
 
     async def continuous_run(self):
+        last_run = 0
         while self._running:
             try:
-                # st = time.time()
-                await self._loop()
-                # t= time.time()-st
-                # if t > 0.01:
-                #    print(f"{self.__class__.__name__} took {t} seconds")
+                if time.time() - self._delay > last_run:
+                    await self._loop()
+                    last_run = time.time()
             except Exception as exc:  # pylint: disable=broad-except
                 self._logger.exception(exc)
-            await asyncio.sleep(self._delay)
+
+            await asyncio.sleep(min(self._delay, 0.2))
 
 
 class LoopManager:
@@ -63,11 +66,17 @@ class LoopManager:
         return t
 
     def remove_loop(self, loop: CustomLoop):
+
+        self._loop.run_until_complete(
+            asyncio.gather(
+                *[loop.stop() for loop in self._loops], return_exceptions=True
+            )
+        )
+
         if loop in self._loops:
             idx = self._loops.index(loop)
             task = self._tasks.pop(idx)
             loop = self._loops.pop(idx)
-            asyncio.run(loop.stop())
             task.cancel()
 
     def async_call(self, croutine: asyncio.Coroutine):

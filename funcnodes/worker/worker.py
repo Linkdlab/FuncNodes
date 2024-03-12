@@ -23,7 +23,7 @@ import sys
 import importlib
 import importlib.util
 import inspect
-import uuid
+from uuid import uuid4
 import funcnodes
 from funcnodes.worker.loop import LoopManager, NodeSpaceLoop, CustomLoop
 from funcnodes.worker.external_worker import FuncNodesExternalWorker
@@ -40,6 +40,7 @@ from funcnodes import (
     NodeOutput,
     NodeInput,
 )
+from funcnodes.utils import deep_fill_dict
 from funcnodes.lib import find_shelf
 import traceback
 from exposedfunctionality import exposed_method
@@ -201,7 +202,7 @@ class LocalWorkerLookupLoop(CustomLoop):
     def start_local_worker_by_id(self, worker_id: str):
         for worker_class in self.worker_classes:
             if worker_class.NODECLASSID == worker_id:
-                return self.start_local_worker(worker_class, uuid.uuid4().hex)
+                return self.start_local_worker(worker_class, uuid4().hex)
 
         raise LocalWorkerLookupLoop.WorkerNotFoundError(
             "No worker with id " + worker_id
@@ -265,21 +266,33 @@ def requests_save(func):
         return wrapper
 
 
+class WorkerJson(TypedDict):
+    type: str
+    uuid: str
+    data_path: str
+
+
+#  env_path: str
+
+
+class RemoteWorkerJson(WorkerJson):
+    pass
+
+
 class Worker(ABC):
     def __init__(
         self,
-        data_path: str,
+        data_path: str | None = None,
         default_nodes: List[Shelf] | None = None,
         nodespace_delay=0.005,
         local_worker_lookup_delay=5,
         save_delay=5,
+        uuid: str | None = None,
     ) -> None:
         if default_nodes is None:
             default_nodes = []
 
         self.logger = logging.getLogger(__name__)
-
-        self.data_path = os.path.abspath(data_path)
 
         self.loop_manager = LoopManager(self)
         self.nodespace = NodeSpace()
@@ -302,8 +315,66 @@ class Worker(ABC):
         for shelf in default_nodes:
             self.nodespace.lib.add_shelf(shelf)
 
-        self._nodespace_id: str = uuid.uuid4().hex
+        self._nodespace_id: str = uuid4().hex
         self.viewdata: ViewState = {"nodes": {}}
+        self._uuid = uuid4().hex if not uuid else uuid
+        self.data_path = (
+            os.path.abspath(data_path)
+            if data_path
+            else os.path.join(
+                funcnodes.config.CONFIG_DIR, "workers", "worker_" + self._uuid
+            )
+        )
+
+    @property
+    def _process_file(self):
+        return os.path.join(
+            funcnodes.config.CONFIG_DIR,
+            "workers",
+            "worker_" + self._uuid + ".p",
+        )
+
+    def _write_config(self):
+        c = self.generate_config()
+        cfile = os.path.join(
+            funcnodes.config.CONFIG_DIR,
+            "workers",
+            "worker_" + self._uuid + ".json",
+        )
+        if os.path.exists(cfile):
+            with open(
+                cfile,
+                "r",
+                encoding="utf-8",
+            ) as f:
+                oldc = json.load(f)
+
+            c = deep_fill_dict(oldc, c, overwrite_existing=True)
+        with open(
+            cfile,
+            "w+",
+            encoding="utf-8",
+        ) as f:
+            f.write(json.dumps(c, indent=2))
+
+    def _ini_config(self):
+        if os.path.exists(self._process_file):
+            raise RuntimeError("Worker already running")
+        with open(
+            self._process_file,
+            "w+",
+            encoding="utf-8",
+        ) as f:
+            pass
+        self._write_config()
+
+    def generate_config(self) -> WorkerJson:
+        return {
+            "uuid": self._uuid,
+            "data_path": self.data_path,
+            "type": self.__class__.__name__,
+            # "env_path":
+        }
 
     # region properties
     @property
@@ -335,6 +406,10 @@ class Worker(ABC):
         return self.local_worker_lookup_loop.start_local_worker(worker_class, nid)
 
     # region states
+    @exposed_method()
+    def uuid(self) -> str:
+        return self._uuid
+
     @exposed_method()
     def view_state(self) -> ViewState:
         available_nodeids = []
@@ -460,13 +535,16 @@ class Worker(ABC):
     # region library
 
     @exposed_method()
-    def add_shelf_by_module(self, module: str):
-        shelf = find_shelf(module=module)
+    def add_shelf(self, src: str):
+        shelf = find_shelf(src=src)
         if shelf is None:
-            raise ValueError(f"Shelf with module {module} not found")
-        self.nodespace.lib.add_dependency(module=module)
+            raise ValueError(f"Shelf in {src} not found")
+        self.nodespace.lib.add_dependency(module=src)
         self.nodespace.lib.add_shelf(shelf)
         return True
+
+    def add_shelf_by_module(self, module: str):
+        return self.add_shelf(module)
 
     # endregion library
 
@@ -477,7 +555,7 @@ class Worker(ABC):
 
     @requests_save
     @exposed_method()
-    def add_node(self, id: str, **kwargs):
+    def add_node(self, id: str, **kwargs: Dict[str, Any]):
         return self.nodespace.add_node_by_id(id, **kwargs)
 
     @exposed_method()
@@ -621,7 +699,7 @@ class Worker(ABC):
 
     def _set_nodespace_id(self, nsid: str):
         if nsid is None:
-            nsid = uuid.uuid4().hex
+            nsid = uuid4().hex
 
         if len(nsid) == 32:
             self._nodespace_id = nsid
@@ -635,19 +713,21 @@ class Worker(ABC):
             pass
 
     def run_forever(self):
+        self._ini_config()
         self.initialize_nodespace()
         try:
             self.loop_manager.run_forever()
         finally:
             self.stop()
 
+    @exposed_method()
     def stop(self):
         print("Stopping worker")
         self.loop_manager.stop()
+        os.remove(self._process_file)
 
     def __del__(self):
         self.stop()
-        super().__del__()
 
     async def install_package(self, package: str):
         import importlib
@@ -950,3 +1030,6 @@ class RemoteWorker(Worker):
 
         if not handled:
             self.logger.error("%s: %s", undandled_message, json.dumps(data))
+
+    def generate_config(self) -> RemoteWorkerJson:
+        return super().generate_config()

@@ -15,7 +15,14 @@ from .nodespace import NodeSpace, FullNodeSpaceJSON, NodeSpaceJSON
 from .lib import FullLibJSON, Shelf, Library, find_shelf, NodeClassNotFoundError
 from .nodemaker import NodeClassMixin, NodeDecorator, instance_nodefunction
 from ._logging import FUNCNODES_LOGGER, get_logger
-from .worker import FuncNodesExternalWorker, RemoteWorker, WSWorker
+from .worker import (
+    FuncNodesExternalWorker,
+    RemoteWorker,
+    WSWorker,
+    WorkerManager,
+    assert_worker_manager_running,
+)
+from . import config
 
 __all__ = [
     "NodeInput",
@@ -48,6 +55,9 @@ __all__ = [
     "FuncNodesExternalWorker",
     "RemoteWorker",
     "WSWorker",
+    "WorkerManager",
+    "assert_worker_manager_running",
+    "config",
 ]
 
 __version__ = "0.1.4.2"
