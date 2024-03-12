@@ -22,6 +22,8 @@ def value_node(value: float) -> float:
 )
 def add_node(a: float, b: float) -> float:
     """Add two numbers"""
+    a = float(a)
+    b = float(b)
     return a + b
 
 
@@ -29,6 +31,8 @@ def add_node(a: float, b: float) -> float:
     "sub_node",
 )
 def sub_node(a: float, b: float) -> float:
+    a = float(a)
+    b = float(b)
     return a - b
 
 
@@ -36,6 +40,8 @@ def sub_node(a: float, b: float) -> float:
     "mul_node",
 )
 def mul_node(a: float, b: float) -> float:
+    a = float(a)
+    b = float(b)
     return a * b
 
 
@@ -43,6 +49,8 @@ def mul_node(a: float, b: float) -> float:
     "div_node",
 )
 def div_node(a: float, b: float) -> float:
+    a = float(a)
+    b = float(b)
     return a / b
 
 
@@ -50,6 +58,8 @@ def div_node(a: float, b: float) -> float:
     "mod_node",
 )
 def mod_node(a: float, b: float) -> float:
+    a = float(a)
+    b = float(b)
     return a % b
 
 
@@ -57,6 +67,8 @@ def mod_node(a: float, b: float) -> float:
     "pow_node",
 )
 def pow_node(a: float, b: float) -> float:
+    a = float(a)
+    b = float(b)
     return a**b
 
 
@@ -64,6 +76,8 @@ def pow_node(a: float, b: float) -> float:
     "floor_div_node",
 )
 def floor_div_node(a: float, b: float) -> float:
+    a = float(a)
+    b = float(b)
     return a // b
 
 
@@ -71,6 +85,7 @@ def floor_div_node(a: float, b: float) -> float:
     "abs_node",
 )
 def abs_node(a: float) -> float:
+    a = float(a)
     return abs(a)
 
 
@@ -78,6 +93,7 @@ def abs_node(a: float) -> float:
     "neg_node",
 )
 def neg_node(a: float) -> float:
+    a = float(a)
     return -a
 
 
@@ -85,6 +101,7 @@ def neg_node(a: float) -> float:
     "pos_node",
 )
 def pos_node(a: float) -> float:
+    a = float(a)
     return +a
 
 
@@ -92,6 +109,8 @@ def pos_node(a: float) -> float:
     "round_node",
 )
 def round_node(a: float, ndigits: int = 0) -> float:
+    a = float(a)
+    ndigits = int(ndigits)
     return round(a, ndigits)
 
 
@@ -99,6 +118,8 @@ def round_node(a: float, ndigits: int = 0) -> float:
     "greater_node",
 )
 def greater_node(a: float, b: float) -> bool:
+    a = float(a)
+    b = float(b)
     return a > b
 
 
@@ -106,6 +127,8 @@ def greater_node(a: float, b: float) -> bool:
     "greater_equal_node",
 )
 def greater_equal_node(a: float, b: float) -> bool:
+    a = float(a)
+    b = float(b)
     return a >= b
 
 
@@ -113,6 +136,8 @@ def greater_equal_node(a: float, b: float) -> bool:
     "less_node",
 )
 def less_node(a: float, b: float) -> bool:
+    a = float(a)
+    b = float(b)
     return a < b
 
 
@@ -127,6 +152,8 @@ def less_equal_node(a: float, b: float) -> bool:
     "equal_node",
 )
 def equal_node(a: float, b: float) -> bool:
+    a = float(a)
+    b = float(b)
     return a == b
 
 
@@ -134,6 +161,8 @@ def equal_node(a: float, b: float) -> bool:
     "not_equal_node",
 )
 def not_equal_node(a: float, b: float) -> bool:
+    a = float(a)
+    b = float(b)
     return a != b
 
 
@@ -141,6 +170,8 @@ def not_equal_node(a: float, b: float) -> bool:
     "and_node",
 )
 def and_node(a: bool, b: bool) -> bool:
+    a = float(a)
+    b = float(b)
     return a and b
 
 
@@ -148,6 +179,8 @@ def and_node(a: bool, b: bool) -> bool:
     "or_node",
 )
 def or_node(a: bool, b: bool) -> bool:
+    a = bool(a)
+    b = bool(b)
     return a or b
 
 
@@ -155,6 +188,8 @@ def or_node(a: bool, b: bool) -> bool:
     "xor_node",
 )
 def xor_node(a: bool, b: bool) -> bool:
+    a = bool(a)
+    b = bool(b)
     return a ^ b
 
 
@@ -162,6 +197,7 @@ def xor_node(a: bool, b: bool) -> bool:
     "not_node",
 )
 def not_node(a: bool) -> bool:
+    a = bool(a)
     return not a
 
 
