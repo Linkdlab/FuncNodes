@@ -7,6 +7,9 @@ import asyncio
 import subprocess
 import sys
 from typing import List
+from funcnodes.worker.websocket import WSWorker
+
+from funcnodes.worker.worker import WorkerJson
 
 
 def run_in_new_process(*args, **kwargs):
@@ -19,8 +22,61 @@ def run_in_new_process(*args, **kwargs):
             args,
             creationflags=subprocess.DETACHED_PROCESS
             | subprocess.CREATE_NEW_PROCESS_GROUP,
+            **kwargs,
         )
     return p
+
+
+def create_worker_env(workerconfig: WorkerJson):
+    # install env
+    if not os.path.exists(workerconfig["env_path"]):
+        os.makedirs(workerconfig["env_path"], exist_ok=True)
+    command = [sys.executable, "-m", "venv", workerconfig["env_path"]]
+    subprocess.run(command, check=True)
+
+    if os.name == "nt":  # Windows
+        pip_path = os.path.join(workerconfig["env_path"], "Scripts", "pip")
+    else:  # Linux
+        pip_path = os.path.join(workerconfig["env_path"], "bin", "pip")
+
+    # purge pip cache
+    command = [
+        pip_path,
+        "cache",
+        "purge",
+    ]
+    subprocess.run(
+        command, check=True, cwd=os.path.join(workerconfig["data_path"], "..")
+    )
+
+    # install funcnodes
+    command = [
+        pip_path,
+        "install",
+        "funcnodes",
+        "--upgrade",
+    ]
+    subprocess.run(
+        command, check=True, cwd=os.path.join(workerconfig["data_path"], "..")
+    )
+
+
+def start_worker(workerconfig: WorkerJson):
+    create_worker_env(workerconfig)
+
+    if os.name == "nt":  # Windows
+        pypath = os.path.join(workerconfig["env_path"], "Scripts", "python")
+    else:  # Linux
+        pypath = os.path.join(workerconfig["env_path"], "bin", "python")
+
+    run_in_new_process(
+        pypath,
+        "-m",
+        "funcnodes",
+        "startworker",
+        f"--uuid={workerconfig['uuid']}",
+        #  cwd=os.path.join(workerconfig["data_path"], ".."),
+    )
 
 
 class WorkerManager:
@@ -32,8 +88,8 @@ class WorkerManager:
             os.makedirs(self._worker_dir)
         self._is_running = False
         self._connections: List[websockets.WebSocketServerProtocol] = []
-        self._active_workers = []
-        self._inactive_workers = []
+        self._active_workers: List[WorkerJson] = []
+        self._inactive_workers: List[WorkerJson] = []
 
     async def run_forever(self):
 
@@ -48,7 +104,8 @@ class WorkerManager:
             await asyncio.sleep(1)
             t = time.time()
             await self.check_shutdown()
-            if t - l_rl > 20:
+
+            if t - l_rl > 20 or self.worker_changed():
                 await self.reload_workers()
                 l_rl = t
 
@@ -77,6 +134,8 @@ class WorkerManager:
                     }
                 )
             )
+        elif message == "new_worker":
+            return await self.new_worker()
         else:
             try:
                 msg = json.loads(message)
@@ -98,11 +157,39 @@ class WorkerManager:
             await self.stop()
             os.remove(os.path.join(fn.config.CONFIG_DIR, "kill_worker_manager"))
 
-    async def reload_workers(self):
-        active_worker = []
-        inactive_worker = []
+    def worker_changed(self):
+        active_uuids = set([w["uuid"] for w in self._active_workers])
+        active_files = set(
+            [
+                f.split("_")[1].split(".")[0]
+                for f in os.listdir(self._worker_dir)
+                if f.startswith("worker_") and f.endswith(".p")
+            ]
+        )
 
-        async def check_worker(workerconfig):
+        if active_uuids != active_files:
+            return True
+
+        inactive_uuids = set([w["uuid"] for w in self._inactive_workers])
+
+        inactive_files = set(
+            [
+                f.split("_")[1].split(".")[0]
+                for f in os.listdir(self._worker_dir)
+                if f.startswith("worker_") and f.endswith(".json")
+            ]
+        )
+        inactive_files = inactive_files - active_files
+
+        if inactive_uuids != inactive_files:
+            return True
+        return False
+
+    async def reload_workers(self):
+        active_worker: List[WorkerJson] = []
+        inactive_worker: List[WorkerJson] = []
+
+        async def check_worker(workerconfig: WorkerJson):
             if "host" in workerconfig and "port" in workerconfig:
                 # reqest uuid
                 print(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
@@ -145,7 +232,7 @@ class WorkerManager:
                 with open(
                     os.path.join(self._worker_dir, f), "r", encoding="utf-8"
                 ) as file:
-                    workerconfig = json.load(file)
+                    workerconfig: WorkerJson = json.load(file)
                     workerchecks.append(check_worker(workerconfig))
         await asyncio.gather(*workerchecks)
 
@@ -184,13 +271,7 @@ class WorkerManager:
         if active_worker is None:
             for worker in self._inactive_workers:
                 if worker["uuid"] == workerid:
-                    run_in_new_process(
-                        sys.executable,
-                        "-m",
-                        "funcnodes",
-                        "startworker",
-                        f"--uuid={workerid}",
-                    )
+                    start_worker(worker)
                     active_worker = worker
 
         if active_worker is None:
@@ -259,6 +340,12 @@ class WorkerManager:
                 }
             )
         )
+
+    async def new_worker(self):
+        new_worker = WSWorker()
+        new_worker.ini_config()
+        new_worker.stop()
+        await self.reload_workers()
 
     # def start_worker(workerconfig):
     #     subprocess.Popen(

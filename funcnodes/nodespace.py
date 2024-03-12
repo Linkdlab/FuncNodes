@@ -3,10 +3,11 @@ from funcnodes import Node, run_until_complete
 import json
 from uuid import uuid4
 import traceback
+
 from .node import FullNodeJSON, NodeJSON, PlaceHolderNode, NodeTriggerError
 from .io import NodeInput, NodeOutput
-from .lib import FullLibJSON, Library, NodeClassNotFoundError
-from .eventmanager import EventEmitterMixin, MessageInArgs
+from .lib import FullLibJSON, Library, NodeClassNotFoundError, Shelf
+from .eventmanager import EventEmitterMixin, MessageInArgs, emit_after
 from .utils.serialization import JSONEncoder, JSONDecoder
 
 
@@ -262,6 +263,14 @@ class NodeSpace(EventEmitterMixin):
     # region add/remove edges
     # endregion add/remove edges
     # endregion edges
+
+    # region lib
+    @emit_after()
+    def add_shelf(self, shelf: Shelf):
+        self.lib.add_shelf(shelf)
+        return self.lib
+
+    # endregion lib
     async def await_done(
         self,
     ):

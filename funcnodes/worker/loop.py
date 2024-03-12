@@ -67,11 +67,17 @@ class LoopManager:
 
     def remove_loop(self, loop: CustomLoop):
 
-        self._loop.run_until_complete(
-            asyncio.gather(
-                *[loop.stop() for loop in self._loops], return_exceptions=True
+        # check if self._loop is running as the current loop
+        is_running = self._loop.is_running() and asyncio.get_event_loop() == self._loop
+
+        if not is_running:
+            self._loop.run_until_complete(
+                asyncio.gather(
+                    *[loop.stop() for loop in self._loops], return_exceptions=True
+                )
             )
-        )
+        else:
+            stoptasks = [self._loop.create_task(loop.stop()) for loop in self._loops]
 
         if loop in self._loops:
             idx = self._loops.index(loop)

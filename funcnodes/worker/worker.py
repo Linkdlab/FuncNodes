@@ -270,9 +270,7 @@ class WorkerJson(TypedDict):
     type: str
     uuid: str
     data_path: str
-
-
-#  env_path: str
+    env_path: str
 
 
 class RemoteWorkerJson(WorkerJson):
@@ -357,7 +355,7 @@ class Worker(ABC):
         ) as f:
             f.write(json.dumps(c, indent=2))
 
-    def _ini_config(self):
+    def ini_config(self):
         if os.path.exists(self._process_file):
             raise RuntimeError("Worker already running")
         with open(
@@ -373,7 +371,7 @@ class Worker(ABC):
             "uuid": self._uuid,
             "data_path": self.data_path,
             "type": self.__class__.__name__,
-            # "env_path":
+            "env_path": os.path.abspath(os.path.join(self.data_path, "env")),
         }
 
     # region properties
@@ -540,7 +538,7 @@ class Worker(ABC):
         if shelf is None:
             raise ValueError(f"Shelf in {src} not found")
         self.nodespace.lib.add_dependency(module=src)
-        self.nodespace.lib.add_shelf(shelf)
+        self.nodespace.add_shelf(shelf)
         return True
 
     def add_shelf_by_module(self, module: str):
@@ -637,6 +635,11 @@ class Worker(ABC):
             self.viewdata["nodes"][nid].update(data)
         return self.viewdata["nodes"][nid]
 
+    @exposed_method()
+    def stop_worker(self):
+        self.stop()
+        return True
+
     # endregion nodes
     # region edges
     @requests_save
@@ -713,14 +716,13 @@ class Worker(ABC):
             pass
 
     def run_forever(self):
-        self._ini_config()
+        self.ini_config()
         self.initialize_nodespace()
         try:
             self.loop_manager.run_forever()
         finally:
             self.stop()
 
-    @exposed_method()
     def stop(self):
         print("Stopping worker")
         self.loop_manager.stop()
