@@ -132,6 +132,9 @@ class Library:
     def full_serialize(self) -> FullLibJSON:
         return {"shelves": [serialize_shelfe(shelf) for shelf in self.shelves]}
 
+    def _repr_json_(self) -> FullLibJSON:
+        return self.full_serialize()
+
     def add_nodes(
         self,
         nodes: List[Type[Node]],
