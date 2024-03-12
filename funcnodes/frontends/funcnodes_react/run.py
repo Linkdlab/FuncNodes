@@ -12,7 +12,7 @@ PORT = 8000
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/workermanager":
+        if self.path == "/worker_manager":
             self.get_worker_manager()
         else:
             # Call the superclass method to handle standard requests
@@ -67,7 +67,7 @@ class GracefulHTTPServer(socketserver.TCPServer):
 def _open_browser(port, delay=1.0):
 
     time.sleep(delay)
-    webbrowser.open(f"http://localhost:{port}/index.html")
+    webbrowser.open(f"http://localhost:{port}")
 
 
 def run_server(port=PORT, open_browser=True):
