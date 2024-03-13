@@ -148,13 +148,12 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "exposedfunctionality"
-version = "0.2"
+version = "0.2.1"
 description = "tool to expose functionalities to multiple tools"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "exposedfunctionality-0.2-py3-none-any.whl", hash = "sha256:c91645db724979651d88748ee1d2b895eca61ea396ac19df7e6a5a9bc15446a3"},
-    {file = "exposedfunctionality-0.2.tar.gz", hash = "sha256:48ed6f335f9d226aa4b9de71b4fd250c96bc9a451efc2cc1807ab165b13e867c"},
+    {file = "exposedfunctionality-0.2.1-py3-none-any.whl", hash = "sha256:9ec7ac27a3f4b8e8853bd8c51c208bad0076f8c0b37efc5da838e45b25a920c8"},
 ]
 
 [package.dependencies]
@@ -913,4 +912,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "2e3de99b434f3b595e4efc8f45efcbde602e5ec4b37663dac7c57916ca99782c"
+content-hash = "ddd89ec12a8cf2a380c9dd581e6fe64c7ea6f8622a7995e643a37e7289126e38"
