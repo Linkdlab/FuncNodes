@@ -71,6 +71,7 @@ def node_class_maker(
 
     exfunc: ExposedFunction[Coroutine[Any, Any, ReturnType]] = asyncfunc
 
+    @wraps(asyncfunc)
     async def _wrapped_func(self: Node, *args, **kwargs):
         outs = await exfunc(*args, **kwargs)
         if len(outputs) > 1:
