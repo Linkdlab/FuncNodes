@@ -9,7 +9,6 @@ from .io import (
     SameNodeConnectionError,
 )
 from .utils import run_until_complete, JSONEncoder, JSONDecoder
-
 from .node import Node, get_nodeclass, NodeJSON
 from .nodespace import NodeSpace, FullNodeSpaceJSON, NodeSpaceJSON
 from .lib import FullLibJSON, Shelf, Library, find_shelf, NodeClassNotFoundError
@@ -60,6 +59,6 @@ __all__ = [
     "config",
 ]
 
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 
 DEBUG = True
