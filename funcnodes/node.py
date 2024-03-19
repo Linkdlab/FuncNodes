@@ -58,7 +58,13 @@ def _get_nodeclass_inputs(node: Type[Node] | Node) -> List[NodeInput]:
         List[NodeInput]: The list of NodeInput instances found in the node.
     """
     inputs = []
+    nodeclass = node if isinstance(node, type) else node.__class__
+    classattr = list(nodeclass.__dict__.keys())
     for attr_name in dir(node):
+        if attr_name not in classattr:
+            classattr.append(attr_name)
+
+    for attr_name in classattr:
         attr = getattr(node, attr_name)
         if isinstance(attr, NodeInput):
             inputs.append(attr)
@@ -76,7 +82,13 @@ def _get_nodeclass_outputs(node: Type[Node] | Node) -> List[NodeOutput]:
         List[NodeOutput]: The list of NodeOutput instances found in the node.
     """
     outputs = []
+    nodeclass = node if isinstance(node, type) else node.__class__
+    classattr = list(nodeclass.__dict__.keys())
     for attr_name in dir(node):
+        if attr_name not in classattr:
+            classattr.append(attr_name)
+
+    for attr_name in classattr:
         attr = getattr(node, attr_name)
         if isinstance(attr, NodeOutput):
             outputs.append(attr)
@@ -292,11 +304,11 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             self.default_render_options,  # type: ignore
         )
 
-        self._io_options: Dict[str, NodeInputOptions | NodeOutputOptions] = (
-            deep_fill_dict(
-                io_options or {},  # type: ignore
-                self.default_io_options,  # type: ignore
-            )
+        self._io_options: Dict[
+            str, NodeInputOptions | NodeOutputOptions
+        ] = deep_fill_dict(
+            io_options or {},  # type: ignore
+            self.default_io_options,  # type: ignore
         )
 
         self._disabled = False
@@ -334,9 +346,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             "name": self.name,
             "id": self.uuid,
             "node_id": self.node_id,
-            "io": {
-                iod.uuid: iod.full_serialize() for iod in self._inputs + self._outputs
-            },
+            "io": [iod.full_serialize() for iod in self._inputs + self._outputs],
             "status": self.status(),
             "node_name": self.node_name,
         }
@@ -847,7 +857,7 @@ class NodeJSON(BaseNodeJSON):
 class FullNodeJSON(BaseNodeJSON):
     name: str
     id: str
-    io: Dict[str, FullNodeIOJSON]
+    io: List[FullNodeIOJSON]
     status: NodeStatus
     render_options: NotRequired[RenderOptions]
 

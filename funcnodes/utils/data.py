@@ -9,6 +9,8 @@ def deep_fill_dict(
     source_dict: T,
     overwrite_existing: bool = False,
     inplace: bool = True,
+    merge_lists: bool = False,
+    unfify_lists: bool = False,
 ) -> T:
     """
     deep_fill_dict
@@ -49,7 +51,16 @@ def deep_fill_dict(
                 )
                 continue
         if overwrite_existing or (key not in target_dict):
-            target_dict[key] = value
+            if (
+                isinstance(value, list)
+                and isinstance(target_dict.get(key), list)
+                and merge_lists
+            ):
+                target_dict[key].extend(value)
+                if unfify_lists:
+                    target_dict[key] = list(set(target_dict[key]))
+            else:
+                target_dict[key] = value
 
     return target_dict
 

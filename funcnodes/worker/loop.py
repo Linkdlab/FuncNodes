@@ -66,7 +66,6 @@ class LoopManager:
         return t
 
     def remove_loop(self, loop: CustomLoop):
-
         # check if self._loop is running as the current loop
         is_running = self._loop.is_running() and asyncio.get_event_loop() == self._loop
 
@@ -92,7 +91,6 @@ class LoopManager:
         self.stop()
 
     def stop(self):
-
         for task in self._tasks:
             task.cancel()
 

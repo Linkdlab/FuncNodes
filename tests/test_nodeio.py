@@ -41,6 +41,7 @@ class TestNodeIO(unittest.TestCase):
                 "connected": False,
                 "does_trigger": True,
                 "full_id": None,
+                "valuepreview_type": "Any",
             },
         )
 
@@ -62,6 +63,7 @@ class TestNodeIO(unittest.TestCase):
                 "connected": False,
                 "does_trigger": True,
                 "full_id": None,
+                "valuepreview_type": "Any",
             },
         )
 

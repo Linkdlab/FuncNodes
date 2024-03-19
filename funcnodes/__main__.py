@@ -6,7 +6,11 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser(description="Funcnodes Cli.")
-    parser.add_argument("task", help="The task to perform")
+    parser.add_argument(
+        "task",
+        help="The task to perform",
+        choices=["runserver", "startworker", "startworkermanager"],
+    )
     parser.add_argument(
         "--port",
         help="Port to run the server on",
@@ -37,10 +41,8 @@ def main():
 
     args = parser.parse_args()
     try:
-
         # Example of handling tasks
         if args.task == "runserver":
-
             run_server(port=args.port, open_browser=args.no_browser)
 
         elif args.task == "startworker":

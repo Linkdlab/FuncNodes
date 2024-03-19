@@ -92,7 +92,6 @@ class WorkerManager:
         self._inactive_workers: List[WorkerJson] = []
 
     async def run_forever(self):
-
         self.ws_server = await websockets.serve(
             self._handle_connection,
             fn.config.CONFIG["worker_manager"]["host"],
@@ -105,6 +104,7 @@ class WorkerManager:
             t = time.time()
             await self.check_shutdown()
 
+            # print("Checking workers", self.worker_changed())
             if t - l_rl > 20 or self.worker_changed():
                 await self.reload_workers()
                 l_rl = t
@@ -120,6 +120,7 @@ class WorkerManager:
     async def _handle_message(
         self, message: str, websocket: websockets.WebSocketServerProtocol
     ):
+        fn.FUNCNODES_LOGGER.debug(f"Received message: {message}")
         if message == "ping":
             return await websocket.send("pong")
         elif message == "stop":
@@ -141,6 +142,12 @@ class WorkerManager:
                 msg = json.loads(message)
                 if msg["type"] == "set_active":
                     return await self.activate_worker(msg["workerid"], websocket)
+                elif msg["type"] == "stop_worker":
+                    return await self.stop_worker(msg["workerid"], websocket)
+                elif msg["type"] == "restart_worker":
+                    await self.stop_worker(msg["workerid"], websocket)
+                    return await self.activate_worker(msg["workerid"], websocket)
+
             except json.JSONDecodeError as e:
                 pass
 
@@ -166,7 +173,6 @@ class WorkerManager:
                 if f.startswith("worker_") and f.endswith(".p")
             ]
         )
-
         if active_uuids != active_files:
             return True
 
@@ -232,8 +238,14 @@ class WorkerManager:
                 with open(
                     os.path.join(self._worker_dir, f), "r", encoding="utf-8"
                 ) as file:
-                    workerconfig: WorkerJson = json.load(file)
-                    workerchecks.append(check_worker(workerconfig))
+                    try:
+                        workerconfig: WorkerJson = json.load(file)
+                    except json.JSONDecodeError:
+                        continue
+                if workerconfig["type"] == "TestWorker":
+                    os.remove(os.path.join(self._worker_dir, f))
+                    continue
+                workerchecks.append(check_worker(workerconfig))
         await asyncio.gather(*workerchecks)
 
         self._active_workers = active_worker
@@ -259,6 +271,43 @@ class WorkerManager:
                 pass
 
         await asyncio.gather(*[try_send(conn, message) for conn in self._connections])
+
+    async def stop_worker(
+        self, workerid, websocket: websockets.WebSocketServerProtocol
+    ):
+        target_worker = None
+        for worker in self._active_workers:
+            if worker["uuid"] == workerid:
+                target_worker = worker
+                break
+        if target_worker is None:
+            for worker in self._inactive_workers:
+                if worker["uuid"] == workerid:
+                    target_worker = worker
+                    break
+
+        print(f"Stopping worker {target_worker}")
+        if target_worker is None:
+            return
+
+        try:
+            async with websockets.connect(
+                f"ws{'s' if target_worker.get('ssl',False) else ''}://{target_worker['host']}:{target_worker['port']}"
+            ) as ws:
+                # send with timeout
+
+                await asyncio.wait_for(
+                    ws.send(json.dumps({"type": "cmd", "cmd": "stop_worker"})),
+                    timeout=1,
+                )
+                response = await asyncio.wait_for(ws.recv(), timeout=1)
+                response = json.loads(response)
+                if response["result"] is True:
+                    while workerid in [w["uuid"] for w in self._active_workers]:
+                        await asyncio.sleep(0.5)
+                        print("Waiting for worker to stop.")
+        except Exception:
+            pass
 
     async def activate_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol

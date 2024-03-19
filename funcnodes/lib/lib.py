@@ -140,7 +140,6 @@ class Library:
         nodes: List[Type[Node]],
         shelf: str | List[str],
     ):
-
         if isinstance(shelf, str):
             shelf = [shelf]
 

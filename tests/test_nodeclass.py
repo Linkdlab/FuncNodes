@@ -183,7 +183,6 @@ class NodeClassMetaTest(unittest.TestCase):
         with patch("funcnodes.node.register_node") as mock_register_node:
 
             class BaseNodeClass(Node):
-
                 async def func(self, *args, **kwargs):
                     """The function to be executed when the node is triggered."""
 

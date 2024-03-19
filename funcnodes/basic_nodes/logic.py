@@ -94,7 +94,6 @@ class CollectorNode(Node):
         self.collection = []
 
     async def func(self, input: Any, reset: Any = NoValue) -> None:
-
         if reset != NoValue:
             self.collection = []
 

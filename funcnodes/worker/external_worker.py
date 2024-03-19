@@ -13,9 +13,9 @@ class FuncNodesExternalWorker(NodeClassMixin, CustomLoop):
         super().__init__(delay=1)
         self.uuid = workerid
         if self.NODECLASSID not in FuncNodesExternalWorker.RUNNING_WORKERS:
-            FuncNodesExternalWorker.RUNNING_WORKERS[self.NODECLASSID] = (
-                WeakValueDictionary()
-            )
+            FuncNodesExternalWorker.RUNNING_WORKERS[
+                self.NODECLASSID
+            ] = WeakValueDictionary()
         FuncNodesExternalWorker.RUNNING_WORKERS[self.NODECLASSID][self.uuid] = self
 
     @classmethod

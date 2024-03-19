@@ -8,7 +8,9 @@ from .lib import (
 )
 
 from .libparser import module_to_shelf
+
 from .libfinder import find_shelf
+
 
 __all__ = [
     "Shelf",

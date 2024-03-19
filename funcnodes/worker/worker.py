@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import logging
+from logging.handlers import RotatingFileHandler
 from functools import wraps
 from typing import (
     List,
@@ -147,7 +147,6 @@ class LocalWorkerLookupLoop(CustomLoop):
         for root, dirs, files in os.walk(self.path):  # pylint: disable=unused-variable
             for file in files:
                 if file.endswith(".py") and file not in self._parsed_files:
-
                     module_name = file[:-3]
                     spec = importlib.util.spec_from_file_location(
                         module_name, os.path.join(root, file)
@@ -240,6 +239,8 @@ class SaveLoop(CustomLoop):
         self.save_requested = True
 
     async def loop(self):
+        self._client._write_process_file()
+        self._client._write_config()
         if self.save_requested:
             self._client.save()
         self.save_requested = False
@@ -271,6 +272,7 @@ class WorkerJson(TypedDict):
     uuid: str
     data_path: str
     env_path: str
+    shelves_dependencies: List[str]
 
 
 class RemoteWorkerJson(WorkerJson):
@@ -290,8 +292,7 @@ class Worker(ABC):
         if default_nodes is None:
             default_nodes = []
 
-        self.logger = logging.getLogger(__name__)
-
+        self._shelves_dependencies: List[str] = []
         self.loop_manager = LoopManager(self)
         self.nodespace = NodeSpace()
 
@@ -323,6 +324,14 @@ class Worker(ABC):
                 funcnodes.config.CONFIG_DIR, "workers", "worker_" + self._uuid
             )
         )
+        self.logger = funcnodes.get_logger(self._uuid)
+        self.logger.addHandler(
+            RotatingFileHandler(
+                os.path.join(self.data_path, "worker.log"),
+                maxBytes=100000,
+                backupCount=5,
+            )
+        )
 
     @property
     def _process_file(self):
@@ -332,7 +341,12 @@ class Worker(ABC):
             "worker_" + self._uuid + ".p",
         )
 
-    def _write_config(self):
+    def _write_process_file(self):
+        if not os.path.exists(self._process_file):
+            with open(self._process_file, "w+") as f:
+                pass
+
+    def _write_config(self) -> WorkerJson:
         c = self.generate_config()
         cfile = os.path.join(
             funcnodes.config.CONFIG_DIR,
@@ -347,7 +361,9 @@ class Worker(ABC):
             ) as f:
                 oldc = json.load(f)
 
-            c = deep_fill_dict(oldc, c, overwrite_existing=True)
+            c = deep_fill_dict(
+                oldc, c, overwrite_existing=True, merge_lists=True, unfify_lists=True
+            )
         with open(
             cfile,
             "w+",
@@ -355,16 +371,20 @@ class Worker(ABC):
         ) as f:
             f.write(json.dumps(c, indent=2))
 
+        return c
+
     def ini_config(self):
         if os.path.exists(self._process_file):
             raise RuntimeError("Worker already running")
-        with open(
-            self._process_file,
-            "w+",
-            encoding="utf-8",
-        ) as f:
-            pass
-        self._write_config()
+        self._write_process_file()
+        c = self._write_config()
+
+        if "shelves_dependencies" in c:
+            for dep in c["shelves_dependencies"]:
+                try:
+                    self.add_shelf(dep, save=False)
+                except Exception as e:
+                    self.logger.exception(e)
 
     def generate_config(self) -> WorkerJson:
         return {
@@ -372,6 +392,7 @@ class Worker(ABC):
             "data_path": self.data_path,
             "type": self.__class__.__name__,
             "env_path": os.path.abspath(os.path.join(self.data_path, "env")),
+            "shelves_dependencies": self._shelves_dependencies,
         }
 
     # region properties
@@ -473,6 +494,7 @@ class Worker(ABC):
         data: State = self.get_state()
         with open(self.local_nodespace, "w+", encoding="utf-8") as f:
             f.write(json.dumps(data, indent=2, cls=JSONEncoder))
+        self._write_config()
         return data
 
     @exposed_method()
@@ -508,7 +530,7 @@ class Worker(ABC):
         self.nodespace.deserialize(data["backend"])
         self.viewdata = data["view"]
 
-        return self.save()
+        return self.request_save()
 
     # endregion save and load
 
@@ -532,13 +554,19 @@ class Worker(ABC):
 
     # region library
 
+    def add_shelves_dependency(self, src: str):
+        if src not in self._shelves_dependencies:
+            self._shelves_dependencies.append(src)
+
     @exposed_method()
-    def add_shelf(self, src: str):
+    def add_shelf(self, src: str, save=True):
         shelf = find_shelf(src=src)
         if shelf is None:
             raise ValueError(f"Shelf in {src} not found")
-        self.nodespace.lib.add_dependency(module=src)
+        self.add_shelves_dependency(src)
         self.nodespace.add_shelf(shelf)
+        if save:
+            self.request_save()
         return True
 
     def add_shelf_by_module(self, module: str):

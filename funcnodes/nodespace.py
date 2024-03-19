@@ -1,12 +1,23 @@
 from typing import List, Dict, TypedDict, Tuple, Any
-from funcnodes import Node, run_until_complete
 import json
 from uuid import uuid4
 import traceback
 
-from .node import FullNodeJSON, NodeJSON, PlaceHolderNode, NodeTriggerError
+
+from .node import (
+    FullNodeJSON,
+    NodeJSON,
+    PlaceHolderNode,
+    NodeTriggerError,
+    Node,
+    run_until_complete,
+)  #
 from .io import NodeInput, NodeOutput
+
+
 from .lib import FullLibJSON, Library, NodeClassNotFoundError, Shelf
+
+
 from .eventmanager import EventEmitterMixin, MessageInArgs, emit_after
 from .utils.serialization import JSONEncoder, JSONDecoder
 
@@ -247,8 +258,11 @@ class NodeSpace(EventEmitterMixin):
         node = node_cls(**kwargs)
         return self.add_node_instance(node)
 
-    def remove_node_by_id(self, nid: str) -> str:
-        return self.remove_node_instance(self.get_node_by_id(nid))
+    def remove_node_by_id(self, nid: str) -> str | None:
+        try:
+            return self.remove_node_instance(self.get_node_by_id(nid))
+        except ValueError as e:
+            pass
 
     # endregion add/remove nodes
 

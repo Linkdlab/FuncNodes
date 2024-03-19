@@ -29,7 +29,6 @@ class TestWorker(RemoteWorker):
 
 
 class TestExternalWorker(IsolatedAsyncioTestCase):
-
     def test_external_worker_missing_loop(self):
         class ExternalWorker1(FuncNodesExternalWorker):
             pass
@@ -41,12 +40,10 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
 
             class ExternalWorker2(FuncNodesExternalWorker):
-
                 async def loop(self):
                     pass
 
     async def test_external_worker_sync_loop(self):
-
         class ExternalWorker1(FuncNodesExternalWorker):
             NODECLASSID = "testexternalworker"
 
@@ -64,7 +61,6 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
         )
 
     async def test_external_worker_loop(self):
-
         class ExternalWorker1(FuncNodesExternalWorker):
             NODECLASSID = "testexternalworker"
 
@@ -76,7 +72,6 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
         await worker.continuous_run()
 
     async def test_external_worker_nodes(self):
-
         class ExternalWorker1(FuncNodesExternalWorker):
             NODECLASSID = "testexternalworker"
 

@@ -15,7 +15,6 @@ def module_to_shelf(mod, name: Optional[str] = None) -> Shelf:
 
     if not name:
         name = str(mod)
-
     if hasattr(mod, "NODE_SHELFE"):
         shelf = mod.NODE_SHELFE
         if (

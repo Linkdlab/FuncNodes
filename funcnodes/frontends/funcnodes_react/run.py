@@ -65,7 +65,6 @@ class GracefulHTTPServer(socketserver.TCPServer):
 
 
 def _open_browser(port, delay=1.0):
-
     time.sleep(delay)
     webbrowser.open(f"http://localhost:{port}")
 
