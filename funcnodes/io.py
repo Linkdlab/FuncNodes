@@ -18,6 +18,7 @@ from typing import (
 from uuid import uuid4
 from exposedfunctionality import FunctionInputParam, FunctionOutputParam
 from exposedfunctionality.function_parser.types import type_to_string, string_to_type
+from exposedfunctionality import serialize_type
 from .eventmanager import (
     AsyncEventManager,
     MessageInArgs,
@@ -159,8 +160,7 @@ class NodeInputStatus(NodeIOStatus):
     required: bool
 
 
-class NodeOutputStatus(NodeIOStatus):
-    ...
+class NodeOutputStatus(NodeIOStatus): ...
 
 
 def raise_allow_connections(src: NodeIO, trg: NodeIO):
@@ -268,21 +268,8 @@ def generate_value_options(value_options, _type):
         return value_options
 
     opts = {}
-    if hasattr(_type, "__origin__"):
-        if _type.__origin__ == Optional:
-            opts = generate_value_options(value_options, _type.__args__[0])
-        elif _type.__origin__ == Literal:
-            opts = LiteralValueOptions(options=list(_type.__args__))
-
-    print(_type)
-
-    if isinstance(_type, enum.Enum):
-        return EnumValueOptions(options={k.name: k.value for k in _type})
-    try:
-        if issubclass(_type, enum.Enum):
-            return EnumValueOptions(options={k.name: str(k.value) for k in _type})
-    except TypeError:
-        pass
+    if isinstance(_type, dict) and "type" in _type and _type["type"] == "enum":
+        opts["options"] = _type
     return opts
 
 
@@ -325,13 +312,18 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._connected: List[NodeIO] = []
         self._allow_multiple: Optional[bool] = allow_multiple
         self._node: Optional[weakref.ref[Node]] = None
-        self._typestr: str = type_to_string(type)
-        self._type: Type = string_to_type(self._typestr)
+        if isinstance(type, str):
+            type = string_to_type(type)
+        if not isinstance(type, (str, dict)):
+            type = serialize_type(type)
+        self._typestr: Union[str, dict] = type
 
         self.eventmanager = AsyncEventManager(self)
         self._value_options: ValueOptions = {}
         self._default_render_options = render_options or {}
-        self._default_value_options = generate_value_options(value_options, self._type)
+        self._default_value_options = generate_value_options(
+            value_options, self._typestr
+        )
         self._valuepreview_generator = valuepreview_generator
         self._valuepreview_type = valuepreview_type or self._typestr
         self._emit_value_set = emit_value_set
