@@ -53,5 +53,13 @@ def find_shelf(src: str) -> Shelf | None:
             return module_to_shelf(mod)
         except ModuleNotFoundError as e:
             fn.FUNCNODES_LOGGER.exception(e)
+    else:
+        # try to get via pip
+        os.system(f"{sys.executable} -m pip install {src} -q")
+        try:
+            mod = importlib.import_module(src)
+            return module_to_shelf(mod)
+        except ModuleNotFoundError as e:
+            fn.FUNCNODES_LOGGER.exception(e)
 
     return None
