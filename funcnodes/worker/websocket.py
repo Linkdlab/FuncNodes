@@ -57,6 +57,8 @@ class WSLoop(CustomLoop):
                         await self._worker._handle_cmd_msg(json_msg, websocket)
                     except Exception as e:
                         await self._send_error(websocket, e, id=json_msg.get("id"))
+        except websockets.exceptions.ConnectionClosedError:
+            pass
         finally:
             self.clients.remove(websocket)
 

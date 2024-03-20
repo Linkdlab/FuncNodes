@@ -275,6 +275,8 @@ class WorkerManager:
     async def stop_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol
     ):
+
+        fn.FUNCNODES_LOGGER.info(f"Stopping worker {workerid}")
         target_worker = None
         for worker in self._active_workers:
             if worker["uuid"] == workerid:
@@ -286,7 +288,6 @@ class WorkerManager:
                     target_worker = worker
                     break
 
-        print(f"Stopping worker {target_worker}")
         if target_worker is None:
             return
 
@@ -312,6 +313,7 @@ class WorkerManager:
     async def activate_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol
     ):
+        fn.FUNCNODES_LOGGER.info(f"Activating worker {workerid}")
         active_worker = None
         for worker in self._active_workers:
             if worker["uuid"] == workerid:
