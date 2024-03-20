@@ -105,6 +105,10 @@ def node_class_maker(
         name = name[:-4]
     if not name.endswith("Node"):
         name += "Node"
+
+    if "__doc__" not in cls_dict:
+        cls_dict["__doc__"] = in_func.__doc__
+
     _Node: Type[Node] = type(
         name,
         (superclass,),

@@ -228,6 +228,7 @@ class NodeClassDict(TypedDict, total=False):
     default_render_options: Optional[RenderOptions]
     default_trigger_on_create: Optional[bool]
     default_io_options: Optional[Dict[str, NodeInputOptions | NodeOutputOptions]]
+    __doc__: Optional[str]
 
 
 NodeClassDictKeysValues = Literal[

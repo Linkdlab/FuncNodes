@@ -12,9 +12,12 @@ from typing import (
     Tuple,
     Required,
     Callable,
+    Dict,
+    Literal,
 )
 from uuid import uuid4
 from exposedfunctionality import FunctionInputParam, FunctionOutputParam
+from exposedfunctionality.function_parser.types import type_to_string, string_to_type
 from .eventmanager import (
     AsyncEventManager,
     MessageInArgs,
@@ -28,6 +31,7 @@ from .utils.data import deep_fill_dict, deep_remove_dict_on_equal
 from .utils.serialization import JSONEncoder, JSONDecoder
 import json
 import weakref
+import enum
 
 if TYPE_CHECKING:
     # Avoid circular import
@@ -215,13 +219,27 @@ class IORenderOptions(TypedDict, total=False):
     type: str
 
 
-class ValueOptions(TypedDict, total=False):
-    """Typing definition for Node Input/Output value options."""
+class NumberValueOptions(TypedDict, total=False):
+    """Typing definition for Node Input/Output number value options."""
 
     min: int
     max: int
     step: int
-    options: List[int | str | float]
+
+
+class EnumValueOptions(TypedDict, total=False):
+    """Typing definition for Node Input/Output enum value options."""
+
+    options: Dict[str, Union[int, str, float]]
+
+
+class LiteralValueOptions(TypedDict, total=False):
+    """Typing definition for Node Input/Output literal value options."""
+
+    options: List[str, int, float]
+
+
+ValueOptions = Union[NumberValueOptions, EnumValueOptions, LiteralValueOptions]
 
 
 NodeIOType = TypeVar("NodeIOType")
@@ -243,6 +261,29 @@ class NodeOutputOptions(IOOptions, NodeOutputSerialization, total=False):
 
 def identity_preview_generator(value: Any) -> Any:
     return value
+
+
+def generate_value_options(value_options, _type):
+    if value_options is not None:
+        return value_options
+
+    opts = {}
+    if hasattr(_type, "__origin__"):
+        if _type.__origin__ == Optional:
+            opts = generate_value_options(value_options, _type.__args__[0])
+        elif _type.__origin__ == Literal:
+            opts = LiteralValueOptions(options=list(_type.__args__))
+
+    print(_type)
+
+    if isinstance(_type, enum.Enum):
+        return EnumValueOptions(options={k.name: k.value for k in _type})
+    try:
+        if issubclass(_type, enum.Enum):
+            return EnumValueOptions(options={k.name: str(k.value) for k in _type})
+    except TypeError:
+        pass
+    return opts
 
 
 class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
@@ -284,11 +325,13 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._connected: List[NodeIO] = []
         self._allow_multiple: Optional[bool] = allow_multiple
         self._node: Optional[weakref.ref[Node]] = None
-        self._typestr: str = getattr(type, "__name__", str(type))
+        self._typestr: str = type_to_string(type)
+        self._type: Type = string_to_type(self._typestr)
+
         self.eventmanager = AsyncEventManager(self)
         self._value_options: ValueOptions = {}
         self._default_render_options = render_options or {}
-        self._default_value_options = value_options or {}
+        self._default_value_options = generate_value_options(value_options, self._type)
         self._valuepreview_generator = valuepreview_generator
         self._valuepreview_type = valuepreview_type or self._typestr
         self._emit_value_set = emit_value_set
