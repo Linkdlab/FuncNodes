@@ -59,6 +59,7 @@ class NodeViewState(TypedDict):
 
 class ViewState(TypedDict):
     nodes: dict[str, NodeViewState]
+    renderoptions: funcnodes.config.RenderOptions
 
 
 class State(TypedDict):
@@ -316,7 +317,10 @@ class Worker(ABC):
             self.nodespace.lib.add_shelf(shelf)
 
         self._nodespace_id: str = uuid4().hex
-        self.viewdata: ViewState = {"nodes": {}}
+        self.viewdata: ViewState = {
+            "nodes": {},
+            "renderoptions": funcnodes.config.FUNCNODES_RENDER_OPTIONS,
+        }
         self._uuid = uuid4().hex if not uuid else uuid
         self.data_path = (
             os.path.abspath(data_path)

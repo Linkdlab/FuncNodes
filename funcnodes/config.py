@@ -1,3 +1,4 @@
+from typing import TypedDict
 import os
 import json
 from .utils import deep_fill_dict
@@ -46,3 +47,25 @@ def check_config_dir():
 
 
 check_config_dir()
+
+
+class RenderOptions(TypedDict):
+    typemap: dict[str, str]
+
+
+FUNCNODES_RENDER_OPTIONS: RenderOptions = {
+    "typemap": {},
+}
+
+
+def update_render_options(options: RenderOptions):
+    if not isinstance(options, dict):
+        return
+    # make sure its json serializable
+    try:
+        json.dumps(options)
+    except json.JSONDecodeError:
+        return
+    deep_fill_dict(
+        FUNCNODES_RENDER_OPTIONS, options, merge_lists=True, unfify_lists=True
+    )
