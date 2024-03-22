@@ -9,7 +9,7 @@ from .worker import (
     ResultMessage,
     RemoteWorkerJson,
 )
-from exposedfunctionality import get_exposed_methods
+
 import json
 import traceback
 import asyncio
@@ -50,14 +50,12 @@ class WSLoop(CustomLoop):
         try:
             async for message in websocket:
                 json_msg = json.loads(message)
-                if "type" not in json_msg:
-                    continue
-                if json_msg["type"] == "cmd":
-                    try:
-                        await self._worker._handle_cmd_msg(json_msg, websocket)
-                    except Exception as e:
-                        await self._send_error(websocket, e, id=json_msg.get("id"))
-        except websockets.exceptions.ConnectionClosedError:
+                await self._worker.recieve_message(json_msg, websocket=websocket)
+
+        except (
+            websockets.exceptions.WebSocketException,
+            json.decoder.JSONDecodeError,
+        ):
             pass
         finally:
             self.clients.remove(websocket)
@@ -114,28 +112,6 @@ class WSWorker(RemoteWorker):
         super().__init__(**kwargs)
         self.ws_loop = WSLoop(host=host, port=port, worker=self)
         self.loop_manager.add_loop(self.ws_loop)
-
-        self._exposed_methods = get_exposed_methods(self)
-
-    async def _handle_cmd_msg(
-        self, json_msg: CmdMessage, websocket: websockets.WebSocketServerProtocol
-    ):
-        cmd = json_msg["cmd"]
-        if cmd not in self._exposed_methods:
-            raise Exception(
-                f"Unknown command {cmd} , available commands: {', '.join(self._exposed_methods.keys())}"
-            )
-        kwargs = json_msg.get("kwargs", {})
-        func = self._exposed_methods[cmd][0]
-        if asyncio.iscoroutinefunction(func):
-            result = await func(**kwargs)
-        else:
-            result = func(**kwargs)
-
-        await self.send(
-            ResultMessage(type="result", result=result, id=json_msg.get("id")),
-            websocket=websocket,
-        )
 
     async def sendmessage(
         self, msg: str, websocket: Optional[websockets.WebSocketServerProtocol] = None

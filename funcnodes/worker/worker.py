@@ -43,7 +43,8 @@ from funcnodes import (
 from funcnodes.utils import deep_fill_dict
 from funcnodes.lib import find_shelf
 import traceback
-from exposedfunctionality import exposed_method
+from exposedfunctionality import exposed_method, get_exposed_methods
+from typing_extensions import deprecated
 
 
 class MetaInfo(TypedDict):
@@ -324,7 +325,7 @@ class Worker(ABC):
                 funcnodes.config.CONFIG_DIR, "workers", "worker_" + self._uuid
             )
         )
-        self.logger = funcnodes.get_logger(self._uuid)
+        self.logger = funcnodes.get_logger(self._uuid, propagate=False)
         self.logger.addHandler(
             RotatingFileHandler(
                 os.path.join(self.data_path, "worker.log"),
@@ -332,6 +333,8 @@ class Worker(ABC):
                 backupCount=5,
             )
         )
+
+        self._exposed_methods = get_exposed_methods(self)
 
     @property
     def _process_file(self):
@@ -345,6 +348,14 @@ class Worker(ABC):
         if not os.path.exists(self._process_file):
             with open(self._process_file, "w+") as f:
                 pass
+        else:
+            with open(self._process_file, "r") as f:
+                d = f.read()
+            if d != "":
+                try:
+                    self.loop_manager.async_call(self.run_cmd(json.loads(d)))
+                except Exception as e:
+                    pass
 
     def _write_config(self) -> WorkerJson:
         c = self.generate_config()
@@ -569,6 +580,9 @@ class Worker(ABC):
             self.request_save()
         return True
 
+    @deprecated(
+        "Use add_shelf instead",
+    )
     def add_shelf_by_module(self, module: str):
         return self.add_shelf(module)
 
@@ -744,6 +758,7 @@ class Worker(ABC):
             pass
 
     def run_forever(self):
+        self.logger.info("Starting worker forever")
         self.ini_config()
         self.initialize_nodespace()
         try:
@@ -752,123 +767,26 @@ class Worker(ABC):
             self.stop()
 
     def stop(self):
-        print("Stopping worker")
+        self.logger.info("Stopping worker")
         self.loop_manager.stop()
         os.remove(self._process_file)
 
     def __del__(self):
         self.stop()
 
-    async def install_package(self, package: str):
-        import importlib
-
-        try:
-            importlib.import_module(package)
-        except ImportError:
-            import subprocess
-            import sys
-
-            subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", "my_package"]
+    async def run_cmd(self, json_msg: CmdMessage):
+        cmd = json_msg["cmd"]
+        if cmd not in self._exposed_methods:
+            raise Exception(
+                f"Unknown command {cmd} , available commands: {', '.join(self._exposed_methods.keys())}"
             )
-
-    async def install_packages(self, packages: List[str]):
-        import importlib
-
-        self.logger.debug(f"check packages to install {packages}")
-        missing = []
-        for p in packages:
-            try:
-                importlib.import_module(p)
-            except ImportError:
-                missing.append(p)
-        if len(missing) > 0:
-            self.logger.info(f"check install {packages}")
-            import subprocess
-            import sys
-
-            subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-
-    async def add_remote_node(self, data: dict, libpath: List[str] | None = None):
-        fielstring = """from funcnodes import Node, NodeInput, NodeOutput
-"""
-        for mod, implist in data.get("imports", {}).items():
-            line = ""
-            if mod != "":
-                line += f"from {mod} import "
-            else:
-                line += "import "
-            line += (
-                ", ".join(
-                    [
-                        imp["name"]
-                        + (" as " + imp["asname"] if "asname" in imp else "")
-                        for imp in implist
-                    ]
-                )
-                + "\n"
-            )
-            if line.startswith("from __future__ "):
-                fielstring = line + fielstring
-            else:
-                fielstring += line
-
-        fielstring += "\n" * 2
-        fielstring += (
-            data["content"]
-            .replace("{name}", data["name"])
-            .replace("{nid}", data["nid"])
-        )
-
-        if libpath is None:
-            libpath = ["custom"]
-
-        target_path = os.path.join(self.data_path, "nodes")
-        if not os.path.exists(target_path):
-            os.makedirs(target_path)
-
-        target_path = os.path.join(target_path, data["nid"] + ".py")
-        with open(target_path, "w+") as f:
-            f.write(fielstring)
-
-        await self.install_packages(data.get("dependencies", []))
-
-        try:
-            basename = os.path.basename(target_path)
-            module_name = basename[:-3]
-            spec = importlib.util.spec_from_file_location(module_name, target_path)
-            if spec is None:
-                return
-            if spec.loader is None:
-                return
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            for (
-                name,  # pylint: disable=unused-variable
-                obj,
-            ) in inspect.getmembers(module):
-                if (
-                    inspect.isclass(obj)
-                    and issubclass(obj, Node)
-                    and obj.__name__ == data["name"]
-                ):
-                    nodeclass = obj
-                    self.nodespace.lib.add_nodeclass(nodeclass, libpath)
-
-        except Exception as e:
-            self.logger.exception(e)
-
-        self.nodespace.emit("node_library_updated")
-
-
-async def get_all_nodeio_reps(
-    nodespace: NodeSpace,
-) -> Dict[str, NodeJSON]:
-    data = {}
-    for node in nodespace.nodes:
-        if node.uuid not in data:
-            data[node.uuid] = node._repr_json_()
-    return data
+        kwargs = json_msg.get("kwargs", {})
+        func = self._exposed_methods[cmd][0]
+        if asyncio.iscoroutinefunction(func):
+            result = await func(**kwargs)
+        else:
+            result = func(**kwargs)
+        return result
 
 
 class TriggerNode(TypedDict):
@@ -888,7 +806,6 @@ class RemoteWorker(Worker):
         self._messagehandlers: List[
             Callable[[dict], Awaitable[Tuple[bool | None, str]]]
         ] = []
-        self.add_messagehandler(self._handle_cmd_message)
 
     async def send(self, data, **kwargs):
         data = json.dumps(data, cls=JSONEncoder)
@@ -909,6 +826,8 @@ class RemoteWorker(Worker):
             "after_trigger",
         }:
             return
+        if event == "node_trigger_error":
+            self.logger.exception(kwargs["error"])
         event_bundle: NodeSpaceEvent = {
             "type": "nsevent",
             "event": event,
@@ -929,137 +848,21 @@ class RemoteWorker(Worker):
             "error": repr(error),
             "tb": list(traceback.TracebackException.from_exception(error).format()),
         }
+        self.logger.exception(error)
         self.loop_manager.async_call(self.send(error_bundle))
 
-    async def targeted_command(self, data):
-        target = data["target"]
-        if target == "Node":
-            node = self.nodespace.get_node(data["targetid"])
-            if hasattr(node, data["cmd"]):
-                res = getattr(node, data["cmd"])(
-                    *data.get("args", []), **data.get("kwargs", {})
-                )
-                if asyncio.iscoroutine(res):
-                    res = await res
-                return True, res
-            else:
-                return False, "Invalid command"
-        elif target == "NodeSpace":
-            if hasattr(self.nodespace, data["cmd"]):
-                res = getattr(self.nodespace, data["cmd"])(
-                    *data.get("args", []), **data.get("kwargs", {})
-                )
-                if asyncio.iscoroutine(res):
-                    res = await res
-                return True, res
-            else:
-                return False, "Invalid command"
-        elif target == "NodeIO":
-            node = self.nodespace.get_node(data["targetid"].split("__")[0])
-            io = node.get_input_or_output(data["targetid"].split("__")[1])
-            if hasattr(io, data["cmd"]):
-                res = getattr(io, data["cmd"])(
-                    *data.get("args", []), **data.get("kwargs", {})
-                )
-                if asyncio.iscoroutine(res):
-                    res = await res
-                return True, res
-            else:
-                return False, "Invalid command"
-        else:
-            return False, "Invalid target"
+    async def recieve_message(self, json_msg: dict, **sendkwargs):
+        if "type" not in json_msg:
+            return
+        if json_msg["type"] == "cmd":
+            await self._handle_cmd_msg(json_msg, **sendkwargs)
 
-    async def _handle_cmd_message(self, data):
-        if "cmd" not in data:
-            return None, "No cmd specified"
-        handled = False
-        undandled_message = "Unhandled cmd message"
-        try:
-            res = None
-            if "target" in data and data["target"] is not None:
-                ran, res = await self.targeted_command(data)
-                if ran:
-                    handled = True
-                else:
-                    undandled_message = res
-            elif hasattr(self, data["cmd"]):
-                try:
-                    res = getattr(self, data["cmd"])(
-                        *data.get("args", []), **data.get("kwargs", {})
-                    )
-                    if asyncio.iscoroutine(res):
-                        res = await res
-                    handled = True
-                except Exception as exc:
-                    self.logger.exception(exc)
-                    undandled_message = repr(exc)
-
-            if handled:
-                data["result"] = res
-                data["type"] = "worker_result"
-
-                self.send(data)
-
-        except Exception as exc:
-            self.logger.exception(exc)
-            undandled_message = repr(exc)
-            data["result"] = None
-            data["error"] = undandled_message
-            data["type"] = "error_event"
-            data["tb"] = list(traceback.TracebackException.from_exception(exc).format())
-            self.send(data)
-
-        return handled, undandled_message
-
-    def new_backend_instance(self, workerid):
-        self.local_worker_lookup_loop.start_local_worker_by_id(workerid)
-
-    async def sync_state(self) -> FullState:
-        data = self.full_state()
-        self.data_update_loop.reset_active_data()
-        return data
-
-    async def set_view_attribute(
-        self,
-        attr,
-        value,
-        target,
-        targetid,
-    ):
-        if target == "Node":
-            if targetid not in self.viewdata["nodes"]:
-                self.viewdata["nodes"][targetid] = {}
-            self.viewdata["nodes"][targetid][attr] = value
-
-    async def update_view_data(
-        self,
-        data,
-        target: str,
-        targetid: str,
-    ):
-        if target == "Node":
-            if targetid not in self.viewdata["nodes"]:
-                self.viewdata["nodes"][targetid] = {}
-            self.viewdata["nodes"][targetid].update(data)
-
-    def add_messagehandler(
-        self, handler: Callable[[dict], Awaitable[Tuple[bool | None, str]]]
-    ) -> None:
-        self._messagehandlers.append(handler)
-
-    async def recieve(self, data: dict):
-        handled = False
-        undandled_message = "Unhandled message"
-        for messagehandler in self._messagehandlers:
-            handled, _undandled_message = await messagehandler(data)
-            if handled:
-                break
-            if handled is None:
-                continue
-            undandled_message = _undandled_message
-
-        if not handled:
-            self.logger.error("%s: %s", undandled_message, json.dumps(data))
+    async def _handle_cmd_msg(self, json_msg: CmdMessage, **sendkwargs):
+        result = await self.run_cmd(json_msg)
+        await self.send(
+            ResultMessage(type="result", result=result, id=json_msg.get("id")),
+            **sendkwargs,
+        )
 
     def generate_config(self) -> RemoteWorkerJson:
         return super().generate_config()
