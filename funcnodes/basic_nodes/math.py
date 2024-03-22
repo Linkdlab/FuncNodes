@@ -681,4 +681,4 @@ if sys.version_info >= (3, 12):
 
 # endregion vector, vector in float out
 
-NODE_SHELFE = module_to_shelf(sys.modules[__name__], name="math")
+NODE_SHELF = module_to_shelf(sys.modules[__name__], name="math")

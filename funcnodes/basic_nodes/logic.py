@@ -101,4 +101,4 @@ class CollectorNode(Node):
         self.outputs["output"].value = self.collection
 
 
-NODE_SHELFE = module_to_shelf(sys.modules[__name__], name="logic")
+NODE_SHELF = module_to_shelf(sys.modules[__name__], name="logic")

@@ -40,4 +40,4 @@ except ModuleNotFoundError:
     pass
 
 
-NODE_SHELFE = module_to_shelf(sys.modules[__name__], name="frontend")
+NODE_SHELF = module_to_shelf(sys.modules[__name__], name="frontend")

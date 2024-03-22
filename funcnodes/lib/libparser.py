@@ -15,15 +15,16 @@ def module_to_shelf(mod, name: Optional[str] = None) -> Shelf:
 
     if not name:
         name = str(mod)
-    if hasattr(mod, "NODE_SHELFE"):
-        shelf = mod.NODE_SHELFE
-        if (
-            isinstance(shelf, dict)
-            and "nodes" in shelf
-            and "subshelves" in shelf
-            and "name" in shelf
-        ):
-            return shelf
+    for sn in ["NODE_SHELF", "NODE_SHELFE"]: # typo in the original code
+        if hasattr(mod, sn):
+            shelf = getattr(mod, sn)
+            if (
+                isinstance(shelf, dict)
+                and "nodes" in shelf
+                and "subshelves" in shelf
+                and "name" in shelf
+            ):
+                return shelf
 
     shelf = Shelf(nodes=[], subshelves=[], name=name, description=mod.__doc__)
 
