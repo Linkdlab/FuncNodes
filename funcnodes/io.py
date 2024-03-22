@@ -270,6 +270,13 @@ def generate_value_options(value_options, _type):
     opts = {}
     if isinstance(_type, dict) and "type" in _type and _type["type"] == "enum":
         opts["options"] = _type
+
+    if isinstance(_type, dict) and "anyOf" in _type:
+        nopts = {}
+        for _t in _type["anyOf"]:
+            nopts.update(generate_value_options(None, _t))
+        opts = {**nopts, **opts}
+
     return opts
 
 
