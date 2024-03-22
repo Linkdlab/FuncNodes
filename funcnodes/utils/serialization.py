@@ -92,18 +92,6 @@ def default_encodings(obj):
 
 JSONEncoder.add_encoder(default_encodings)
 
-try:
-    import numpy as np
-
-    def from_np(obj):
-        if isinstance(obj, np.ndarray):
-            return str(obj), True  # return obj.tolist(), True
-        return obj, False
-
-    JSONEncoder.add_encoder(from_np)
-except ImportError:
-    pass
-
 
 # Add image encoding
 try:
@@ -136,7 +124,6 @@ try:
                 buffer, format="webp", optimize=True, quality=50
             )  # You can use 'JPEG' or other formats as needed
             buffered_img_bytes = buffer.getvalue()
-            print("buffered_img_bytes", len(buffered_img_bytes))
             return buffered_img_bytes, True
         return obj, False
 
