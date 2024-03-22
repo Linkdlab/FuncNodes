@@ -459,6 +459,8 @@ class Worker(ABC):
         excess_nodes = set(self.viewdata["nodes"].keys()) - set(available_nodeids)
         for nodeid in excess_nodes:
             del self.viewdata["nodes"][nodeid]
+
+        self.viewdata["renderoptions"] = funcnodes.config.FUNCNODES_RENDER_OPTIONS
         return self.viewdata
 
     @exposed_method()

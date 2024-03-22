@@ -22,6 +22,7 @@ from .worker import (
     assert_worker_manager_running,
 )
 from . import config
+from .config import RenderOptions
 
 __all__ = [
     "NodeInput",
@@ -57,6 +58,7 @@ __all__ = [
     "WorkerManager",
     "assert_worker_manager_running",
     "config",
+    "RenderOptions",
 ]
 
 __version__ = "0.1.12"
