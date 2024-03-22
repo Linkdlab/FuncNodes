@@ -59,6 +59,6 @@ __all__ = [
     "config",
 ]
 
-__version__ = "0.1.10"
+__version__ = "0.1.11"
 
 DEBUG = True
