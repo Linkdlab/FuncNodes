@@ -99,7 +99,6 @@ def node_class_maker(
             .split("_")
         )
     except AttributeError:
-        print(in_func, exfunc)
         raise
     if name.endswith("node"):
         name = name[:-4]
@@ -108,6 +107,8 @@ def node_class_maker(
 
     if "__doc__" not in cls_dict:
         cls_dict["__doc__"] = in_func.__doc__
+
+    cls_dict["__module__"] = in_func.__module__
 
     _Node: Type[Node] = type(
         name,
@@ -137,14 +138,10 @@ def NodeDecorator(
     def decorator(func: Callable[..., ReturnType]) -> Type[Node]:
         # Prepare function and node class arguments
         exposed_method_kwargs: ExposedMethodKwargs = {
-            v: kwargs[v]
-            for v in ExposedMethodKwargsKeys
-            if v in kwargs  # type: ignore
+            v: kwargs[v] for v in ExposedMethodKwargsKeys if v in kwargs  # type: ignore
         }
         node_class_kwargs: NodeClassDict = {
-            v: kwargs[v]
-            for v in NodeClassDictsKeys
-            if v in kwargs  # type: ignore
+            v: kwargs[v] for v in NodeClassDictsKeys if v in kwargs  # type: ignore
         }
 
         # Assure the method is exposed for node functionality
@@ -342,9 +339,9 @@ class NodeClassMixin(ABC, metaclass=NodeClassMixinMeta):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._node_classes: Dict[
-            str, Type[NodeClassNode]
-        ] = {}  # maps method names to node classes
+        self._node_classes: Dict[str, Type[NodeClassNode]] = (
+            {}
+        )  # maps method names to node classes
         self._uuid = None
         self._nodes_created = False
 
