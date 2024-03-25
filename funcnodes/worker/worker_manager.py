@@ -11,6 +11,11 @@ from funcnodes.worker.websocket import WSWorker
 
 from funcnodes.worker.worker import WorkerJson
 
+DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0"))
+
+if DEVMODE:
+    import shutil
+
 
 def run_in_new_process(*args, **kwargs):
     print(f"Starting new process: {' '.join(args)}")
@@ -68,6 +73,23 @@ def start_worker(workerconfig: WorkerJson):
         pypath = os.path.join(workerconfig["env_path"], "Scripts", "python")
     else:  # Linux
         pypath = os.path.join(workerconfig["env_path"], "bin", "python")
+
+    # print funcnodes location
+
+    if DEVMODE:
+        ## if in development mode, copy the current funcnodes to the worker env
+        fn.FUNCNODES_LOGGER.info(
+            f"Copying funcnodes to worker env {workerconfig['env_path']}"
+        )
+
+        if os.name == "nt":
+            packedir = os.path.join(workerconfig["env_path"], "Lib", "site-packages")
+        else:
+            packedir = os.path.join(workerconfig["env_path"], "lib", "site-packages")
+
+        shutil.copytree(fn.__path__[0], os.path.join(packedir, "funcnodes"),
+                        dirs_exist_ok=True)
+                        
 
     run_in_new_process(
         pypath,
@@ -166,13 +188,13 @@ class WorkerManager:
 
     def worker_changed(self):
         active_uuids = set([w["uuid"] for w in self._active_workers])
-        active_files = set(
-            [
-                f.split("_")[1].split(".")[0]
-                for f in os.listdir(self._worker_dir)
-                if f.startswith("worker_") and f.endswith(".p")
-            ]
-        )
+        active_files = set()
+        for f in os.listdir(self._worker_dir):
+            if f.startswith("worker_") and f.endswith(".p"):
+                if not os.path.exists(os.path.join(self._worker_dir, f[:-2] + ".json")):
+                    continue
+                active_files.add(f.split("_")[1].split(".")[0])
+
         if active_uuids != active_files:
             return True
 

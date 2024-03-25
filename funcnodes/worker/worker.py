@@ -69,10 +69,19 @@ class State(TypedDict):
     dependencies: dict[str, List[str]]
 
 
+class ProgessState(TypedDict):
+    message: str
+    status: str
+    progress: float
+    blocking: bool
+
+
 class FullState(TypedDict):
     backend: FullNodeSpaceJSON
     view: ViewState
     worker: dict[str, list[str]]
+    progress_state: ProgessState
+    meta: MetaInfo
 
 
 class MEvent(TypedDict):
@@ -94,6 +103,10 @@ class ResultMessage(TypedDict):
     result: Any
 
 
+class ProgessStateMessage(ProgessState, TypedDict):
+    type: Literal["progress"]
+
+
 class ErrorMessage(TypedDict):
     type: Literal["error"]
     error: str
@@ -109,7 +122,7 @@ class NodeUpdateJSON(NodeJSON):
     frontend: NodeViewState
 
 
-JSONMessage = Union[CmdMessage, ResultMessage, ErrorMessage]
+JSONMessage = Union[CmdMessage, ResultMessage, ErrorMessage, ProgessStateMessage]
 
 
 class LocalWorkerLookupLoop(CustomLoop):
@@ -339,6 +352,12 @@ class Worker(ABC):
         )
 
         self._exposed_methods = get_exposed_methods(self)
+        self._progress_state: ProgessState = {
+            "message": "",
+            "status": "",
+            "progress": 0,
+            "blocking": False,
+        }
 
     @property
     def _process_file(self):
@@ -481,19 +500,18 @@ class Worker(ABC):
         return data
 
     @exposed_method()
-    def full_state(self):
-        data = {
-            "backend": self.nodespace.full_serialize(),
-            "view": self.view_state(),
-            "worker": {
+    def full_state(self) -> FullState:
+        data = FullState(
+            backend=self.nodespace.full_serialize(),
+            view=self.view_state(),
+            worker={
                 w.NODECLASSID: [i.uuid for i in w.running_instances()]
                 for w in self.local_worker_lookup_loop.worker_classes
             },
-            "meta": {
-                "id": self.nodespace_id,
-                "version": funcnodes.__version__,
-            },
-        }
+            progress_state=self._progress_state,
+            meta=self.get_meta(),
+        )
+
         return data
 
     @exposed_method()
@@ -575,15 +593,34 @@ class Worker(ABC):
         if src not in self._shelves_dependencies:
             self._shelves_dependencies.append(src)
 
+    def set_progress_state(
+        self, message: str, status: str, progress: float, blocking: bool
+    ):
+        self._progress_state = {
+            "message": message,
+            "status": status,
+            "progress": progress,
+            "blocking": blocking,
+        }
+
     @exposed_method()
     def add_shelf(self, src: str, save=True):
-        shelf = find_shelf(src=src)
-        if shelf is None:
-            raise ValueError(f"Shelf in {src} not found")
-        self.add_shelves_dependency(src)
-        self.nodespace.add_shelf(shelf)
-        if save:
-            self.request_save()
+        self.set_progress_state(
+            message="Adding shelf", status="info", progress=0.5, blocking=True
+        )
+        try:
+            shelf = find_shelf(src=src)
+            if shelf is None:
+                raise ValueError(f"Shelf in {src} not found")
+            self.add_shelves_dependency(src)
+            self.nodespace.add_shelf(shelf)
+            if save:
+                self.request_save()
+            self.set_progress_state(
+                message="Shelf added", status="success", progress=1, blocking=False
+            )
+        finally:
+            pass
         return True
 
     @deprecated(
@@ -813,6 +850,12 @@ class RemoteWorker(Worker):
             Callable[[dict], Awaitable[Tuple[bool | None, str]]]
         ] = []
 
+    def set_progress_state(self, *args, **kwargs):
+        super().set_progress_state(*args, **kwargs)
+        self.loop_manager.async_call(
+            self.send(ProgessStateMessage(type="progress", **self._progress_state))
+        )
+
     async def send(self, data, **kwargs):
         data = json.dumps(data, cls=JSONEncoder)
         await self.sendmessage(data, **kwargs)
@@ -860,8 +903,18 @@ class RemoteWorker(Worker):
     async def recieve_message(self, json_msg: dict, **sendkwargs):
         if "type" not in json_msg:
             return
-        if json_msg["type"] == "cmd":
-            await self._handle_cmd_msg(json_msg, **sendkwargs)
+        try:
+            if json_msg["type"] == "cmd":
+                await self._handle_cmd_msg(json_msg, **sendkwargs)
+        except Exception as e:
+            await self.send(
+                ErrorMessage(
+                    type="error",
+                    error=str(e),
+                    tb=traceback.format_exception(e),
+                    id=json_msg.get("id"),
+                )
+            )
 
     async def _handle_cmd_msg(self, json_msg: CmdMessage, **sendkwargs):
         result = await self.run_cmd(json_msg)

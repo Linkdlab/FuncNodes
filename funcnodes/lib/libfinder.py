@@ -22,6 +22,7 @@ def find_shelf(src: str) -> Shelf | None:
         src = src.replace("\\", "/")
         src = src[7:].strip("/")
         # check if file exists
+        fn.FUNCNODES_LOGGER.debug(f"try get module from file: {src}")
         if not os.path.exists(src):
             raise FileNotFoundError(f"file {src} not found")
 
@@ -31,18 +32,25 @@ def find_shelf(src: str) -> Shelf | None:
         if mod_path not in sys.path:
             sys.path.append(mod_path)
         if "pyproject.toml" in os.listdir(mod_path):
+            fn.FUNCNODES_LOGGER.debug(
+                f"pyproject.toml found, generating requirements.txt"
+            )
             # install poetry requirements
             # save current path
             cwd = os.getcwd()
             # cd into the module path
             os.chdir(mod_path)
             # install via poetry
+            os.system(f"poetry update --no-interaction")
             os.system(
                 f"poetry export --without-hashes -f requirements.txt --output requirements.txt"
             )
             # cd back
             os.chdir(cwd)
         if "requirements.txt" in os.listdir(mod_path):
+            fn.FUNCNODES_LOGGER.debug(
+                f"requirements.txt found, installing requirements"
+            )
             # install pip requirements
             os.system(
                 f"{sys.executable} -m pip install -r {os.path.join(mod_path,'requirements.txt')}"
