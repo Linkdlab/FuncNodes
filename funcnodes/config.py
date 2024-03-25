@@ -3,6 +3,11 @@ import os
 import json
 from .utils import deep_fill_dict
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 BASE_CONFIG_DIR = os.environ.get(
     "FUNCNODES_CONFIG_DIR", os.path.join(os.path.expanduser("~"), ".funcnodes")
 )
