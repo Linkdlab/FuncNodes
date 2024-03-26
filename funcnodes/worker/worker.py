@@ -518,6 +518,18 @@ class Worker(ABC):
     def get_library(self) -> dict:
         return self.nodespace.lib.full_serialize()
 
+    @exposed_method()
+    async def stop_worker(self):
+        await self.set_progress_state(
+            message="Stopping worker", status="info", progress=0.0, blocking=True
+        )
+        await asyncio.sleep(0.1)
+        self.stop()
+        await self.set_progress_state(
+            message="Stopping worker", status="info", progress=1, blocking=False
+        )
+        return True
+
     # endregion states
 
     # region save and load
@@ -725,16 +737,10 @@ class Worker(ABC):
         return self.viewdata["nodes"][nid]
 
     @exposed_method()
-    async def stop_worker(self):
-        await self.set_progress_state(
-            message="Stopping worker", status="info", progress=0.0, blocking=True
-        )
-        await asyncio.sleep(0.1)
-        self.stop()
-        await self.set_progress_state(
-            message="Stopping worker", status="info", progress=1, blocking=False
-        )
-        return True
+    def get_io_full_value(self, nid: str, ioid: str):
+        node = self.get_node(nid)
+        io = node.get_input_or_output(ioid)
+        return JSONEncoder.apply_custom_encoding(io.value, preview=False)
 
     # endregion nodes
     # region edges
