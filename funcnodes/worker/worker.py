@@ -69,7 +69,7 @@ class State(TypedDict):
     dependencies: dict[str, List[str]]
 
 
-class ProgessState(TypedDict):
+class ProgressState(TypedDict):
     message: str
     status: str
     progress: float
@@ -80,7 +80,7 @@ class FullState(TypedDict):
     backend: FullNodeSpaceJSON
     view: ViewState
     worker: dict[str, list[str]]
-    progress_state: ProgessState
+    progress_state: ProgressState
     meta: MetaInfo
 
 
@@ -103,7 +103,7 @@ class ResultMessage(TypedDict):
     result: Any
 
 
-class ProgessStateMessage(ProgessState, TypedDict):
+class ProgressStateMessage(ProgressState, TypedDict):
     type: Literal["progress"]
 
 
@@ -122,7 +122,7 @@ class NodeUpdateJSON(NodeJSON):
     frontend: NodeViewState
 
 
-JSONMessage = Union[CmdMessage, ResultMessage, ErrorMessage, ProgessStateMessage]
+JSONMessage = Union[CmdMessage, ResultMessage, ErrorMessage, ProgressStateMessage]
 
 
 class LocalWorkerLookupLoop(CustomLoop):
@@ -352,7 +352,7 @@ class Worker(ABC):
         )
 
         self._exposed_methods = get_exposed_methods(self)
-        self._progress_state: ProgessState = {
+        self._progress_state: ProgressState = {
             "message": "",
             "status": "",
             "progress": 0,
@@ -593,7 +593,7 @@ class Worker(ABC):
         if src not in self._shelves_dependencies:
             self._shelves_dependencies.append(src)
 
-    def set_progress_state(
+    async def set_progress_state(
         self, message: str, status: str, progress: float, blocking: bool
     ):
         self._progress_state = {
@@ -603,10 +603,14 @@ class Worker(ABC):
             "blocking": blocking,
         }
 
+    def set_progress_state_sync(self, *args, **kwargs):
+        self.loop_manager.async_call(self.set_progress_state(*args, **kwargs))
+
     @exposed_method()
     def add_shelf(self, src: str, save=True):
-        self.set_progress_state(
-            message="Adding shelf", status="info", progress=0.5, blocking=True
+
+        self.set_progress_state_sync(
+            message="Adding shelf", status="info", progress=0.0, blocking=True
         )
         try:
             shelf = find_shelf(src=src)
@@ -616,7 +620,7 @@ class Worker(ABC):
             self.nodespace.add_shelf(shelf)
             if save:
                 self.request_save()
-            self.set_progress_state(
+            self.set_progress_state_sync(
                 message="Shelf added", status="success", progress=1, blocking=False
             )
         finally:
@@ -721,8 +725,15 @@ class Worker(ABC):
         return self.viewdata["nodes"][nid]
 
     @exposed_method()
-    def stop_worker(self):
+    async def stop_worker(self):
+        await self.set_progress_state(
+            message="Stopping worker", status="info", progress=0.0, blocking=True
+        )
+        await asyncio.sleep(0.1)
         self.stop()
+        await self.set_progress_state(
+            message="Stopping worker", status="info", progress=1, blocking=False
+        )
         return True
 
     # endregion nodes
@@ -850,11 +861,9 @@ class RemoteWorker(Worker):
             Callable[[dict], Awaitable[Tuple[bool | None, str]]]
         ] = []
 
-    def set_progress_state(self, *args, **kwargs):
-        super().set_progress_state(*args, **kwargs)
-        self.loop_manager.async_call(
-            self.send(ProgessStateMessage(type="progress", **self._progress_state))
-        )
+    async def set_progress_state(self, *args, **kwargs):
+        await super().set_progress_state(*args, **kwargs)
+        await self.send(ProgressStateMessage(type="progress", **self._progress_state))
 
     async def send(self, data, **kwargs):
         data = json.dumps(data, cls=JSONEncoder)
