@@ -111,7 +111,7 @@ class NoValueType:
 NoValue: NoValueType = NoValueType()
 
 
-def NoValueEndocer(obj):
+def NoValueEndocer(obj, preview=False):
     if obj is NoValue:
         return "<NoValue>", True
     return obj, False
