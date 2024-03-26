@@ -8,6 +8,7 @@ import subprocess
 import sys
 from typing import List
 from funcnodes.worker.websocket import WSWorker
+import threading
 
 from funcnodes.worker.worker import WorkerJson
 
@@ -15,6 +16,26 @@ DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0"))
 
 if DEVMODE:
     import shutil
+
+
+class ReturnValueThread(threading.Thread):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.result = None
+
+    def run(self):
+        if self._target is None:
+            return  # could alternatively raise an exception, depends on the use case
+        try:
+            self.result = self._target(*self._args, **self._kwargs)
+        except Exception as exc:
+            print(
+                f"{type(exc).__name__}: {exc}", file=sys.stderr
+            )  # properly handle the exception
+
+    def join(self, *args, **kwargs):
+        super().join(*args, **kwargs)
+        return self.result
 
 
 def run_in_new_process(*args, **kwargs):
@@ -67,6 +88,7 @@ def create_worker_env(workerconfig: WorkerJson):
 
 
 def start_worker(workerconfig: WorkerJson):
+
     create_worker_env(workerconfig)
 
     if os.name == "nt":  # Windows
@@ -87,9 +109,16 @@ def start_worker(workerconfig: WorkerJson):
         else:
             packedir = os.path.join(workerconfig["env_path"], "lib", "site-packages")
 
-        shutil.copytree(fn.__path__[0], os.path.join(packedir, "funcnodes"),
-                        dirs_exist_ok=True)
-                        
+        funcnodesdir = os.path.join(packedir, "funcnodes")
+
+        shutil.copytree(fn.__path__[0], funcnodesdir, dirs_exist_ok=True)
+
+        # run poetry install in the worker env
+        subprocess.run(
+            [pypath, "-m", "pip", "install", "-r", "requirements.txt"],
+            check=True,
+            cwd=os.path.join(fn.__path__[0], ".."),
+        )
 
     run_in_new_process(
         pypath,
@@ -99,6 +128,50 @@ def start_worker(workerconfig: WorkerJson):
         f"--uuid={workerconfig['uuid']}",
         #  cwd=os.path.join(workerconfig["data_path"], ".."),
     )
+
+
+#
+
+
+async def check_worker(workerconfig: WorkerJson):
+    active_worker: List[str] = []
+    inactive_worker: List[str] = []
+    if "host" in workerconfig and "port" in workerconfig:
+        # reqest uuid
+        print(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
+        try:
+            async with websockets.connect(
+                f"ws{'s' if workerconfig.get('ssl',False) else ''}://{workerconfig['host']}:{workerconfig['port']}"
+            ) as ws:
+                # send with timeout
+
+                await asyncio.wait_for(
+                    ws.send(json.dumps({"type": "cmd", "cmd": "uuid"})),
+                    timeout=1,
+                )
+                response = await asyncio.wait_for(ws.recv(), timeout=1)
+                response = json.loads(response)
+                if response["type"] == "result":
+                    if workerconfig["uuid"] == response["result"]:
+                        return workerconfig["uuid"], True
+                    else:
+                        raise KeyError(
+                            f"UUID mismatch: {workerconfig['uuid']} != {response['result']}"
+                        )
+
+        except (
+            ConnectionRefusedError,
+            asyncio.TimeoutError,
+            KeyError,
+            json.JSONDecodeError,
+        ) as e:
+            pass
+
+    return workerconfig["uuid"], False
+
+
+def sync_check_worker(workerconfig: WorkerJson):
+    return asyncio.run(check_worker(workerconfig))
 
 
 class WorkerManager:
@@ -119,10 +192,17 @@ class WorkerManager:
             fn.config.CONFIG["worker_manager"]["host"],
             fn.config.CONFIG["worker_manager"]["port"],
         )
+        fn.FUNCNODES_LOGGER.info(
+            f"Worker manager started at ws://{fn.config.CONFIG['worker_manager']['host']}:{fn.config.CONFIG['worker_manager']['port']}"
+        )
         self._is_running = True
         l_rl = 0
         while self._is_running:
             await asyncio.sleep(1)
+            for conn in self._connections:
+                if conn.closed:
+                    self._connections.remove(conn)
+
             t = time.time()
             await self.check_shutdown()
 
@@ -134,6 +214,7 @@ class WorkerManager:
     async def _handle_connection(
         self, websocket: websockets.WebSocketServerProtocol, path
     ):
+        fn.FUNCNODES_LOGGER.debug(f"New connection: {websocket}")
         self._connections.append(websocket)
         async for message in websocket:
             await self._handle_message(message, websocket)
@@ -146,6 +227,13 @@ class WorkerManager:
         if message == "ping":
             return await websocket.send("pong")
         elif message == "stop":
+            await self.set_progress_state(
+                message="Stopping worker manager.",
+                progress=1.0,
+                blocking=False,
+                status="info",
+                websocket=websocket,
+            )
             return await self.stop()
         elif message == "worker_status":
             return await websocket.send(
@@ -175,7 +263,41 @@ class WorkerManager:
 
             print(f"Unknown message: {message}")
 
+    async def reset_progress_state(
+        self, websocket: websockets.WebSocketServerProtocol = None
+    ):
+        await self.set_progress_state(
+            message="",
+            progress=1,
+            blocking=False,
+            status="info",
+            websocket=websocket,
+        )
+
+    async def set_progress_state(
+        self,
+        message,
+        status="info",
+        progress=0.0,
+        blocking=False,
+        websocket: websockets.WebSocketServerProtocol = None,
+    ):
+        msg = json.dumps(
+            {
+                "type": "progress",
+                "message": message,
+                "status": status,
+                "progress": progress,
+                "blocking": blocking,
+            }
+        )
+        if websocket is not None:
+            await websocket.send(msg)
+        else:
+            await self.broadcast(msg)
+
     async def stop(self):
+
         if self.ws_server is not None:
             self.ws_server.close()
             await self.ws_server.wait_closed()
@@ -216,45 +338,11 @@ class WorkerManager:
     async def reload_workers(self):
         active_worker: List[WorkerJson] = []
         inactive_worker: List[WorkerJson] = []
-
-        async def check_worker(workerconfig: WorkerJson):
-            if "host" in workerconfig and "port" in workerconfig:
-                # reqest uuid
-                print(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
-                try:
-                    async with websockets.connect(
-                        f"ws{'s' if workerconfig.get('ssl',False) else ''}://{workerconfig['host']}:{workerconfig['port']}"
-                    ) as ws:
-                        # send with timeout
-
-                        await asyncio.wait_for(
-                            ws.send(json.dumps({"type": "cmd", "cmd": "uuid"})),
-                            timeout=1,
-                        )
-                        response = await asyncio.wait_for(ws.recv(), timeout=1)
-                        response = json.loads(response)
-                        if response["type"] == "result":
-                            if workerconfig["uuid"] == response["result"]:
-                                active_worker.append(workerconfig)
-                            else:
-                                raise KeyError(
-                                    f"UUID mismatch: {workerconfig['uuid']} != {response['result']}"
-                                )
-
-                except (
-                    ConnectionRefusedError,
-                    asyncio.TimeoutError,
-                    KeyError,
-                    json.JSONDecodeError,
-                ) as e:
-                    inactive_worker.append(workerconfig)
-                    pfile = os.path.join(
-                        self._worker_dir, f"worker_{workerconfig['uuid']}.p"
-                    )
-                    if os.path.exists(pfile):
-                        os.remove(pfile)
+        active_worker_ids: List[WorkerJson] = []
+        inactive_worker_ids: List[WorkerJson] = []
 
         workerchecks = []
+        workerconfigs = {}
         for f in os.listdir(self._worker_dir):
             if f.startswith("worker_") and f.endswith(".json"):
                 with open(
@@ -267,12 +355,40 @@ class WorkerManager:
                 if workerconfig["type"] == "TestWorker":
                     os.remove(os.path.join(self._worker_dir, f))
                     continue
-                workerchecks.append(check_worker(workerconfig))
-        await asyncio.gather(*workerchecks)
+
+                workerconfigs[workerconfig["uuid"]] = workerconfig
+
+                thread = ReturnValueThread(
+                    target=sync_check_worker, args=(workerconfig,)
+                )
+                workerchecks.append(thread)
+                thread.start()
+
+        while any([t.is_alive() for t in workerchecks]):
+            await asyncio.sleep(0.1)
+
+        for t in workerchecks:
+            res = t.join()
+            if res is None:
+                continue
+
+            if res[1]:
+                active_worker_ids.append(res[0])
+            else:
+                inactive_worker_ids.append(res[0])
+
+        for iid in inactive_worker_ids:
+            pfile = os.path.join(self._worker_dir, f"worker_{iid}.p")
+            if os.path.exists(pfile):
+                os.remove(pfile)
+            inactive_worker.append(workerconfigs[iid])
+
+        for aid in active_worker_ids:
+            active_worker.append(workerconfigs[aid])
 
         self._active_workers = active_worker
         self._inactive_workers = inactive_worker
-        print(f"Active workers: {active_worker}")
+        print(f"Active workers: {active_worker_ids}")
         print(f"inactive workers: {inactive_worker}")
 
         await self.broadcast(
@@ -297,7 +413,13 @@ class WorkerManager:
     async def stop_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol
     ):
-
+        await self.set_progress_state(
+            message="Stopping worker.",
+            progress=0.1,
+            blocking=True,
+            status="info",
+            websocket=websocket,
+        )
         fn.FUNCNODES_LOGGER.info(f"Stopping worker {workerid}")
         target_worker = None
         for worker in self._active_workers:
@@ -332,87 +454,117 @@ class WorkerManager:
         except Exception:
             pass
 
+        await self.reset_progress_state(
+                websocket=websocket,
+            )
+
     async def activate_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol
     ):
-        fn.FUNCNODES_LOGGER.info(f"Activating worker {workerid}")
-        active_worker = None
-        for worker in self._active_workers:
-            if worker["uuid"] == workerid:
-                active_worker = worker
-
-        if active_worker is None:
-            for worker in self._inactive_workers:
+        try:
+            fn.FUNCNODES_LOGGER.info(f"Activating worker {workerid}")
+            await self.set_progress_state(
+                message="Activating worker.",
+                progress=0.1,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+            active_worker = None
+            for worker in self._active_workers:
                 if worker["uuid"] == workerid:
-                    start_worker(worker)
                     active_worker = worker
 
-        if active_worker is None:
+            if active_worker is None:
+                for worker in self._inactive_workers:
+                    if worker["uuid"] == workerid:
+                        start_worker(worker)
+                        active_worker = worker
+
+            if active_worker is None:
+                return await websocket.send(
+                    json.dumps(
+                        {
+                            "type": "error",
+                            "message": f"Worker with id {workerid} not found.",
+                        }
+                    )
+                )
+
+            workerconfigfile = os.path.join(
+                self._worker_dir, f"worker_{active_worker['uuid']}.json"
+            )
+            await self.set_progress_state(
+                message="Activating worker.",
+                progress=0.5,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+            for i in range(20):
+                await self.set_progress_state(
+                    message="Activating worker.",
+                    progress=0.5 + i * 0.02,
+                    blocking=True,
+                    status="info",
+                    websocket=websocket,
+                )
+                if not os.path.exists(workerconfigfile):
+                    await asyncio.sleep(0.5)
+                    continue
+                with open(workerconfigfile, "r", encoding="utf-8") as file:
+                    workerconfig = json.load(file)
+                if workerconfig["uuid"] != active_worker["uuid"]:
+                    raise KeyError(
+                        f"UUID mismatch: {workerconfig['uuid']} != {active_worker['uuid']}"
+                    )
+                try:
+                    async with websockets.connect(
+                        f"ws{'s' if workerconfig.get('ssl',False) else ''}://{workerconfig['host']}:{workerconfig['port']}"
+                    ) as ws:
+                        # send with timeout
+
+                        await asyncio.wait_for(
+                            ws.send(json.dumps({"type": "cmd", "cmd": "uuid"})),
+                            timeout=1,
+                        )
+                        response = await asyncio.wait_for(ws.recv(), timeout=1)
+                        response = json.loads(response)
+                        if response["type"] == "result":
+                            if workerconfig["uuid"] != response["result"]:
+                                raise KeyError(
+                                    f"UUID mismatch: {workerconfig['uuid']} != {response['result']}"
+                                )
+                            return await websocket.send(
+                                json.dumps(
+                                    {
+                                        "type": "set_worker",
+                                        "data": workerconfig,
+                                    }
+                                )
+                            )
+
+                except (
+                    ConnectionRefusedError,
+                    asyncio.TimeoutError,
+                    KeyError,
+                    json.JSONDecodeError,
+                ):
+                    await asyncio.sleep(0.5)
+                    continue
+
             return await websocket.send(
                 json.dumps(
                     {
                         "type": "error",
-                        "message": f"Worker with id {workerid} not found.",
+                        "message": f"Could not activate worker with id {workerid}.",
                     }
                 )
             )
-
-        workerconfigfile = os.path.join(
-            self._worker_dir, f"worker_{active_worker['uuid']}.json"
-        )
-        for i in range(20):
-            if not os.path.exists(workerconfigfile):
-                await asyncio.sleep(0.5)
-                continue
-            with open(workerconfigfile, "r", encoding="utf-8") as file:
-                workerconfig = json.load(file)
-            if workerconfig["uuid"] != active_worker["uuid"]:
-                raise KeyError(
-                    f"UUID mismatch: {workerconfig['uuid']} != {active_worker['uuid']}"
-                )
-            try:
-                async with websockets.connect(
-                    f"ws{'s' if workerconfig.get('ssl',False) else ''}://{workerconfig['host']}:{workerconfig['port']}"
-                ) as ws:
-                    # send with timeout
-
-                    await asyncio.wait_for(
-                        ws.send(json.dumps({"type": "cmd", "cmd": "uuid"})),
-                        timeout=1,
-                    )
-                    response = await asyncio.wait_for(ws.recv(), timeout=1)
-                    response = json.loads(response)
-                    if response["type"] == "result":
-                        if workerconfig["uuid"] != response["result"]:
-                            raise KeyError(
-                                f"UUID mismatch: {workerconfig['uuid']} != {response['result']}"
-                            )
-                        return await websocket.send(
-                            json.dumps(
-                                {
-                                    "type": "set_worker",
-                                    "data": workerconfig,
-                                }
-                            )
-                        )
-
-            except (
-                ConnectionRefusedError,
-                asyncio.TimeoutError,
-                KeyError,
-                json.JSONDecodeError,
-            ):
-                await asyncio.sleep(0.5)
-                continue
-
-        return await websocket.send(
-            json.dumps(
-                {
-                    "type": "error",
-                    "message": f"Could not activate worker with id {workerid}.",
-                }
+        finally:
+            await self.reset_progress_state(
+                websocket=websocket,
             )
-        )
 
     async def new_worker(self):
         new_worker = WSWorker()
