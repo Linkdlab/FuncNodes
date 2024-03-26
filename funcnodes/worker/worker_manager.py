@@ -389,7 +389,7 @@ class WorkerManager:
         self._active_workers = active_worker
         self._inactive_workers = inactive_worker
         print(f"Active workers: {active_worker_ids}")
-        print(f"inactive workers: {inactive_worker}")
+        print(f"inactive workers: {inactive_worker_ids}")
 
         await self.broadcast(
             json.dumps(
@@ -455,8 +455,8 @@ class WorkerManager:
             pass
 
         await self.reset_progress_state(
-                websocket=websocket,
-            )
+            websocket=websocket,
+        )
 
     async def activate_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol

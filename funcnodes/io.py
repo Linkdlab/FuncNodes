@@ -89,7 +89,6 @@ class FullNodeIOJSON(TypedDict):
     does_trigger: bool
     render_options: IORenderOptions
     value_options: ValueOptions
-    valuepreview_type: str
 
 
 # A unique object that represents the absence of a value
@@ -246,8 +245,6 @@ NodeIOType = TypeVar("NodeIOType")
 
 
 class IOOptions(NodeIOSerialization, total=False):
-    valuepreview_generator: Callable[[Any], Any]
-    valuepreview_type: str
     emit_value_set: bool
 
 
@@ -296,8 +293,6 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         render_options: Optional[IORenderOptions] = None,
         value_options: Optional[ValueOptions] = None,
         is_input: Optional[bool] = None,  # catch and ignore
-        valuepreview_generator: Callable[[Any], Any] = identity_preview_generator,
-        valuepreview_type: Optional[str] = None,
         emit_value_set: bool = True,
         #  **kwargs,
     ) -> None:
@@ -331,8 +326,6 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._default_value_options = generate_value_options(
             value_options, self._typestr
         )
-        self._valuepreview_generator = valuepreview_generator
-        self._valuepreview_type = valuepreview_type or self._typestr
         self._emit_value_set = emit_value_set
 
     def deserialize(self, data: NodeIOSerialization) -> None:
@@ -396,15 +389,6 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self.set_value(value)
 
     @property
-    def value_preview(self) -> str:
-        """Gets a preview of the value of the NodeIO."""
-        return self._valuepreview_generator(self.value)
-
-    @property
-    def valuepreview_type(self) -> str:
-        return self._valuepreview_type
-
-    @property
     def connections(self) -> List[NodeIO]:
         """Gets a list of NodeIO instances connected to this one."""
         return list(self._connected)
@@ -419,7 +403,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
 
         if self._emit_value_set:
             msg = MessageInArgs(src=self)
-            msg["result"] = self._valuepreview_generator(self.value)
+            msg["result"] = JSONEncoder.apply_custom_encoding(self.value, preview=True)
             self.emit("after_set_value", msg=msg)
         return self.value
 
@@ -573,8 +557,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             is_input=self.is_input(),
             connected=self.is_connected(),
             node=self.node.uuid if self.node else None,
-            value=self.value_preview,
-            valuepreview_type=self.valuepreview_type,
+            value=JSONEncoder.apply_custom_encoding(self.value, preview=True),
             does_trigger=self.does_trigger,
             render_options=self.render_options,
             value_options=self.value_options,
@@ -728,8 +711,6 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
 
     def to_dict(self) -> NodeInputOptions:
         ser: IOOptions = NodeInputOptions(
-            valuepreview_generator=self._valuepreview_generator,
-            valuepreview_type=self._valuepreview_type,
             **self.serialize(),
         )
         return ser
@@ -865,8 +846,6 @@ class NodeOutput(NodeIO):
 
     def to_dict(self) -> NodeOutputOptions:
         ser: IOOptions = NodeOutputOptions(
-            valuepreview_generator=self._valuepreview_generator,
-            valuepreview_type=self.valuepreview_type,
             **self.serialize(),
         )
         return ser
