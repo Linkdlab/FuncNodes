@@ -92,7 +92,7 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         from funcnodes.basic_nodes import math as math_nodes
 
         for name in _CONSTANTS:
-            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELFE, "math." + name)
+            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELF, "math." + name)
 
             assert issubclass(nodeclass, Node)
             node: Node = nodeclass()
@@ -108,7 +108,7 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         from funcnodes.basic_nodes import math as math_nodes
 
         for name in _FLOAT_FUNCTIONS + _FLOAT_FUNCTIONS_BOOL + _FLOAT_FUNCTIONS_INT:
-            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELFE, "math." + name)
+            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELF, "math." + name)
             assert issubclass(nodeclass, Node)
             node: Node = nodeclass()
             await node
@@ -132,7 +132,7 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         from funcnodes.basic_nodes import math as math_nodes
 
         for name in _FLOAT_FLOAT_FUNCTIONS + _FLOAT_FLOAT_FUNCTIONS_BOOL:
-            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELFE, "math." + name)
+            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELF, "math." + name)
             assert issubclass(nodeclass, Node)
             node: Node = nodeclass()
             await node
@@ -160,7 +160,7 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         from funcnodes.basic_nodes import math as math_nodes
 
         for name in _VEC_FUNCTIONS:
-            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELFE, "math." + name)
+            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELF, "math." + name)
             assert issubclass(nodeclass, Node)
             node: Node = nodeclass()
             await node
@@ -178,7 +178,7 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         from funcnodes.basic_nodes import math as math_nodes
 
         for name in _VEC_VEC_FUNCTIONS:
-            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELFE, "math." + name)
+            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELF, "math." + name)
             assert issubclass(nodeclass, Node)
             node: Node = nodeclass()
             await node
@@ -198,7 +198,7 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         from funcnodes.basic_nodes import math as math_nodes
 
         for name in _INT_FUNCTIONS:
-            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELFE, "math." + name)
+            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELF, "math." + name)
             assert issubclass(nodeclass, Node)
             node: Node = nodeclass()
             await node
@@ -216,7 +216,7 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         from funcnodes.basic_nodes import math as math_nodes
 
         for name in _INT_INT_FUNCTIONS:
-            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELFE, "math." + name)
+            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELF, "math." + name)
             assert issubclass(nodeclass, Node)
             node: Node = nodeclass()
             await node
@@ -235,7 +235,7 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         from funcnodes.basic_nodes import math as math_nodes
 
         for name in _FLOAT_INT_FUNCTIONS:
-            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELFE, "math." + name)
+            _, nodeclass = get_node_in_shelf(math_nodes.NODE_SHELF, "math." + name)
             assert issubclass(nodeclass, Node)
             node: Node = nodeclass()
             await node
@@ -257,22 +257,22 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         v1 = 3.14
         v2 = 2
         for n, r in [
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "add_node")[1], v1 + v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "sub_node")[1], v1 - v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "mul_node")[1], v1 * v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "div_node")[1], v1 / v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "mod_node")[1], v1 % v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "pow_node")[1], v1**v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "floor_div_node")[1], v1 // v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "greater_node")[1], v1 > v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "less_node")[1], v1 < v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "equal_node")[1], v1 == v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "not_equal_node")[1], v1 != v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "add_node")[1], v1 + v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "sub_node")[1], v1 - v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "mul_node")[1], v1 * v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "div_node")[1], v1 / v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "mod_node")[1], v1 % v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "pow_node")[1], v1**v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "floor_div_node")[1], v1 // v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "greater_node")[1], v1 > v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "less_node")[1], v1 < v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "equal_node")[1], v1 == v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "not_equal_node")[1], v1 != v2),
             (
-                get_node_in_shelf(math_nodes.NODE_SHELFE, "greater_equal_node")[1],
+                get_node_in_shelf(math_nodes.NODE_SHELF, "greater_equal_node")[1],
                 v1 >= v2,
             ),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "less_equal_node")[1], v1 <= v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "less_equal_node")[1], v1 <= v2),
         ]:
             node = n()
 
@@ -283,9 +283,9 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
 
         v = -3.14
         for n, r in [
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "abs_node")[1], abs(v)),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "neg_node")[1], -v),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "pos_node")[1], +v),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "abs_node")[1], abs(v)),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "neg_node")[1], -v),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "pos_node")[1], +v),
         ]:
             node = n()
             node.inputs["a"].value = v
@@ -296,9 +296,9 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
         v2 = False
 
         for n, r in [
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "and_node")[1], v1 and v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "or_node")[1], v1 or v2),
-            (get_node_in_shelf(math_nodes.NODE_SHELFE, "xor_node")[1], v1 ^ v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "and_node")[1], v1 and v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "or_node")[1], v1 or v2),
+            (get_node_in_shelf(math_nodes.NODE_SHELF, "xor_node")[1], v1 ^ v2),
         ]:
             node = n()
             node.inputs["a"].value = v1
@@ -306,14 +306,14 @@ class TestMathNodes(unittest.IsolatedAsyncioTestCase):
             await node
             self.assertEqual(node.outputs["out"].value, r)
 
-        node = get_node_in_shelf(math_nodes.NODE_SHELFE, "round_node")[1]()
+        node = get_node_in_shelf(math_nodes.NODE_SHELF, "round_node")[1]()
 
         node.inputs["a"].value = 5.123456
         node.inputs["ndigits"].value = 2
         await node
         self.assertEqual(node.outputs["out"].value, round(5.123456, 2))
 
-        node = get_node_in_shelf(math_nodes.NODE_SHELFE, "not_node")[1]()
+        node = get_node_in_shelf(math_nodes.NODE_SHELF, "not_node")[1]()
         node.inputs["a"].value = True
         await node
         self.assertEqual(node.outputs["out"].value, False)
