@@ -105,11 +105,17 @@ class WSLoop(CustomLoop):
 class WSWorker(RemoteWorker):
     def __init__(
         self,
-        host="localhost",
-        port=9382,
+        host=None,
+        port=None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        c = self.config
+
+        if host is None:
+            host = c.get("host", "localhost")
+        if port is None:
+            port = c.get("port", STARTPORT)
         self.ws_loop = WSLoop(host=host, port=port, worker=self)
         self.loop_manager.add_loop(self.ws_loop)
 

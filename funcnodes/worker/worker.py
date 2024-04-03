@@ -380,8 +380,8 @@ class Worker(ABC):
                 except Exception as e:
                     pass
 
-    def _write_config(self) -> WorkerJson:
-        c = self.generate_config()
+    @property
+    def config(self):
         cfile = os.path.join(
             funcnodes.config.CONFIG_DIR,
             "workers",
@@ -394,7 +394,18 @@ class Worker(ABC):
                 encoding="utf-8",
             ) as f:
                 oldc = json.load(f)
+            return oldc
+        return {}
 
+    def _write_config(self) -> WorkerJson:
+        c = self.generate_config()
+        cfile = os.path.join(
+            funcnodes.config.CONFIG_DIR,
+            "workers",
+            "worker_" + self._uuid + ".json",
+        )
+        oldc = self.config
+        if oldc:
             c = deep_fill_dict(
                 oldc, c, overwrite_existing=True, merge_lists=True, unfify_lists=True
             )
@@ -625,7 +636,7 @@ class Worker(ABC):
             message="Adding shelf", status="info", progress=0.0, blocking=True
         )
         try:
-            shelf = find_shelf(src=src)
+            shelf, shelfdata = find_shelf(src=src)
             if shelf is None:
                 raise ValueError(f"Shelf in {src} not found")
             self.add_shelves_dependency(src)

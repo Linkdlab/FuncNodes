@@ -5,7 +5,7 @@ from .utils import deep_fill_dict
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 BASE_CONFIG_DIR = os.environ.get(

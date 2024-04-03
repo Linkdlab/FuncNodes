@@ -12,7 +12,7 @@ import threading
 
 from funcnodes.worker.worker import WorkerJson
 
-DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0"))
+DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 
 if DEVMODE:
     import shutil
@@ -98,6 +98,7 @@ def start_worker(workerconfig: WorkerJson):
 
     # print funcnodes location
 
+    print(f"Funcnodes location: {fn.__path__[0]} {DEVMODE}")
     if DEVMODE:
         ## if in development mode, copy the current funcnodes to the worker env
         fn.FUNCNODES_LOGGER.info(
