@@ -62,15 +62,10 @@ class JSONEncoder(json.JSONEncoder):
                 if handled:
                     return cls.apply_custom_encoding(res)
 
-        return obj
+        return str(obj)
 
     def default(self, obj):
-        try:
-            return super().default(
-                self.apply_custom_encoding(obj, self.default_preview)
-            )
-        except TypeError:
-            return str(obj)
+        return self.apply_custom_encoding(obj, self.default_preview)
 
 
 class PreviewJSONEncoder(JSONEncoder):
