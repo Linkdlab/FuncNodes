@@ -27,6 +27,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def get_worker_manager(self):
         # Implement custom GET handling logic here
+        asyncio.run(fn.worker.worker_manager.assert_worker_manager_running())
         self.send_response(200)
         self.send_header("Content-type", "text/json")
         self.end_headers()
