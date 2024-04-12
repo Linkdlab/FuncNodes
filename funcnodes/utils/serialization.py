@@ -44,6 +44,9 @@ class JSONEncoder(json.JSONEncoder):
         Recursively apply custom encoding to an object, using the encoders defined in JSONEncoder.
         """
         if isinstance(obj, (int, float, str, bool, type(None))):
+            # convert nan to None
+            if isinstance(obj, float) and obj != obj:
+                return None
             # Base types
             return obj
         elif isinstance(obj, dict):
@@ -81,12 +84,21 @@ def _repr_json_(obj, preview=False):
 JSONEncoder.add_encoder(_repr_json_)
 
 
+def bytes_handler(obj, preview=False):
+    if isinstance(obj, bytes):
+        # Convert bytes to base64 string
+        if preview:
+            return base64.b64encode(obj).decode("utf-8")[:100], True
+        return base64.b64encode(obj).decode("utf-8"), True
+    return obj, False
+
+
+JSONEncoder.add_encoder(bytes_handler)
+
+
 def default_encodings(obj, preview=False):
     if isinstance(obj, (tuple, set)):
         return list(obj), True
-    if isinstance(obj, bytes):
-        # Convert bytes to base64 string
-        return base64.b64encode(obj).decode("utf-8"), True
     if isinstance(obj, Exception):
         return str(obj), True
 

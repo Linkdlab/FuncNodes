@@ -1,7 +1,7 @@
 from typing import Any, MutableMapping, Mapping, Dict, TypeVar
 from copy import deepcopy, copy
 
-T = TypeVar("T", bound=MutableMapping)
+T = TypeVar("T", bound=MutableMapping[Any, Any])
 
 
 def deep_fill_dict(
