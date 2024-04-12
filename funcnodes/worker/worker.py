@@ -41,7 +41,7 @@ from funcnodes import (
     NodeInput,
 )
 from funcnodes.utils import deep_fill_dict
-from funcnodes.lib import find_shelf
+from funcnodes.lib import find_shelf, ShelfDict
 import traceback
 from exposedfunctionality import exposed_method, get_exposed_methods
 from typing_extensions import deprecated
@@ -62,7 +62,7 @@ class ViewState(TypedDict):
     renderoptions: funcnodes.config.RenderOptions
 
 
-class State(TypedDict):
+class WorkerState(TypedDict):
     backend: NodeSpaceJSON
     view: ViewState
     meta: MetaInfo
@@ -255,7 +255,7 @@ class SaveLoop(CustomLoop):
 
     async def loop(self):
         self._client._write_process_file()
-        self._client._write_config()
+        self._client.write_config()
         if self.save_requested:
             self._client.save()
         self.save_requested = False
@@ -285,9 +285,12 @@ def requests_save(func):
 class WorkerJson(TypedDict):
     type: str
     uuid: str
+    name: str | None
     data_path: str
     env_path: str
-    shelves_dependencies: List[str]
+    python_path: str
+
+    shelves_dependencies: List[str | ShelfDict]
 
 
 class RemoteWorkerJson(WorkerJson):
@@ -303,11 +306,12 @@ class Worker(ABC):
         local_worker_lookup_delay=5,
         save_delay=5,
         uuid: str | None = None,
+        name: str | None = None,
     ) -> None:
         if default_nodes is None:
             default_nodes = []
 
-        self._shelves_dependencies: List[str] = []
+        self._shelves_dependencies: List[str | ShelfDict] = []
         self.loop_manager = LoopManager(self)
         self.nodespace = NodeSpace()
 
@@ -335,13 +339,15 @@ class Worker(ABC):
             "renderoptions": funcnodes.config.FUNCNODES_RENDER_OPTIONS,
         }
         self._uuid = uuid4().hex if not uuid else uuid
-        self.data_path = (
+        self._name = name
+        self._data_path: str = (
             os.path.abspath(data_path)
             if data_path
             else os.path.join(
                 funcnodes.config.CONFIG_DIR, "workers", "worker_" + self._uuid
             )
         )
+        self.data_path = self._data_path
         self.logger = funcnodes.get_logger(self._uuid, propagate=False)
         self.logger.addHandler(
             RotatingFileHandler(
@@ -381,7 +387,7 @@ class Worker(ABC):
                     pass
 
     @property
-    def config(self):
+    def config(self) -> WorkerJson | None:
         cfile = os.path.join(
             funcnodes.config.CONFIG_DIR,
             "workers",
@@ -395,20 +401,19 @@ class Worker(ABC):
             ) as f:
                 oldc = json.load(f)
             return oldc
-        return {}
+        return None
 
-    def _write_config(self) -> WorkerJson:
-        c = self.generate_config()
+    def write_config(self, opt_conf: Optional[WorkerJson] = None) -> WorkerJson:
+        if opt_conf is None:
+            c = self.generate_config()
+        else:
+            c = opt_conf
+        c["uuid"] = self._uuid
         cfile = os.path.join(
             funcnodes.config.CONFIG_DIR,
             "workers",
             "worker_" + self._uuid + ".json",
         )
-        oldc = self.config
-        if oldc:
-            c = deep_fill_dict(
-                oldc, c, overwrite_existing=True, merge_lists=True, unfify_lists=True
-            )
         with open(
             cfile,
             "w+",
@@ -422,7 +427,7 @@ class Worker(ABC):
         if os.path.exists(self._process_file):
             raise RuntimeError("Worker already running")
         self._write_process_file()
-        c = self._write_config()
+        c = self.write_config()
 
         if "shelves_dependencies" in c:
             for dep in c["shelves_dependencies"]:
@@ -432,21 +437,38 @@ class Worker(ABC):
                     self.logger.exception(e)
 
     def generate_config(self) -> WorkerJson:
-        return {
-            "uuid": self._uuid,
-            "data_path": self.data_path,
-            "type": self.__class__.__name__,
-            "env_path": os.path.abspath(os.path.join(self.data_path, "env")),
-            "shelves_dependencies": self._shelves_dependencies,
-        }
+        oldc = self.config
+        if oldc is None:
+            oldc = {}
+        uuid = self._uuid
+        name = oldc.get("name") or self._name
+        data_path = self.data_path
+        env_path = os.path.abspath(os.path.join(self.data_path, "env"))
+        sds: List[str | ShelfDict] = []  # not using set to assure order
+        for sd in oldc.get("shelves_dependencies", []):
+            if sd not in sds:
+                sds.append(sd)
+        for sd in self._shelves_dependencies:
+            if sd not in sds:
+                sds.append(sd)
+        python_path = sys.executable
+        return WorkerJson(
+            type=self.__class__.__name__,
+            uuid=uuid,
+            name=name,
+            data_path=data_path,
+            env_path=env_path,
+            shelves_dependencies=sds,
+            python_path=python_path,
+        )
 
     # region properties
     @property
-    def data_path(self):
+    def data_path(self) -> str:
         return self._data_path
 
     @data_path.setter
-    def data_path(self, data_path):
+    def data_path(self, data_path: str):
         data_path = os.path.abspath(data_path)
         if not os.path.exists(data_path):
             os.mkdir(data_path)
@@ -501,8 +523,8 @@ class Worker(ABC):
         }
 
     @exposed_method()
-    def get_state(self) -> State:
-        data: State = {
+    def get_state(self) -> WorkerState:
+        data: WorkerState = {
             "backend": self.nodespace.serialize(),
             "view": self.view_state(),
             "meta": self.get_meta(),
@@ -531,10 +553,11 @@ class Worker(ABC):
 
     @exposed_method()
     async def stop_worker(self):
+        self.logger.info("Stopping worker")
         await self.set_progress_state(
-            message="Stopping worker", status="info", progress=0.0, blocking=True
+            message="Stopping worker", status="info", progress=0.0, blocking=False
         )
-        await asyncio.sleep(0.1)
+
         self.stop()
         await self.set_progress_state(
             message="Stopping worker", status="info", progress=1, blocking=False
@@ -549,25 +572,25 @@ class Worker(ABC):
 
     @exposed_method()
     def save(self):
-        data: State = self.get_state()
+        data: WorkerState = self.get_state()
         with open(self.local_nodespace, "w+", encoding="utf-8") as f:
             f.write(json.dumps(data, indent=2, cls=JSONEncoder))
-        self._write_config()
+        self.write_config()
         return data
 
     @exposed_method()
-    def load_data(self, data: State):
+    def load_data(self, data: WorkerState):
         return self.loop_manager.async_call(self.load(data))
 
-    async def load(self, data: State | str | None = None):
+    async def load(self, data: WorkerState | str | None = None):
         if data is None:
             if not os.path.exists(self.local_nodespace):
                 return
             with open(self.local_nodespace, "r", encoding="utf-8") as f:
-                data: State = json.loads(f.read(), cls=JSONDecoder)
+                data: WorkerState = json.loads(f.read(), cls=JSONDecoder)
 
         if isinstance(data, str):
-            data: State = json.loads(data, cls=JSONDecoder)
+            data: WorkerState = json.loads(data, cls=JSONDecoder)
 
         if "backend" not in data:
             data["backend"] = {}
@@ -612,7 +635,7 @@ class Worker(ABC):
 
     # region library
 
-    def add_shelves_dependency(self, src: str):
+    def add_shelves_dependency(self, src: str | ShelfDict):
         if src not in self._shelves_dependencies:
             self._shelves_dependencies.append(src)
 
@@ -636,10 +659,13 @@ class Worker(ABC):
             message="Adding shelf", status="info", progress=0.0, blocking=True
         )
         try:
-            shelf, shelfdata = find_shelf(src=src)
+            shelfdata = find_shelf(src=src)
+            if shelfdata is None:
+                return {"error": f"Shelf in {src} not found"}
+            shelf, shelfdata = shelfdata
             if shelf is None:
                 raise ValueError(f"Shelf in {src} not found")
-            self.add_shelves_dependency(src)
+            self.add_shelves_dependency(shelfdata)
             self.nodespace.add_shelf(shelf)
             if save:
                 self.request_save()
@@ -838,9 +864,10 @@ class Worker(ABC):
             self.stop()
 
     def stop(self):
-        self.logger.info("Stopping worker")
+        self.logger.info("Stopping")
         self.loop_manager.stop()
-        os.remove(self._process_file)
+        if os.path.exists(self._process_file):
+            os.remove(self._process_file)
 
     def __del__(self):
         self.stop()
@@ -884,6 +911,7 @@ class RemoteWorker(Worker):
 
     async def send(self, data, **kwargs):
         data = json.dumps(data, cls=JSONEncoder)
+        self.logger.debug(f"Sending message {data}")
         await self.sendmessage(data, **kwargs)
 
     @abstractmethod
@@ -927,12 +955,14 @@ class RemoteWorker(Worker):
         self.loop_manager.async_call(self.send(error_bundle))
 
     async def recieve_message(self, json_msg: dict, **sendkwargs):
+        self.logger.debug(f"Recieved message {json_msg}")
         if "type" not in json_msg:
             return
         try:
             if json_msg["type"] == "cmd":
                 await self._handle_cmd_msg(json_msg, **sendkwargs)
         except Exception as e:
+            self.logger.exception(e)
             await self.send(
                 ErrorMessage(
                     type="error",

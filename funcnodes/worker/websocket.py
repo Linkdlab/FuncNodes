@@ -52,12 +52,10 @@ class WSLoop(CustomLoop):
                 json_msg = json.loads(message)
                 await self._worker.recieve_message(json_msg, websocket=websocket)
 
-        except (
-            websockets.exceptions.WebSocketException,
-            json.decoder.JSONDecodeError,
-        ):
+        except (websockets.exceptions.WebSocketException,):
             pass
         finally:
+            print("Client disconnected")
             self.clients.remove(websocket)
 
     async def _send_error(
@@ -84,7 +82,7 @@ class WSLoop(CustomLoop):
                     self.ws_server = await websockets.serve(
                         self._handle_connection, self._host, self._port
                     )
-                    self._worker._write_config()
+                    self._worker.write_config()
                 return
             except OSError as e:
                 self._port += 1
@@ -111,6 +109,8 @@ class WSWorker(RemoteWorker):
     ) -> None:
         super().__init__(**kwargs)
         c = self.config
+        if c is None:
+            c = {}
 
         if host is None:
             host = c.get("host", "localhost")
@@ -131,7 +131,7 @@ class WSWorker(RemoteWorker):
             if len(clients) > 0:
                 await asyncio.gather(
                     *[ws.send(msg) for ws in clients],
-                    return_exceptions=False,
+                    return_exceptions=True,
                 )
 
     def _on_nodespaceerror(self, error: Exception, src: NodeSpace):

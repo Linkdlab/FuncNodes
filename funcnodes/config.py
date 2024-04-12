@@ -54,13 +54,12 @@ def check_config_dir():
 check_config_dir()
 
 
-class RenderOptions(TypedDict):
+class RenderOptions(TypedDict, total=False):
     typemap: dict[str, str]
+    inputconverter: dict[str, str]
 
 
-FUNCNODES_RENDER_OPTIONS: RenderOptions = {
-    "typemap": {},
-}
+FUNCNODES_RENDER_OPTIONS: RenderOptions = {"typemap": {}, "inputconverter": {}}
 
 
 def update_render_options(options: RenderOptions):

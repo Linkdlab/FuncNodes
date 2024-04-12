@@ -42,6 +42,6 @@ def get_logger(name, propagate=True):
     sublogger = FUNCNODES_LOGGER.getChild(name)
     _overwrite_add_handler(sublogger)
     sublogger.propagate = propagate
-
+    sublogger.addHandler(ch)
     # _init_logger(sublogger)
     return sublogger

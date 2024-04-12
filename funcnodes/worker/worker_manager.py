@@ -10,7 +10,7 @@ from typing import List
 from funcnodes.worker.websocket import WSWorker
 import threading
 
-from funcnodes.worker.worker import WorkerJson
+from funcnodes.worker.worker import WorkerJson, WorkerState
 
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 
@@ -89,43 +89,12 @@ def create_worker_env(workerconfig: WorkerJson):
 
 def start_worker(workerconfig: WorkerJson):
 
-    create_worker_env(workerconfig)
-
-    if os.name == "nt":  # Windows
-        pypath = os.path.join(workerconfig["env_path"], "Scripts", "python")
-    else:  # Linux
-        pypath = os.path.join(workerconfig["env_path"], "bin", "python")
-
-    # print funcnodes location
-
-    print(f"Funcnodes location: {fn.__path__[0]} {DEVMODE}")
-    if DEVMODE:
-        ## if in development mode, copy the current funcnodes to the worker env
-        fn.FUNCNODES_LOGGER.info(
-            f"Copying funcnodes to worker env {workerconfig['env_path']}"
-        )
-
-        if os.name == "nt":
-            packedir = os.path.join(workerconfig["env_path"], "Lib", "site-packages")
-        else:
-            packedir = os.path.join(workerconfig["env_path"], "lib", "site-packages")
-
-        funcnodesdir = os.path.join(packedir, "funcnodes")
-
-        shutil.copytree(fn.__path__[0], funcnodesdir, dirs_exist_ok=True)
-
-        # run poetry install in the worker env
-        subprocess.run(
-            [pypath, "-m", "pip", "install", "-r", "requirements.txt"],
-            check=True,
-            cwd=os.path.join(fn.__path__[0], ".."),
-        )
-
     run_in_new_process(
-        pypath,
+        workerconfig["python_path"],
         "-m",
         "funcnodes",
-        "startworker",
+        "worker",
+        "start",
         f"--uuid={workerconfig['uuid']}",
         #  cwd=os.path.join(workerconfig["data_path"], ".."),
     )
@@ -199,7 +168,7 @@ class WorkerManager:
         self._is_running = True
         l_rl = 0
         while self._is_running:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
             for conn in self._connections:
                 if conn.closed:
                     self._connections.remove(conn)
@@ -217,9 +186,14 @@ class WorkerManager:
     ):
         fn.FUNCNODES_LOGGER.debug(f"New connection: {websocket}")
         self._connections.append(websocket)
-        async for message in websocket:
-            await self._handle_message(message, websocket)
-        self._connections.remove(websocket)
+        try:
+            async for message in websocket:
+                await self._handle_message(message, websocket)
+        except (websockets.exceptions.WebSocketException,):
+            pass
+        finally:
+            if websocket in self._connections:
+                self._connections.remove(websocket)
 
     async def _handle_message(
         self, message: str, websocket: websockets.WebSocketServerProtocol
@@ -258,6 +232,8 @@ class WorkerManager:
                 elif msg["type"] == "restart_worker":
                     await self.stop_worker(msg["workerid"], websocket)
                     return await self.activate_worker(msg["workerid"], websocket)
+                elif msg["type"] == "new_worker":
+                    return await self.new_worker(**msg.get("kwargs", {}))
 
             except json.JSONDecodeError as e:
                 pass
@@ -336,14 +312,8 @@ class WorkerManager:
             return True
         return False
 
-    async def reload_workers(self):
-        active_worker: List[WorkerJson] = []
-        inactive_worker: List[WorkerJson] = []
-        active_worker_ids: List[WorkerJson] = []
-        inactive_worker_ids: List[WorkerJson] = []
-
-        workerchecks = []
-        workerconfigs = {}
+    def get_all_workercfg(self):
+        workerconfigs: List[WorkerJson] = []
         for f in os.listdir(self._worker_dir):
             if f.startswith("worker_") and f.endswith(".json"):
                 with open(
@@ -356,14 +326,36 @@ class WorkerManager:
                 if workerconfig["type"] == "TestWorker":
                     os.remove(os.path.join(self._worker_dir, f))
                     continue
+                workerconfigs.append(workerconfig)
 
-                workerconfigs[workerconfig["uuid"]] = workerconfig
+        return workerconfigs
 
-                thread = ReturnValueThread(
-                    target=sync_check_worker, args=(workerconfig,)
-                )
-                workerchecks.append(thread)
-                thread.start()
+    async def reload_workers(self):
+        active_worker: List[WorkerJson] = []
+        inactive_worker: List[WorkerJson] = []
+        active_worker_ids: List[WorkerJson] = []
+        inactive_worker_ids: List[WorkerJson] = []
+
+        workerchecks = []
+        workerconfigs = {}
+        for workerconfig in self.get_all_workercfg():
+            workerconfigs[workerconfig["uuid"]] = workerconfig
+            pfile = os.path.join(self._worker_dir, f"worker_{workerconfig['uuid']}.p")
+            if os.path.exists(pfile):
+                for wc in self._inactive_workers:
+                    if wc["uuid"] == workerconfig["uuid"]:
+                        self._inactive_workers.remove(wc)
+                self._active_workers.append(workerconfig)
+            else:
+                for wc in self._active_workers:
+                    if wc["uuid"] == workerconfig["uuid"]:
+                        self._active_workers.remove(wc)
+                self._inactive_workers.append(workerconfig)
+
+            thread = ReturnValueThread(target=sync_check_worker, args=(workerconfig,))
+            workerchecks.append(thread)
+            thread.start()
+        await self.broadcast_worker_status()
 
         while any([t.is_alive() for t in workerchecks]):
             await asyncio.sleep(0.1)
@@ -392,12 +384,15 @@ class WorkerManager:
         print(f"Active workers: {active_worker_ids}")
         print(f"inactive workers: {inactive_worker_ids}")
 
+        await self.broadcast_worker_status()
+
+    async def broadcast_worker_status(self):
         await self.broadcast(
             json.dumps(
                 {
                     "type": "worker_status",
-                    "active": active_worker,
-                    "inactive": inactive_worker,
+                    "active": self._active_workers,
+                    "inactive": self._inactive_workers,
                 }
             )
         )
@@ -448,12 +443,21 @@ class WorkerManager:
                 )
                 response = await asyncio.wait_for(ws.recv(), timeout=1)
                 response = json.loads(response)
-                if response["result"] is True:
+                if response.get("result") is True:
                     while workerid in [w["uuid"] for w in self._active_workers]:
                         await asyncio.sleep(0.5)
                         print("Waiting for worker to stop.")
+
+                for worker in self._active_workers:
+                    if worker["uuid"] == workerid:
+                        self._active_workers.remove(worker)
+                        self._inactive_workers.append(worker)
+                        break
+
         except Exception:
-            pass
+            raise
+
+        await self.broadcast_worker_status()
 
         await self.reset_progress_state(
             websocket=websocket,
@@ -567,10 +571,40 @@ class WorkerManager:
                 websocket=websocket,
             )
 
-    async def new_worker(self):
-        new_worker = WSWorker()
+    async def new_worker(
+        self,
+        name: str = None,
+        reference: str = None,
+        copyLib: bool = False,
+        copyNS: bool = False,
+    ):
+        ref_cfg = None
+        if reference:
+            for cfg in self.get_all_workercfg():
+                if cfg["uuid"] == reference:
+                    ref_cfg = cfg
+                    break
+        new_worker = WSWorker(name=name)
         new_worker.ini_config()
         new_worker.stop()
+        c = new_worker.generate_config()
+        if name:
+            c["name"] = name
+        if ref_cfg:
+            c["python_path"] = ref_cfg["python_path"]
+            if copyLib:
+                c["shelves_dependencies"] = ref_cfg["shelves_dependencies"]
+            if copyNS:
+                nsfile = os.path.join(ref_cfg["data_path"], "nodespace.json")
+                if os.path.exists(nsfile):
+                    with open(nsfile, "r", encoding="utf-8") as file:
+                        ns: WorkerState = json.load(file)
+                    nsd = dict(ns)
+                    del nsd["meta"]
+                nsfile = os.path.join(c["data_path"], "nodespace.json")
+                with open(nsfile, "w", encoding="utf-8") as file:
+                    json.dump(nsd, file, indent=4)
+        new_worker.write_config(c)
         await self.reload_workers()
 
     # def start_worker(workerconfig):
