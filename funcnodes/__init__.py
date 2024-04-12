@@ -61,6 +61,6 @@ __all__ = [
     "RenderOptions",
 ]
 
-__version__ = "0.1.20"
+__version__ = "0.1.30"
 
 DEBUG = True
