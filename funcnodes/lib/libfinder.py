@@ -33,7 +33,12 @@ def find_shelf_from_module(
             strmod = mod["module"]
         else:
             strmod = mod
+
+        # submodules = strmod.split(".")
+
         mod = importlib.import_module(strmod)
+        # for submod in submodules[1:]:
+        #     mod = getattr(mod, submod)
         dat["module"] = strmod
         return module_to_shelf(mod), dat
 
@@ -110,6 +115,7 @@ def find_shelf(src: Union[ShelfDict, str]) -> Tuple[Shelf, ShelfDict] | None:
 
         if "path" in src:
             dat = find_shelf_from_path(src["path"])
+            return dat
 
         return None
 
