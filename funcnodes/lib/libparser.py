@@ -3,6 +3,7 @@ from .lib import Shelf, Node
 from ..config import update_render_options
 import inspect
 from warnings import warn
+from .._logging import FUNCNODES_LOGGER
 
 
 def module_to_shelf(mod, name: Optional[str] = None) -> Shelf:
@@ -10,6 +11,7 @@ def module_to_shelf(mod, name: Optional[str] = None) -> Shelf:
     Parses a single module for Nodes and and returns a filled shelf object.
     """  #
 
+    FUNCNODES_LOGGER.debug(f"parsing module {mod}")
     if not name:
         if hasattr(mod, "__name__"):
             name = str(mod.__name__)

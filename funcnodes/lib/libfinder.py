@@ -87,10 +87,46 @@ def find_shelf_from_package(
 def find_shelf_from_path(
     path: Union[str, PathShelfDict]
 ) -> Union[Tuple[Shelf, PathShelfDict], None]:
-    data = {}
-    if isinstance(path, dict):
-        if path["path"] not in sys.path:
-            sys.path.append(path["path"])
+
+    if isinstance(path, str):
+        path = path.replace("\\", os.sep).replace("/", os.sep)
+        path = path.strip(os.sep)
+
+        data = PathShelfDict(
+            path=os.path.dirname(os.path.abspath(path)),
+            module=os.path.basename(path),
+        )
+    else:
+        data = path
+
+    if not os.path.exists(data["path"]):
+        raise FileNotFoundError(f"file {data['path']} not found")
+
+    if data["path"] not in sys.path:
+        sys.path.insert(0, data["path"])
+
+    # install requirements
+
+    if "pyproject.toml" in os.listdir(data["path"]):
+        fn.FUNCNODES_LOGGER.debug(f"pyproject.toml found, generating requirements.txt")
+        # install poetry requirements
+        # save current path
+        cwd = os.getcwd()
+        # cd into the module path
+        os.chdir(data["path"])
+        # install via poetry
+        os.system(f"poetry update --no-interaction")
+        os.system(
+            f"poetry export --without-hashes -f requirements.txt --output requirements.txt"
+        )
+        # cd back
+        os.chdir(cwd)
+    if "requirements.txt" in os.listdir(data["path"]):
+        fn.FUNCNODES_LOGGER.debug(f"requirements.txt found, installing requirements")
+        # install pip requirements
+        os.system(
+            f"{sys.executable} -m pip install -r {os.path.join(data['path'],'requirements.txt')}"
+        )
 
     ndata = find_shelf_from_module(data)
     if ndata is not None:
@@ -100,6 +136,12 @@ def find_shelf_from_path(
 
 def find_shelf(src: Union[ShelfDict, str]) -> Tuple[Shelf, ShelfDict] | None:
     if isinstance(src, dict):
+        if "path" in src:
+            dat = find_shelf_from_path(src)
+            if dat is not None:
+                dat[1].update(src)
+            return dat
+
         if "module" in src:
             dat = find_shelf_from_module(src)
 
@@ -112,10 +154,6 @@ def find_shelf(src: Union[ShelfDict, str]) -> Tuple[Shelf, ShelfDict] | None:
             if dat is not None:
                 dat[1].update(src)
                 return dat
-
-        if "path" in src:
-            dat = find_shelf_from_path(src["path"])
-            return dat
 
         return None
 
@@ -130,51 +168,8 @@ def find_shelf(src: Union[ShelfDict, str]) -> Tuple[Shelf, ShelfDict] | None:
     # check if file path:
     if src.startswith("file://"):
         # unifiy path between windows and linux
-        src = src.replace("\\", "/")
-        src = src[7:].strip("/")
-        # check if file exists
-        fn.FUNCNODES_LOGGER.debug(f"try get module from file: {src}")
-        if not os.path.exists(src):
-            raise FileNotFoundError(f"file {src} not found")
-
-        # get module path
-        mod_path = os.path.dirname(src)
-        mod_name = os.path.basename(src)
-        if mod_path not in sys.path:
-            sys.path.append(mod_path)
-        if "pyproject.toml" in os.listdir(mod_path):
-            fn.FUNCNODES_LOGGER.debug(
-                f"pyproject.toml found, generating requirements.txt"
-            )
-            # install poetry requirements
-            # save current path
-            cwd = os.getcwd()
-            # cd into the module path
-            os.chdir(mod_path)
-            # install via poetry
-            os.system(f"poetry update --no-interaction")
-            os.system(
-                f"poetry export --without-hashes -f requirements.txt --output requirements.txt"
-            )
-            # cd back
-            os.chdir(cwd)
-        if "requirements.txt" in os.listdir(mod_path):
-            fn.FUNCNODES_LOGGER.debug(
-                f"requirements.txt found, installing requirements"
-            )
-            # install pip requirements
-            os.system(
-                f"{sys.executable} -m pip install -r {os.path.join(mod_path,'requirements.txt')}"
-            )
-
-        try:
-            mod = importlib.import_module(mod_name)
-            return module_to_shelf(mod), {
-                "module": mod_name,
-            }
-        except ModuleNotFoundError as e:
-            fn.FUNCNODES_LOGGER.exception(e)
-            return None
+        src = src[7:]
+        return find_shelf_from_path(src)
 
     # try to get via pip
     os.system(f"{sys.executable} -m pip install {src} -q")
