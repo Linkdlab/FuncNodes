@@ -27,8 +27,7 @@ from .eventmanager import (
     emit_after,
     EventEmitterMixin,
 )
-from .utils.serialization import JSONEncoder, JSONDecoder
-import json
+from .utils.serialization import JSONEncoder
 
 from .utils import (
     run_until_complete,
@@ -305,11 +304,11 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             self.default_render_options,  # type: ignore
         )
 
-        self._io_options: Dict[
-            str, NodeInputOptions | NodeOutputOptions
-        ] = deep_fill_dict(
-            io_options or {},  # type: ignore
-            self.default_io_options,  # type: ignore
+        self._io_options: Dict[str, NodeInputOptions | NodeOutputOptions] = (
+            deep_fill_dict(
+                io_options or {},  # type: ignore
+                self.default_io_options,  # type: ignore
+            )
         )
 
         self._disabled = False
@@ -675,16 +674,18 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             asyncio.Task: The task object representing the asynchronous operation of the node's function.
         """
 
-        kwargs = {ip.uuid: ip.value for ip in self._inputs if ip.value is not NoValue}
-        if "_triggerinput" in kwargs:
-            del kwargs["_triggerinput"]
-
-        async def _wrapped_func(**kwargs):
+        async def _wrapped_func():
             """Wraps the node's function to handle the triggering of events before and after its execution."""
             # set the trigger event
             await self.asynceventmanager.set_and_clear("triggered")
             self.emit("triggerstart")
             # run the function
+
+            kwargs = {
+                ip.uuid: ip.value for ip in self._inputs if ip.value is not NoValue
+            }
+            if "_triggerinput" in kwargs:
+                del kwargs["_triggerinput"]
             try:
                 ans = await self.func(**kwargs)
             except Exception as e:
@@ -701,7 +702,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             return ans
 
         # create the task
-        task = asyncio.create_task(_wrapped_func(**kwargs))
+        task = asyncio.create_task(_wrapped_func())
         return task
 
     def trigger_if_requested(self, triggerstack: Optional[TriggerStack] = None):
