@@ -6,21 +6,32 @@ VALID_JSON_TYPE = Union[int, float, str, bool, list, dict, type(None)]
 
 
 class JSONDecoder(json.JSONDecoder):
-    decoder: List[Callable[[Any], tuple[Union[VALID_JSON_TYPE, Any], bool]]] = []
+    decoder: List[Callable[[VALID_JSON_TYPE], tuple[Any, bool]]] = []
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["object_hook"] = JSONDecoder._object_hook
+        super().__init__(*args, **kwargs)
 
     @classmethod
-    def add_decoder(
-        cls, dec: Callable[[Any], tuple[Union[VALID_JSON_TYPE, Any], bool]]
-    ):
+    def add_decoder(cls, dec: Callable[[VALID_JSON_TYPE], tuple[Any, bool]]):
         cls.decoder.append(dec)
 
-    def decode(self, s: str):
-        res = super().decode(s)
+    @classmethod
+    def _object_hook(cls, obj: VALID_JSON_TYPE):
+        """"""
+        if isinstance(obj, dict):
+            for key in list(obj.keys()):
+                obj[key] = cls._object_hook(obj[key])
+            return obj
+        elif isinstance(obj, list):
+            obj = [cls._object_hook(item) for item in obj]
+            return obj
+
         for dec in JSONDecoder.decoder:
-            res, handled = dec(res)
+            res, handled = dec(obj)
             if handled:
                 return res
-        return res
+        return obj
 
 
 encodertyoe = Callable[
