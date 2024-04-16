@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Optional, TypedDict, Literal
 import websockets
-from funcnodes import NodeSpace, JSONEncoder
+from funcnodes import NodeSpace, JSONEncoder, JSONDecoder
 from funcnodes.worker import RemoteWorker, CustomLoop
 from .worker import (
     CmdMessage,
@@ -49,7 +49,7 @@ class WSLoop(CustomLoop):
         self.clients.append(websocket)
         try:
             async for message in websocket:
-                json_msg = json.loads(message)
+                json_msg = json.loads(message, cls=JSONDecoder)
                 await self._worker.recieve_message(json_msg, websocket=websocket)
 
         except (websockets.exceptions.WebSocketException,):
