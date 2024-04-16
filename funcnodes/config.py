@@ -4,6 +4,7 @@ import json
 from .utils import deep_fill_dict
 
 from dotenv import load_dotenv
+from exposedfunctionality.function_parser.types import type_to_string
 
 load_dotenv(override=True)
 
@@ -65,6 +66,30 @@ FUNCNODES_RENDER_OPTIONS: RenderOptions = {"typemap": {}, "inputconverter": {}}
 def update_render_options(options: RenderOptions):
     if not isinstance(options, dict):
         return
+    if "typemap" not in options:
+        options["typemap"] = {}
+    for k, v in list(options["typemap"].items()):
+        if not isinstance(k, str):
+            del options["typemap"][k]
+            k = type_to_string(k)
+            options["typemap"][k] = v
+
+        if not isinstance(v, str):
+            v = type_to_string(v)
+            options["typemap"][k] = v
+
+    if "inputconverter" not in options:
+        options["inputconverter"] = {}
+    for k, v in list(options["inputconverter"].items()):
+        if not isinstance(k, str):
+            del options["typemap"][k]
+            k = type_to_string(k)
+            options["inputconverter"][k] = v
+        if not isinstance(v, str):
+            v = type_to_string(v)
+            options["inputconverter"][k] = v
+        FUNCNODES_RENDER_OPTIONS["inputconverter"][k] = v
+
     # make sure its json serializable
     try:
         json.dumps(options)
