@@ -26,21 +26,24 @@ ShelfDict = Union[BaseShelfDict, PackageShelfDict, PathShelfDict]
 def find_shelf_from_module(
     mod: Union[str, BaseShelfDict]
 ) -> Union[Tuple[Shelf, BaseShelfDict], None]:
-    dat = {}
+
     try:
+        strmod: str
         if isinstance(mod, dict):
             dat = mod
             strmod = mod["module"]
         else:
             strmod = mod
+            dat = BaseShelfDict(module=strmod)
 
         # submodules = strmod.split(".")
 
-        mod = importlib.import_module(strmod)
+        module = importlib.import_module(strmod)
+
         # for submod in submodules[1:]:
         #     mod = getattr(mod, submod)
-        dat["module"] = strmod
-        return module_to_shelf(mod), dat
+
+        return module_to_shelf(module), dat
 
     except (ModuleNotFoundError, KeyError) as e:
         fn.FUNCNODES_LOGGER.exception(e)
@@ -68,6 +71,7 @@ def find_shelf_from_package(
             data["module"] = data["package"]
             basesrc = pgk
         data["version"] = basesrc.replace(data["package"], "")
+        data = PackageShelfDict(**data)
         try:
             os.system(
                 f"{sys.executable} -m pip install {data['package']}{data['version']} --upgrade -q"
@@ -172,13 +176,5 @@ def find_shelf(src: Union[ShelfDict, str]) -> Tuple[Shelf, ShelfDict] | None:
         return find_shelf_from_path(src)
 
     # try to get via pip
-    os.system(f"{sys.executable} -m pip install {src} -q")
-    try:
-        mod = importlib.import_module(src)
-        return module_to_shelf(mod), {
-            "module": src,
-        }
-    except ModuleNotFoundError as e:
-        fn.FUNCNODES_LOGGER.exception(e)
-
-    return None
+    dat = find_shelf_from_module(src)
+    return dat

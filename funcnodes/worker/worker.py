@@ -67,6 +67,7 @@ class WorkerState(TypedDict):
     view: ViewState
     meta: MetaInfo
     dependencies: dict[str, List[str]]
+    external_workers: Dict[str, List[str]]
 
 
 class ProgressState(TypedDict):
@@ -82,6 +83,7 @@ class FullState(TypedDict):
     worker: dict[str, list[str]]
     progress_state: ProgressState
     meta: MetaInfo
+    worker_dependencies: List[WorkerDict]
 
 
 class MEvent(TypedDict):
@@ -282,6 +284,230 @@ def requests_save(func):
         return wrapper
 
 
+class ExternalWorkerSerClass(TypedDict):
+    module: str
+    class_name: str
+    name: str
+    _classref: Type[FuncNodesExternalWorker]
+
+
+class BaseWorkerDict(TypedDict):
+    module: str
+    worker_classes: List[ExternalWorkerSerClass]
+
+
+class PackageWorkerDict(BaseWorkerDict):
+    package: str
+    version: str
+
+
+class PathWorkerDict(BaseWorkerDict):
+    path: str
+
+
+WorkerDict = Union[BaseWorkerDict, PackageWorkerDict, PathWorkerDict]
+
+
+def module_to_worker(mod) -> List[Type[FuncNodesExternalWorker]]:
+    """
+    Parses a single module for FuncNodesExternalWorker.
+    """  #
+
+    funcnodes.FUNCNODES_LOGGER.debug(f"parsing module {mod}")
+    classes: List[Type[FuncNodesExternalWorker]] = []
+    for sn in ["FUNCNODES_WORKER_CLASSES"]:  # typo in the original code
+        if hasattr(mod, sn):
+            worker_classes = getattr(mod, sn)
+            if isinstance(worker_classes, (list, tuple)):
+                for worker_class in worker_classes:
+                    if issubclass(worker_class, FuncNodesExternalWorker):
+                        classes.append(worker_class)
+            elif issubclass(worker_classes, FuncNodesExternalWorker):
+                classes.append(worker_classes)
+
+            else:
+                raise ValueError(
+                    f"FUNCNODES_WORKER_CLASSES in {mod} "
+                    "is not a list of FuncNodesExternalWorker classes "
+                    "or a FuncNodesExternalWorker class"
+                )
+
+    return classes
+
+
+def find_worker_from_path(
+    path: Union[str, PathWorkerDict]
+) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
+    if isinstance(path, str):
+        path = path.replace("\\", os.sep).replace("/", os.sep)
+        path = path.strip(os.sep)
+
+        data = PathWorkerDict(
+            path=os.path.dirname(os.path.abspath(path)),
+            module=os.path.basename(path),
+            worker_classes=[],
+        )
+    else:
+        data = path
+
+    if not os.path.exists(data["path"]):
+        raise FileNotFoundError(f"file {data['path']} not found")
+
+    if data["path"] not in sys.path:
+        sys.path.insert(0, data["path"])
+
+    # install requirements
+    if "pyproject.toml" in os.listdir(data["path"]):
+        funcnodes.FUNCNODES_LOGGER.debug(
+            f"pyproject.toml found, generating requirements.txt"
+        )
+        # install poetry requirements
+        # save current path
+        cwd = os.getcwd()
+        # cd into the module path
+        os.chdir(data["path"])
+        # install via poetry
+        os.system(f"poetry update --no-interaction")
+        os.system(
+            f"poetry export --without-hashes -f requirements.txt --output requirements.txt"
+        )
+        # cd back
+        os.chdir(cwd)
+    if "requirements.txt" in os.listdir(data["path"]):
+        funcnodes.FUNCNODES_LOGGER.debug(
+            f"requirements.txt found, installing requirements"
+        )
+        # install pip requirements
+        os.system(
+            f"{sys.executable} -m pip install -r {os.path.join(data['path'],'requirements.txt')}"
+        )
+
+    ndata = find_worker_from_module(data)
+    if ndata is not None:
+        return ndata[0], PackageWorkerDict(**{**data, **ndata[1]})
+
+
+def find_worker_from_module(
+    mod: Union[str, BaseWorkerDict]
+) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
+    try:
+        strmod: str
+        if isinstance(mod, dict):
+            dat = mod
+            strmod = mod["module"]
+        else:
+            strmod = mod
+            dat = BaseWorkerDict(module=strmod, worker_classes=[])
+
+        # submodules = strmod.split(".")
+
+        module = importlib.import_module(strmod)
+
+        # for submod in submodules[1:]:
+        #     mod = getattr(mod, submod)
+        workercls = module_to_worker(module)
+        dat["worker_classes"] = []
+        for worker_class in workercls:
+            dat["worker_classes"].append(
+                {
+                    "module": strmod,
+                    "class_name": worker_class.__name__,
+                    "name": getattr(worker_class, "NAME", worker_class.__name__),
+                    "_classref": worker_class,
+                }
+            )
+
+        return workercls, dat
+
+    except (ModuleNotFoundError, KeyError) as e:
+        funcnodes.FUNCNODES_LOGGER.exception(e)
+        return None
+
+
+def find_worker_from_package(
+    pgk: Union[str, PackageWorkerDict],
+) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
+
+    if isinstance(pgk, str):
+        # remove possible version specifier
+        stripped_src = pgk.split("=", 1)[0]
+        stripped_src = pgk.split(">", 1)[0]
+        stripped_src = pgk.split("<", 1)[0]
+        stripped_src = pgk.split("~", 1)[0]
+        stripped_src = pgk.split("!", 1)[0]
+        stripped_src = pgk.split("@", 1)[0]
+        data = {}
+        data["package"] = stripped_src
+        if "/" in pgk:
+            data["module"] = pgk.rsplit("/", 1)[-1]
+            basesrc = pgk.rsplit("/", 1)[0]
+        else:
+            data["module"] = data["package"]
+            basesrc = pgk
+        data["version"] = basesrc.replace(data["package"], "")
+
+        data = PackageWorkerDict(
+            package=data["package"],
+            module=data["module"],
+            version=data["version"],
+            worker_classes=[],
+        )
+        try:
+            os.system(
+                f"{sys.executable} -m pip install {data['package']}{data['version']} --upgrade -q"
+            )
+        except Exception as e:
+            funcnodes.FUNCNODES_LOGGER.exception(e)
+            return None
+    else:
+        data = pgk
+
+    ndata = find_worker_from_module(data)
+    if ndata is not None:
+        return ndata[0], PackageWorkerDict(**{**data, **ndata[1]})
+
+
+def find_worker(
+    src: Union[WorkerDict, str]
+) -> Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict] | None:
+
+    if isinstance(src, dict):
+        if "path" in src:
+            dat = find_worker_from_path(src)
+
+            if dat is not None:
+                return dat
+
+        if "package" in src:
+            dat = find_worker_from_package(src)
+            if dat is not None:
+                return dat
+
+        if "module" in src:
+            dat = find_worker_from_module(src)
+
+            if dat is not None:
+                return dat
+
+        return None
+
+    # check if identifier is a python module e.g. "funcnodes.lib"
+    funcnodes.FUNCNODES_LOGGER.debug(f"trying to import {src}")
+
+    if src.startswith("pip://"):
+        src = src[6:]
+        return find_worker_from_package(src)
+
+    # check if file path:
+    if src.startswith("file://"):
+        # unifiy path between windows and linux
+        src = src[7:]
+        return find_worker_from_path(src)
+
+    # try to get via pip
+    return find_worker_from_module(src)
+
+
 class WorkerJson(TypedDict):
     type: str
     uuid: str
@@ -290,7 +516,8 @@ class WorkerJson(TypedDict):
     env_path: str
     python_path: str
 
-    shelves_dependencies: List[str | ShelfDict]
+    shelves_dependencies: List[ShelfDict]
+    worker_dependencies: List[WorkerDict]
 
 
 class RemoteWorkerJson(WorkerJson):
@@ -311,7 +538,8 @@ class Worker(ABC):
         if default_nodes is None:
             default_nodes = []
 
-        self._shelves_dependencies: List[str | ShelfDict] = []
+        self._shelves_dependencies: List[ShelfDict] = []
+        self._worker_dependencies: List[WorkerDict] = []
         self.loop_manager = LoopManager(self)
         self.nodespace = NodeSpace()
 
@@ -419,7 +647,7 @@ class Worker(ABC):
             "w+",
             encoding="utf-8",
         ) as f:
-            f.write(json.dumps(c, indent=2))
+            f.write(json.dumps(c, indent=2, cls=JSONEncoder))
 
         return c
 
@@ -428,6 +656,13 @@ class Worker(ABC):
             raise RuntimeError("Worker already running")
         self._write_process_file()
         c = self.write_config()
+
+        if "worker_dependencies" in c:
+            for dep in list(c["worker_dependencies"]):
+                try:
+                    self.add_worker_package(dep, save=False)
+                except Exception as e:
+                    self.logger.exception(e)
 
         if "shelves_dependencies" in c:
             for dep in c["shelves_dependencies"]:
@@ -444,13 +679,34 @@ class Worker(ABC):
         name = oldc.get("name") or self._name
         data_path = self.data_path
         env_path = os.path.abspath(os.path.join(self.data_path, "env"))
-        sds: List[str | ShelfDict] = []  # not using set to assure order
+        sds: List[ShelfDict] = []  # not using set to assure order
+
         for sd in oldc.get("shelves_dependencies", []):
             if sd not in sds:
                 sds.append(sd)
         for sd in self._shelves_dependencies:
             if sd not in sds:
                 sds.append(sd)
+
+        worker_dependencies: List[WorkerDict] = []
+
+        def w_in_without_classes(w: WorkerDict):
+            cs = w.copy()
+            cs["worker_classes"] = []
+            csj = json.dumps(cs, sort_keys=True, cls=JSONEncoder)
+            for w2 in worker_dependencies:
+                w2 = w2.copy()
+                w2["worker_classes"] = []
+                if csj == json.dumps(w2, sort_keys=True, cls=JSONEncoder):
+                    return True
+            return False
+
+        for w in self._worker_dependencies:
+            if not w_in_without_classes(w):
+                worker_dependencies.append(w)
+        for w in oldc.get("worker_dependencies", []):
+            if not w_in_without_classes(w):
+                worker_dependencies.append(w)
         python_path = sys.executable
         return WorkerJson(
             type=self.__class__.__name__,
@@ -460,6 +716,7 @@ class Worker(ABC):
             env_path=env_path,
             shelves_dependencies=sds,
             python_path=python_path,
+            worker_dependencies=worker_dependencies,
         )
 
     # region properties
@@ -489,7 +746,17 @@ class Worker(ABC):
     # endregion properties
 
     def add_local_worker(self, worker_class: Type[FuncNodesExternalWorker], nid: str):
+        print("AAAAAAA")
         return self.local_worker_lookup_loop.start_local_worker(worker_class, nid)
+
+    @exposed_method()
+    def add_external_worker(self, module: str, cls_module: str, cls_name: str):
+        for wdep in self._worker_dependencies:
+            if wdep["module"] == module:
+                for wcls in wdep["worker_classes"]:
+                    if wcls["class_name"] == cls_name and wcls["module"] == cls_module:
+                        return self.add_local_worker(wcls["_classref"], uuid4().hex)
+        raise ValueError(f"Worker {cls_name}({cls_module}) not found in {module}")
 
     # region states
     @exposed_method()
@@ -529,6 +796,10 @@ class Worker(ABC):
             "view": self.view_state(),
             "meta": self.get_meta(),
             "dependencies": self.nodespace.lib.get_dependencies(),
+            "external_workers": {
+                w.NODECLASSID: [i.uuid for i in w.running_instances()]
+                for w in self.local_worker_lookup_loop.worker_classes
+            },
         }
         return data
 
@@ -541,6 +812,7 @@ class Worker(ABC):
                 w.NODECLASSID: [i.uuid for i in w.running_instances()]
                 for w in self.local_worker_lookup_loop.worker_classes
             },
+            worker_dependencies=self._worker_dependencies,
             progress_state=self._progress_state,
             meta=self.get_meta(),
         )
@@ -596,6 +868,18 @@ class Worker(ABC):
             data["backend"] = {}
         if "view" not in data:
             data["view"] = {}
+
+        print("BBBB", data.keys())
+        if "external_workers" in data:
+            print(data["external_workers"])
+            for worker_id, worker_uuid in data["external_workers"].items():
+                print(
+                    worker_id, worker_uuid, self.local_worker_lookup_loop.worker_classes
+                )
+                for worker in self.local_worker_lookup_loop.worker_classes:
+                    if worker.NODECLASSID == worker_id:
+                        for instance in worker_uuid:
+                            self.add_local_worker(worker, instance)
 
         if "nodes" in data["backend"]:
             nodes = data["backend"]["nodes"]
@@ -653,7 +937,7 @@ class Worker(ABC):
         self.loop_manager.async_call(self.set_progress_state(*args, **kwargs))
 
     @exposed_method()
-    def add_shelf(self, src: str, save=True):
+    def add_shelf(self, src: Union[str, ShelfDict], save=True):
 
         self.set_progress_state_sync(
             message="Adding shelf", status="info", progress=0.0, blocking=True
@@ -681,6 +965,39 @@ class Worker(ABC):
     )
     def add_shelf_by_module(self, module: str):
         return self.add_shelf(module)
+
+    def add_worker_dependency(self, src: WorkerDict):
+        if src not in self._worker_dependencies:
+            self._worker_dependencies.append(src)
+            for worker_class in src["worker_classes"]:
+                if worker_class["_classref"] not in self.local_worker_lookup_loop.worker_classes:
+                    self.local_worker_lookup_loop.worker_classes.append(
+                        worker_class["_classref"]
+                    )
+
+    @exposed_method()
+    def add_worker_package(self, src: Union[str, WorkerDict], save=True):
+        self.set_progress_state_sync(
+            message="Adding worker", status="info", progress=0.0, blocking=True
+        )
+        try:
+            worker_data = find_worker(src=src)
+            if worker_data is None:
+                return {"error": f"Worker in {src} not found"}
+            worker, worker_data = worker_data
+
+            if worker is None:
+                raise ValueError(f"Worker in {src} not found")
+            self.add_worker_dependency(worker_data)
+
+            if save:
+                self.request_save()
+            self.set_progress_state_sync(
+                message="Worker added", status="success", progress=1, blocking=False
+            )
+        finally:
+            pass
+        return True
 
     # endregion library
 
@@ -911,7 +1228,7 @@ class RemoteWorker(Worker):
 
     async def send(self, data, **kwargs):
         data = json.dumps(data, cls=JSONEncoder)
-        self.logger.debug(f"Sending message {data}")
+        # self.logger.debug(f"Sending message {data}")
         await self.sendmessage(data, **kwargs)
 
     @abstractmethod
