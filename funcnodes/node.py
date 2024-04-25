@@ -684,13 +684,13 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             kwargs = {
                 ip.uuid: ip.value for ip in self._inputs if ip.value is not NoValue
             }
+            err = None
             if "_triggerinput" in kwargs:
                 del kwargs["_triggerinput"]
             try:
                 ans = await self.func(**kwargs)
             except Exception as e:
-                self.error(NodeTriggerError.from_error(e))
-                ans = e
+                err = e
             # reset the inputs if requested
             if self.reset_inputs_on_trigger:
                 for ip in self._inputs:
@@ -699,6 +699,9 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             self.emit("triggerdone")
             # set the triggerdone event
             await self.asynceventmanager.set_and_clear("triggerdone")
+            if err:
+                self.error(NodeTriggerError.from_error(err))
+                ans = err
             return ans
 
         # create the task
