@@ -87,6 +87,7 @@ def main():
         "--port",
         default=fn.config.CONFIG["frontend"]["port"],
         help="Port to run the server on",
+        type=int,
     )
     parser_runserver.add_argument(
         "--no-browser",
