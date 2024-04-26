@@ -7,7 +7,7 @@ import threading
 import funcnodes as fn
 import asyncio
 
-PORT = 8000
+PORT = 8029
 
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
