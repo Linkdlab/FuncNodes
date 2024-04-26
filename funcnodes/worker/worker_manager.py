@@ -373,7 +373,10 @@ class WorkerManager:
         for iid in inactive_worker_ids:
             pfile = os.path.join(self._worker_dir, f"worker_{iid}.p")
             if os.path.exists(pfile):
-                os.remove(pfile)
+                try:
+                    os.remove(pfile)
+                except Exception:
+                    pass
             inactive_worker.append(workerconfigs[iid])
 
         for aid in active_worker_ids:
