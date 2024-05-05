@@ -47,6 +47,57 @@ space.add_node(node)
 
 ## Documentation
 
+Here's a quick example to get you started with FuncNodes:
+
+```python
+from funcnodes import Node, NodeDecorator, NodeSpace
+
+# Define a custom node using the base class
+class MyNode(Node):
+    node_id = "mynode"
+    node_name = "My Custom Node"
+
+    async def func(self, input_data):
+        # Process input_data and return the result
+        return processed_data
+
+# Alternatively, define a custom node using the decorator
+@NodeDecorator(node_id="mynode_decorator", node_name="My Decorated Node")
+async def my_decorated_node_func(input_data):
+    # Process input_data and return the result
+    return processed_data
+
+# Create a node space and add nodes
+space = NodeSpace()
+node = MyNode()
+decorated_node = my_decorated_node_func()
+space.add_node(node)
+space.add_node(decorated_node)
+
+# Connect nodes and trigger processing
+# ... (additional code to connect and use nodes)
+```
+
+## Creating Custom Nodes
+
+To create custom nodes in FuncNodes, you can either subclass the `Node` base class or use the `@NodeDecorator` to convert a regular function into a node.
+
+### Using the Base Class
+
+Subclass the `Node` base class and define the `node_id` and `node_name` class attributes. Implement the `async def func(self, input_data)` method to define the node's functionality.
+
+### Using the Decorator
+
+Decorate an asynchronous function with `@NodeDecorator`, providing the `node_id` and `node_name`. The function's parameters will be treated as node inputs, and the return value as the node output.
+
+### Requirements
+
+When creating nodes, ensure that:
+
+- Each node has a unique `node_id`.
+- The `func` method or decorated function is an asynchronous coroutine.
+- Inputs and outputs are properly managed within the `func` method.
+
 For more detailed documentation, visit [FuncNodes Documentation](https://link-to-funcnodes-docs).
 
 ## Contributing
