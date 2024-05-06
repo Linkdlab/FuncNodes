@@ -6,6 +6,7 @@ from .io import (
     NodeOutputSerialization,
     NodeConnectionError,
     MultipleConnectionsError,
+    NoValue,
     SameNodeConnectionError,
 )
 from .utils import run_until_complete, JSONEncoder, JSONDecoder
@@ -21,6 +22,7 @@ from .worker import (
     WorkerManager,
     assert_worker_manager_running,
 )
+
 from . import config
 from .config import RenderOptions
 
@@ -59,6 +61,7 @@ __all__ = [
     "assert_worker_manager_running",
     "config",
     "RenderOptions",
+    "NoValue",
 ]
 
 __version__ = "0.2.0"
