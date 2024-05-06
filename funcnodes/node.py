@@ -455,12 +455,28 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         return self._triggerstack
 
     @property
-    def outputs(self):
+    def outputs(self) -> Dict[str, NodeOutput]:
+        """returns a dictionary of the outputs of this node
+        in the format {output.uuid:output}
+        """
         return {op.uuid: op for op in self._outputs}
 
     @property
-    def inputs(self):
+    def o(self) -> Dict[str, NodeOutput]:
+        """short for self.outputs"""
+        return self.outputs
+
+    @property
+    def inputs(self) -> Dict[str, NodeInput]:
+        """returns a dictionary of the inputs of this node
+        in the format {input.uuid:input}
+        """
         return {ip.uuid: ip for ip in self._inputs}
+
+    @property
+    def i(self) -> Dict[str, NodeInput]:
+        """short for self.inputs"""
+        return self.inputs
 
     @property
     def in_trigger(self):
