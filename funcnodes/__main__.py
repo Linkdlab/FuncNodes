@@ -37,13 +37,21 @@ def start_existing_worker(args: argparse.Namespace):
 
     mng = fn.worker.worker_manager.WorkerManager()
     cfg = None
-    for cf in mng.get_all_workercfg():
-        if args.uuid and cf["uuid"] != args.uuid:
-            continue
-        if args.name and cf.get("name") != args.name:
-            continue
-        cfg = cf
-        break
+    if args.uuid:
+        for cf in mng.get_all_workercfg():
+            if cf["uuid"] == args.uuid:
+                cfg = cf
+                break
+
+        if cfg is None:
+            raise Exception("No worker found with the given uuid")
+
+    if args.name:
+        if cfg is None:
+            for cf in mng.get_all_workercfg():
+                if cf.get("name") == args.name:
+                    cfg = cf
+                    break
 
     if cfg is None:
         raise Exception("No worker found with the given uuid or name")
