@@ -449,6 +449,9 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         """Alias for connect."""
         return self.connect(*args, **kwargs)
 
+    def __gt__(self, other):
+        self.connect(other)
+
     @emit_before()
     @emit_after()
     def disconnect(self, other: Optional[NodeIO] = None):
