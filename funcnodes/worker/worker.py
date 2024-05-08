@@ -746,7 +746,6 @@ class Worker(ABC):
     # endregion properties
 
     def add_local_worker(self, worker_class: Type[FuncNodesExternalWorker], nid: str):
-        print("AAAAAAA")
         return self.local_worker_lookup_loop.start_local_worker(worker_class, nid)
 
     @exposed_method()
@@ -970,7 +969,10 @@ class Worker(ABC):
         if src not in self._worker_dependencies:
             self._worker_dependencies.append(src)
             for worker_class in src["worker_classes"]:
-                if worker_class["_classref"] not in self.local_worker_lookup_loop.worker_classes:
+                if (
+                    worker_class["_classref"]
+                    not in self.local_worker_lookup_loop.worker_classes
+                ):
                     self.local_worker_lookup_loop.worker_classes.append(
                         worker_class["_classref"]
                     )

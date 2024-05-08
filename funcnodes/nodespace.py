@@ -23,6 +23,10 @@ from .utils.serialization import JSONEncoder, JSONDecoder
 
 
 class NodeException(Exception):
+    """
+    Base exception class for node exceptions.
+    """
+
     pass
 
 
@@ -49,10 +53,18 @@ class NodeSpaceJSON(TypedDict, total=False):
 
 class NodeSpace(EventEmitterMixin):
     """
-    NodeSpace is a collection of nodes and edges between them
+    NodeSpace is a manager and container for nodes and edges between them.
+    Also it contains a reference to a library of nodes.
     """
 
     def __init__(self, id: str | None = None):
+        """
+        Initializes a new NodeSpace object.
+
+        Args:
+          id (str | None): Optional ID for the NodeSpace. Defaults to None.
+
+        """
         super().__init__()
         self._nodes: Dict[str, Node] = {}
         self._properties: Dict[str, Any] = {}
@@ -64,14 +76,32 @@ class NodeSpace(EventEmitterMixin):
     # region Properties
     @property
     def id(self) -> str:
+        """
+        Returns the ID of the NodeSpace.
+
+        Returns:
+          str: The ID of the NodeSpace.
+        """
         return self._id
 
     @property
     def nodes(self) -> List[Node]:
+        """
+        Returns a list of all nodes in the NodeSpace.
+
+        Returns:
+          List[Node]: A list of all nodes in the NodeSpace.
+        """
         return list(self._nodes.values())
 
     @property
     def edges(self) -> List[Tuple[NodeOutput, NodeInput]]:
+        """
+        Returns a list of all edges in the NodeSpace.
+
+        Returns:
+          List[Tuple[NodeOutput, NodeInput]]: A list of all edges in the NodeSpace.
+        """
         edges: List[Tuple[NodeOutput, NodeInput]] = []
         for node in self.nodes:
             for output in node.outputs.values():
@@ -85,6 +115,12 @@ class NodeSpace(EventEmitterMixin):
     # region serialization
 
     def full_serialize(self) -> FullNodeSpaceJSON:
+        """
+        Serializes the NodeSpace and all of its nodes and edges.
+
+        Returns:
+          FullNodeSpaceJSON: A JSON object containing the serialized NodeSpace.
+        """
         return {
             "nodes": [node.full_serialize() for node in self.nodes],
             "prop": self._properties,
@@ -118,6 +154,12 @@ class NodeSpace(EventEmitterMixin):
             self.add_node_instance(node_instance)
 
     def deserialize_edges(self, data: List[Tuple[str, str, str, str]]):
+        """
+        Deserializes the edges in the NodeSpace.
+
+        Args:
+          data (List[Tuple[str, str, str, str]]): A list of tuples containing the UUIDs and IDs of the connected nodes.
+        """
         for output_uuid, output_id, input_uuid, input_id in data:
             try:
                 output = self.get_node_by_id(output_uuid).get_input_or_output(output_id)
@@ -143,6 +185,12 @@ class NodeSpace(EventEmitterMixin):
         return json.loads(json.dumps(ret, cls=JSONEncoder), cls=JSONDecoder)
 
     def serialize_edges(self) -> List[Tuple[str, str, str, str]]:
+        """
+        Serializes the edges in the NodeSpace.
+
+        Returns:
+          List[Tuple[str, str, str, str]]: A list of tuples containing the UUIDs and IDs of the connected nodes.
+        """
         return [
             (output.node.uuid, output.uuid, input.node.uuid, input.uuid)
             for output, input in self.edges
@@ -210,10 +258,25 @@ class NodeSpace(EventEmitterMixin):
         return node
 
     def on_node_event(self, event: str, src: Node, **data):
+        """
+        Handles events emitted by nodes in the NodeSpace.
+
+        Args:
+          event (str): The name of the event.
+          src (Node): The node that emitted the event.
+          **data: Additional data passed with the event.
+        """
         msg = MessageInArgs(node=src.uuid, **data)
         self.emit(event, msg)
 
     def on_node_error(self, src: Node, error: Exception):
+        """
+        Handles errors emitted by nodes in the NodeSpace.
+
+        Args:
+          src (Node): The node that emitted the error.
+          error (Exception): The error that was emitted.
+        """
         key = "node_error"
         if isinstance(error, NodeTriggerError):
             key = "node_trigger_error"
@@ -225,6 +288,15 @@ class NodeSpace(EventEmitterMixin):
         )
 
     def remove_node_instance(self, node: Node) -> str:
+        """
+        Removes a node instance from the NodeSpace.
+
+        Args:
+          node (Node): The node instance to remove.
+
+        Returns:
+          str: The UUID of the removed node.
+        """
         if node.uuid not in self._nodes:
             raise ValueError(f"node with uuid '{node.uuid}' not found in nodespace")
 
@@ -250,6 +322,16 @@ class NodeSpace(EventEmitterMixin):
         return uuid
 
     def add_node_by_id(self, id: str, **kwargs):
+        """
+        Adds a new node instance to the NodeSpace using its ID.
+
+        Args:
+          id (str): The ID of the node to add.
+          **kwargs: Additional keyword arguments to pass to the node constructor.
+
+        Returns:
+          Node: The newly added node instance.
+        """
         # find node in lib
         node_cls = self.lib.get_node_by_id(id)
         if node_cls is None:
@@ -259,6 +341,15 @@ class NodeSpace(EventEmitterMixin):
         return self.add_node_instance(node)
 
     def remove_node_by_id(self, nid: str) -> str | None:
+        """
+        Removes a node from the nodespace by its id.
+
+        Args:
+          nid (str): The id of the node to remove.
+
+        Returns:
+          str | None: The id of the removed node, or None if the node was not found.
+        """
         try:
             return self.remove_node_instance(self.get_node_by_id(nid))
         except ValueError as e:
@@ -267,6 +358,15 @@ class NodeSpace(EventEmitterMixin):
     # endregion add/remove nodes
 
     def get_node_by_id(self, nid: str) -> Node:
+        """
+        Gets a node from the nodespace by its id.
+
+        Args:
+          nid (str): The id of the node to get.
+
+        Returns:
+          Node: The node with the given id.
+        """
         if nid not in self._nodes:
             raise ValueError(f"node with id '{nid}' not found in nodespace")
         return self._nodes[nid]
@@ -281,6 +381,15 @@ class NodeSpace(EventEmitterMixin):
     # region lib
     @emit_after()
     def add_shelf(self, shelf: Shelf):
+        """
+        Adds a shelf to the nodespace's library.
+
+        Args:
+          shelf (Shelf): The shelf to add.
+
+        Returns:
+          Library: The updated library.
+        """
         self.lib.add_shelf(shelf)
         return self.lib
 

@@ -773,6 +773,12 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         if self.in_trigger:
             await self.asynceventmanager.wait("triggerdone")
 
+    async def await_until_complete(self):
+        """
+        Asynchronously runs the node until completion.
+        """
+        return await run_until_complete(self)
+
     def __await__(self):
         """
         Allows an instance of Node to be awaited. This will request the node to be triggered and

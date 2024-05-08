@@ -30,6 +30,18 @@ CONFIG_DIR = BASE_CONFIG_DIR
 
 
 def load_config(path):
+    """
+    Loads the configuration file.
+
+    Args:
+      path (str): The path to the configuration file.
+
+    Returns:
+      None
+
+    Examples:
+      >>> load_config("config.json")
+    """
     global CONFIG
     if not os.path.exists(path):
         config = DEFAULT_CONFIG
@@ -43,6 +55,15 @@ def load_config(path):
 
 
 def check_config_dir():
+    """
+    Checks the configuration directory.
+
+    Returns:
+      None
+
+    Examples:
+      >>> check_config_dir()
+    """
     global CONFIG_DIR
     if not os.path.exists(BASE_CONFIG_DIR):
         os.makedirs(BASE_CONFIG_DIR)
@@ -56,6 +77,13 @@ check_config_dir()
 
 
 class RenderOptions(TypedDict, total=False):
+    """
+    A typed dictionary for render options.
+
+    Attributes:
+      typemap (dict[str, str]): A dictionary mapping types to strings.
+      inputconverter (dict[str, str]): A dictionary mapping input types to strings.
+    """
     typemap: dict[str, str]
     inputconverter: dict[str, str]
 
@@ -64,6 +92,18 @@ FUNCNODES_RENDER_OPTIONS: RenderOptions = {"typemap": {}, "inputconverter": {}}
 
 
 def update_render_options(options: RenderOptions):
+    """
+    Updates the render options.
+
+    Args:
+      options (RenderOptions): The render options to update.
+
+    Returns:
+      None
+
+    Examples:
+      >>> update_render_options({"typemap": {"int": "int32"}, "inputconverter": {"str": "string"}})
+    """
     if not isinstance(options, dict):
         return
     if "typemap" not in options:

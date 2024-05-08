@@ -8,15 +8,39 @@ import funcnodes as fn
 
 
 class BaseShelfDict(TypedDict):
+    """
+    TypedDict for a base shelf dictionary.
+
+    Attributes:
+      module (str): The name of the module.
+    """
+
     module: str
 
 
 class PackageShelfDict(BaseShelfDict):
+    """
+    TypedDict for a package shelf dictionary.
+
+    Attributes:
+      package (str): The name of the package.
+      version (str): The version of the package.
+      module (str): The name of the module.
+    """
+
     package: str
     version: str
 
 
 class PathShelfDict(BaseShelfDict):
+    """
+    TypedDict for a path shelf dictionary.
+
+    Attributes:
+      path (str): The path to the module.
+      module (str): The name of the module.
+    """
+
     path: str
 
 
@@ -26,6 +50,15 @@ ShelfDict = Union[BaseShelfDict, PackageShelfDict, PathShelfDict]
 def find_shelf_from_module(
     mod: Union[str, BaseShelfDict]
 ) -> Union[Tuple[Shelf, BaseShelfDict], None]:
+    """
+    Finds a shelf from a module.
+
+    Args:
+      mod (Union[str, BaseShelfDict]): The module to find the shelf for.
+
+    Returns:
+      Union[Tuple[Shelf, BaseShelfDict], None]: The shelf and the shelf dictionary if found, None otherwise.
+    """
 
     try:
         strmod: str
@@ -39,7 +72,8 @@ def find_shelf_from_module(
         # submodules = strmod.split(".")
 
         module = importlib.import_module(strmod)
-
+        # reload module to get the latest version
+        importlib.reload(module)
         # for submod in submodules[1:]:
         #     mod = getattr(mod, submod)
 
@@ -51,8 +85,17 @@ def find_shelf_from_module(
 
 
 def find_shelf_from_package(
-    pgk: Union[str, PackageShelfDict]
+    pgk: Union[str, PackageShelfDict], update: bool = False
 ) -> Union[Tuple[Shelf, PackageShelfDict], None]:
+    """
+    Finds a shelf from a package.
+
+    Args:
+      pgk (Union[str, PackageShelfDict]): The package to find the shelf for.
+
+    Returns:
+      Union[Tuple[Shelf, PackageShelfDict], None]: The shelf and the shelf dictionary if found, None otherwise.
+    """
     data = {}
     if isinstance(pgk, str):
         ##remove possible version specifier
@@ -72,10 +115,15 @@ def find_shelf_from_package(
             basesrc = pgk
         data["version"] = basesrc.replace(data["package"], "")
         data = PackageShelfDict(**data)
+        call = f"{sys.executable} -m pip install {data['package']}{data['version']} -q"
+        if update:
+            call += " --upgrade"
         try:
-            os.system(
-                f"{sys.executable} -m pip install {data['package']}{data['version']} --upgrade -q"
-            )
+            os.system(call)
+            if (
+                update
+            ):  # if we updated the package we might need to call it again if the update is new
+                os.system(call)
         except Exception as e:
             fn.FUNCNODES_LOGGER.exception(e)
             return None
@@ -91,6 +139,15 @@ def find_shelf_from_package(
 def find_shelf_from_path(
     path: Union[str, PathShelfDict]
 ) -> Union[Tuple[Shelf, PathShelfDict], None]:
+    """
+    Finds a shelf from a path.
+
+    Args:
+      path (Union[str, PathShelfDict]): The path to find the shelf for.
+
+    Returns:
+      Union[Tuple[Shelf, PathShelfDict], None]: The shelf and the shelf dictionary if found, None otherwise.
+    """
 
     if isinstance(path, str):
         path = path.replace("\\", os.sep).replace("/", os.sep)
@@ -139,6 +196,15 @@ def find_shelf_from_path(
 
 
 def find_shelf(src: Union[ShelfDict, str]) -> Tuple[Shelf, ShelfDict] | None:
+    """
+    Finds a shelf from a shelf dictionary or a string.
+
+    Args:
+      src (Union[ShelfDict, str]): The shelf dictionary or string to find the shelf for.
+
+    Returns:
+      Tuple[Shelf, ShelfDict] | None: The shelf and the shelf dictionary if found, None otherwise.
+    """
     if isinstance(src, dict):
         if "path" in src:
             dat = find_shelf_from_path(src)
@@ -167,7 +233,7 @@ def find_shelf(src: Union[ShelfDict, str]) -> Tuple[Shelf, ShelfDict] | None:
 
     if src.startswith("pip://"):
         src = src[6:]
-        return find_shelf_from_package(src)
+        return find_shelf_from_package(src, update=True)
 
     # check if file path:
     if src.startswith("file://"):

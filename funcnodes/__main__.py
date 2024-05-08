@@ -8,10 +8,36 @@ import os
 
 
 def task_run_server(args: argparse.Namespace):
+    """
+    Runs the server.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Examples:
+      >>> task_run_server(args)
+      None
+    """
     run_server(port=args.port, open_browser=args.no_browser)
 
 
 def list_workers(args: argparse.Namespace):
+    """
+    Lists all workers.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Examples:
+      >>> list_workers(args)
+      None
+    """
     mng = fn.worker.worker_manager.WorkerManager()
     if args.full:
         pprint(mng.get_all_workercfg())
@@ -21,6 +47,19 @@ def list_workers(args: argparse.Namespace):
 
 
 def start_new_worker(args: argparse.Namespace):
+    """
+    Starts a new worker.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Examples:
+      >>> start_new_worker(args)
+      None
+    """
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
     fn.FUNCNODES_LOGGER.info(f"Starting new worker of type {args.workertype}")
 
@@ -29,6 +68,22 @@ def start_new_worker(args: argparse.Namespace):
 
 
 def start_existing_worker(args: argparse.Namespace):
+    """
+    Starts an existing worker.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Raises:
+      Exception: If no worker is found with the given uuid or name.
+
+    Examples:
+      >>> start_existing_worker(args)
+      None
+    """
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
 
     if args.uuid is None:
@@ -69,6 +124,22 @@ def start_existing_worker(args: argparse.Namespace):
 
 
 def task_worker(args: argparse.Namespace):
+    """
+    Performs a task on worker(s).
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Raises:
+      Exception: If the workertask is unknown.
+
+    Examples:
+      >>> task_worker(args)
+      None
+    """
 
     workertask = args.workertask
     if workertask == "start":
@@ -82,10 +153,33 @@ def task_worker(args: argparse.Namespace):
 
 
 def start_worker_manager(args: argparse.Namespace):
+    """
+    Starts the worker manager.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Examples:
+      >>> start_worker_manager(args)
+      None
+    """
     fn.worker.worker_manager.start_worker_manager()
 
 
 def main():
+    """
+    The main function.
+
+    Returns:
+      None
+
+    Examples:
+      >>> main()
+      None
+    """
     parser = argparse.ArgumentParser(description="Funcnodes Cli.")
     subparsers = parser.add_subparsers(dest="task", required=True)
 

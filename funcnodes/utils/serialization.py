@@ -6,14 +6,37 @@ VALID_JSON_TYPE = Union[int, float, str, bool, list, dict, type(None)]
 
 
 class JSONDecoder(json.JSONDecoder):
+    """
+    Custom JSON decoder that uses a list of decoders to decode JSON objects.
+
+    Args:
+      object_hook (Callable): A function that will be called with the result of any object literal decoded (a dict). The return value of object_hook will be used instead of the dict. This feature can be used to implement custom decoders (e.g. JSON-RPC class hinting).
+
+    Examples:
+      >>> JSONDecoder().decode('{"__complex__": true}', object_hook=complex_decoder)
+      (1+2j)
+    """
+
     decoder: List[Callable[[VALID_JSON_TYPE], tuple[Any, bool]]] = []
 
     def __init__(self, *args, **kwargs) -> None:
+        """
+        Initializes a new JSONDecoder object.
+        """
         kwargs["object_hook"] = JSONDecoder._object_hook
         super().__init__(*args, **kwargs)
 
     @classmethod
     def add_decoder(cls, dec: Callable[[VALID_JSON_TYPE], tuple[Any, bool]]):
+        """
+        Adds a new decoder to the list of decoders.
+
+        Args:
+          dec (Callable[[VALID_JSON_TYPE], tuple[Any, bool]]): A function that takes in a valid JSON type and returns a tuple containing the decoded object and a boolean indicating whether or not the object was decoded.
+
+        Examples:
+          >>> JSONDecoder.add_decoder(complex_decoder)
+        """
         cls.decoder.append(dec)
 
     @classmethod
@@ -34,19 +57,36 @@ class JSONDecoder(json.JSONDecoder):
         return obj
 
 
-encodertyoe = Callable[
+encodertype = Callable[
     [Any, bool],
-    Union[tuple[Any, Literal[True]], tuple[Any, Literal[False]]],
+    tuple[Any, bool],
 ]
 
 
 class JSONEncoder(json.JSONEncoder):
-    encoder: List[encodertyoe] = []
+    """
+    Custom JSON encoder that uses a list of encoders to encode JSON objects.
+    """
+
+    encoder: List[encodertype] = []
 
     default_preview = False
 
     @classmethod
-    def add_encoder(cls, enc: encodertyoe):
+    def add_encoder(cls, enc: encodertype):
+        """
+        Adds a new encoder to the list of encoders.
+
+        Args:
+          enc (encodertyoe): A function that takes in an object and a boolean indicating whether or not to use a default preview and returns a tuple containing the encoded object and a boolean indicating whether or not the object was encoded.
+
+        Examples:
+          >>> def complex_encoder(obj, preview=False):
+          ...     if isinstance(obj, complex):
+          ...         return {"__complex__": True}, True
+          ...     return obj, False
+          >>> JSONEncoder.add_encoder(complex_encoder)
+        """
         cls.encoder.append(enc)
 
     @classmethod
@@ -76,17 +116,29 @@ class JSONEncoder(json.JSONEncoder):
                 if handled:
                     return cls.apply_custom_encoding(res)
 
+        # Fallback to string representation
         return str(obj)
 
     def default(self, obj):
+        """
+        Applies custom encoding to an object.
+
+        Args:
+          obj (Any): The object to be encoded.
+
+        Returns:
+          Any: The encoded object.
+
+        Examples:
+          >>> JSONEncoder.default(obj)
+        """
         return self.apply_custom_encoding(obj, self.default_preview)
 
 
-class PreviewJSONEncoder(JSONEncoder):
-    default_preview = True
-
-
-def _repr_json_(obj, preview=False):
+def _repr_json_(obj, preview=False) -> Tuple[Any, bool]:
+    """
+    Encodes objects that have a _repr_json_ method.
+    """
     if hasattr(obj, "_repr_json_"):
         return obj._repr_json_(), True
     return obj, False
@@ -96,6 +148,9 @@ JSONEncoder.add_encoder(_repr_json_)
 
 
 def bytes_handler(obj, preview=False):
+    """
+    Encodes bytes objects to base64 strings.
+    """
     if isinstance(obj, bytes):
         # Convert bytes to base64 string
         if preview:
@@ -105,63 +160,3 @@ def bytes_handler(obj, preview=False):
 
 
 JSONEncoder.add_encoder(bytes_handler)
-
-
-def default_encodings(obj, preview=False):
-    if isinstance(obj, (tuple, set)):
-        return list(obj), True
-    if isinstance(obj, Exception):
-        return str(obj), True
-
-    return obj, False
-
-
-JSONEncoder.add_encoder(default_encodings)
-
-
-# Add image encoding
-try:
-    import cv2
-    from PIL import Image
-    import numpy as np
-
-    def cv2_imageHandler(obj: Image.Image, preview=False):
-        if isinstance(obj, Image.Image):
-
-            if preview:
-                obj.thumbnail((200, 200))
-
-            aobj = np.array(obj)
-
-            retval, buffer_cv2 = cv2.imencode(
-                ".jpeg",
-                cv2.cvtColor(aobj, cv2.COLOR_RGB2BGR),
-                [int(cv2.IMWRITE_JPEG_QUALITY), 50],
-            )
-            return buffer_cv2.tobytes(), True
-        return obj, False
-
-    JSONEncoder.add_encoder(cv2_imageHandler)
-except ImportError:
-    pass
-
-try:
-    from PIL import Image
-    import io
-
-    def imageHandler(obj: Image.Image, preview=False):
-        if isinstance(obj, Image.Image):
-            if preview:
-                obj.thumbnail((200, 200))
-
-            buffer = io.BytesIO()
-            obj.save(
-                buffer, format="webp", optimize=True, quality=50
-            )  # You can use 'JPEG' or other formats as needed
-            buffered_img_bytes = buffer.getvalue()
-            return buffered_img_bytes, True
-        return obj, False
-
-    JSONEncoder.add_encoder(imageHandler)
-except ImportError:
-    pass

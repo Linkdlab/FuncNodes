@@ -7,6 +7,10 @@ import requests
 
 
 class FileDownloadNode(Node):
+    """
+    Downloads a file from a given URL and returns the file's content as bytes.
+    """
+
     node_id = "file_dload"
     node_name = "File Download"
 
@@ -16,11 +20,26 @@ class FileDownloadNode(Node):
     data = NodeOutput(id="data", type=bytes)
 
     async def func(self, url: str, timeout: float) -> None:
+        """
+        Downloads a file from a given URL and sets the "data" output to the file's content as bytes.
+
+        Args:
+          url (str): The URL of the file to download.
+          timeout (float): The timeout in seconds for the download request.
+        """
         response = requests.get(url, timeout=timeout)
         self.outputs["data"].value = response.content
 
 
 class BytesToStringNode(Node):
+    """
+    Converts bytes to a string using the specified encoding.
+
+    Args:
+      data (bytes): The bytes to convert to a string.
+      encoding (str): The encoding to use for the conversion. Defaults to "utf-8".
+    """
+
     node_id = "bytes_to_str"
     node_name = "Bytes to String"
 
@@ -132,8 +151,14 @@ class BytesToStringNode(Node):
     string = NodeOutput(id="string", type=str)
 
     async def func(self, data: bytes, encoding: str) -> None:
+        """
+        Converts bytes to a string using the specified encoding and sets the "string" output to the result.
+
+        Args:
+          data (bytes): The bytes to convert to a string.
+          encoding (str): The encoding to use for the conversion.
+        """
         self.outputs["string"].value = data.decode(encoding, errors="replace")
 
 
 NODE_SHELF = module_to_shelf(sys.modules[__name__], name="files")
-

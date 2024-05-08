@@ -22,9 +22,33 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 
 
 def _overwrite_add_handler(logger):
+    """
+    Overwrites the addHandler method of the given logger.
+
+    Args:
+      logger (Logger): The logger to overwrite the addHandler method for.
+
+    Returns:
+      None.
+
+    Examples:
+      >>> _overwrite_add_handler(FUNCNODES_LOGGER)
+    """
     _old_add_handler = logger.addHandler
 
     def _new_add_handler(hdlr):
+        """
+    Adds a handler to the given logger.
+
+    Args:
+      hdlr (Handler): The handler to add to the logger.
+
+    Returns:
+      None.
+
+    Examples:
+      >>> _new_add_handler(ch)
+    """
         hdlr.setFormatter(formatter)
         if hdlr not in logger.handlers:
             _old_add_handler(hdlr)
@@ -39,6 +63,19 @@ FUNCNODES_LOGGER.addHandler(fh)
 
 
 def get_logger(name, propagate=True):
+    """
+    Returns a logger with the given name.
+
+    Args:
+      name (str): The name of the logger.
+      propagate (bool): Whether to propagate the logger's messages to its parent logger.
+
+    Returns:
+      Logger: The logger with the given name.
+
+    Examples:
+      >>> get_logger("funcnodes")
+    """
     sublogger = FUNCNODES_LOGGER.getChild(name)
     _overwrite_add_handler(sublogger)
     sublogger.propagate = propagate

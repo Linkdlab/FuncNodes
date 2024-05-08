@@ -38,6 +38,12 @@ class AsyncEventManager:
 
     @property
     def obj(self) -> Any:
+        """
+        Returns the object associated with the AsyncEventManager.
+
+        Returns:
+          Any: The object associated with the AsyncEventManager.
+        """
         return self._obj()
 
     async def wait(self, event: str) -> None:
@@ -111,20 +117,24 @@ class MessageInArgs(dict):
     """MessageInArgs class is a dictionary that has src as a reserved required keyword
     but also accepts arbitary other ones."""
 
-    def __init__(
-        self,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        # if "src" not in self:
-        #    raise ValueError("src is a required keyword")
-
     @property
     def src(self) -> EventEmitterMixin:
+        """
+        Returns the src property of the MessageInArgs object.
+
+        Returns:
+          EventEmitterMixin: The src property of the MessageInArgs object.
+        """
         return self["src"]
 
     @src.setter
     def src(self, value: EventEmitterMixin):
+        """
+        Sets the src property of the MessageInArgs object.
+
+        Args:
+          value (EventEmitterMixin): The value to set the src property to.
+        """
         if not isinstance(value, EventEmitterMixin):
             raise TypeError("src must be an instance of EventEmitterMixin")
         self["src"] = value
@@ -134,11 +144,28 @@ GenericMessageInArgs = TypeVar("GenericMessageInArgs", bound=MessageInArgs)
 
 
 class EventCallback(Protocol, Generic[GenericMessageInArgs]):
+    """
+    Callback Protocol for events.
+    """
+
     def __call__(self, **kwargs: Unpack[GenericMessageInArgs]) -> Any:  # type: ignore
+        """
+        Calls the EventCallback.
+
+        Args:
+          kwargs (Unpack[GenericMessageInArgs]): Keyword arguments for the callback.
+
+        Returns:
+          Any: The result of the callback.
+        """
         """Callback for events.""" ""
 
 
 class EventErrorCallback(Protocol):
+    """
+    Callback for event errors.
+    """
+
     def __call__(self, error: Exception, src: Any):
         """Callback for error events."""
 
@@ -152,6 +179,9 @@ class EventEmitterMixin:
     default_error_listeners: List[EventErrorCallback] = []
 
     def __init__(self, *args, **kwargs):
+        """
+        Initializes a new EventEmitterMixin object.
+        """
         self._events: Dict[str, List[EventCallback]] = {}
         self._error_events: List[EventErrorCallback] = []
         super().__init__(*args, **kwargs)
@@ -175,6 +205,9 @@ class EventEmitterMixin:
 
     # Ensure to call cleanup before the object is deleted
     def __del__(self):
+        """
+        Cleans up the EventEmitterMixin object upon deletion.
+        """
         self.cleanup()
 
     def on(self, event_name: str, callback: EventCallback):
@@ -251,6 +284,9 @@ class EventEmitterMixin:
         """
 
         def _callback(*args, **kwargs):
+            """
+            wrapper function to remove the listener after the first call.
+            """
             self.off(event_name, _callback)
             callback(*args, **kwargs)
 
@@ -267,6 +303,9 @@ class EventEmitterMixin:
         """
 
         def _callback(error: Exception, src: EventEmitterMixinGen):
+            """
+            wrapper function to remove the listener after the first call.
+            """
             self.off_error(_callback)
             callback(error, src=src)
 

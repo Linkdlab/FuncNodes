@@ -16,6 +16,14 @@ import asyncio
 
 
 class WSWorkerJson(RemoteWorkerJson):
+    """
+    TypedDict for WebSocket worker configuration.
+
+    Attributes:
+      host (str): The host address for the WebSocket server.
+      port (int): The port number for the WebSocket server.
+      ssl (bool): Whether to use SSL for the WebSocket server.
+    """
     host: str
     port: int
     ssl: bool
