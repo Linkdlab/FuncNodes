@@ -705,12 +705,12 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
                 del kwargs["_triggerinput"]
             try:
                 ans = await self.func(**kwargs)
+                # reset the inputs if requested
+                if self.reset_inputs_on_trigger:
+                    for ip in self._inputs:
+                        ip.set_value(ip.default, does_trigger=False)
             except Exception as e:
                 err = e
-            # reset the inputs if requested
-            if self.reset_inputs_on_trigger:
-                for ip in self._inputs:
-                    ip.value = NoValue
 
             self.emit("triggerdone")
             # set the triggerdone event
