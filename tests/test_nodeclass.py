@@ -70,10 +70,14 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
             test_node.trigger()
 
     async def test_double_node_id(self):
-        with self.assertRaises(NodeIdAlreadyExistsError):
+        with self.assertRaises(NodeIdAlreadyExistsError) as e:
 
             class DoubleNode(Node):
                 node_id = "dummy_node"
+
+        self.assertTrue(
+            str(e.exception).startswith, "Node with id 'dummy_node' already exists at"
+        )
 
     async def test_await_trigger(self):
         """Test awaiting a trigger."""

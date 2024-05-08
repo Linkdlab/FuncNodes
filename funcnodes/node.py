@@ -893,6 +893,23 @@ class FullNodeJSON(BaseNodeJSON):
 REGISTERED_NODES: Dict[str, Type[Node]] = {}
 
 
+def _get_node_src(node: Type[Node]) -> str:
+    try:
+        file = inspect.getfile(node)
+    except Exception:
+        file = "<unknown file>"
+    try:
+        line = inspect.getsourcelines(node)[1]
+    except Exception:
+        line = "<unknown line>"
+
+    try:
+        module = node.__module__
+    except Exception:
+        module = "<unknown module>"
+    return f"{module}({file}:{line})"
+
+
 def register_node(node_class: Type[Node]):
     """
     Registers a node class by adding it to the REGISTERED_NODES dictionary with its 'node_id' as the key.
@@ -906,7 +923,9 @@ def register_node(node_class: Type[Node]):
     """
     node_id = node_class.node_id
     if node_id in REGISTERED_NODES:
-        raise NodeIdAlreadyExistsError(f"Node with id {node_id} already exists")
+        raise NodeIdAlreadyExistsError(
+            f"Node with id '{node_id}' already exists at {_get_node_src(REGISTERED_NODES[node_id])}"
+        )
 
     REGISTERED_NODES[node_id] = node_class
 
