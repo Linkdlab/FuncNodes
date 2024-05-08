@@ -85,3 +85,31 @@ class TestDataEnum(unittest.IsolatedAsyncioTestCase):
         await node
         out = node.outputs["out"].value
         self.assertEqual(out, 2)
+
+    async def test_enum_default(self):
+        class TestEnum(fn.DataEnum):
+            A = 1
+            B = 2
+            C = 3
+
+        self.assertEqual(TestEnum.v("A"), 1)
+
+        @fn.NodeDecorator(node_id="test_enum_use")
+        def test_enum_node(a: TestEnum = TestEnum.A) -> int:
+            a = TestEnum.v(a)
+            return a + 1
+
+        node = test_enum_node()
+        await node
+        out = node.outputs["out"].value
+        self.assertEqual(out, 2)
+
+        node = test_enum_node()
+        await node
+        out = node.outputs["out"].value
+        self.assertEqual(out, 2)
+
+        node = test_enum_node()
+        await node
+        out = node.outputs["out"].value
+        self.assertEqual(out, 2)

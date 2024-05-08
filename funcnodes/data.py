@@ -40,7 +40,16 @@ class DataEnum(enum.Enum):
         elif isinstance(a, cls):
             return a
         else:
-            return cls(a)
+            try:
+                return cls(a)
+            except ValueError as e:
+                if isinstance(a, str):
+                    if a.startswith(cls.__name__ + "."):
+                        a = a[len(cls.__name__) + 1 :]
+                        if a in cls.__members__:
+                            return cls[a]
+
+                raise e
 
     @classmethod
     def v(cls: Type[ET], a: Union[ET, str, Any]) -> Any:
