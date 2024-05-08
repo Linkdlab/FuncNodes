@@ -22,6 +22,7 @@ from .worker import (
     WorkerManager,
     assert_worker_manager_running,
 )
+from .data import DataEnum
 
 from . import config
 from .config import RenderOptions
@@ -62,8 +63,9 @@ __all__ = [
     "config",
     "RenderOptions",
     "NoValue",
+    "DataEnum",
 ]
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 DEBUG = True
