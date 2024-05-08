@@ -1,14 +1,12 @@
 from __future__ import annotations
-from typing import List, Optional, TypedDict, Literal
+from typing import List, Optional
 import websockets
-from funcnodes import NodeSpace, JSONEncoder, JSONDecoder
-from funcnodes.worker import RemoteWorker, CustomLoop
+from funcnodes import NodeSpace, JSONDecoder
+from funcnodes.worker import CustomLoop
 from .worker import (
-    CmdMessage,
     ErrorMessage,
-    ResultMessage,
-    RemoteWorkerJson,
 )
+from .remote_worker import RemoteWorker, RemoteWorkerJson
 
 import json
 import traceback
@@ -24,6 +22,7 @@ class WSWorkerJson(RemoteWorkerJson):
       port (int): The port number for the WebSocket server.
       ssl (bool): Whether to use SSL for the WebSocket server.
     """
+
     host: str
     port: int
     ssl: bool
@@ -34,6 +33,26 @@ ENDPORT = 9482
 
 
 class WSLoop(CustomLoop):
+    """
+    Custom loop for WebSocket worker.
+
+    Args:
+      worker (WSWorker): The WebSocket worker.
+      host (str): The host address for the WebSocket server.
+      port (int): The port number for the WebSocket server.
+      delay (int): The delay between loop iterations.
+      *args: Additional arguments.
+      **kwargs: Additional keyword arguments.
+
+    Attributes:
+      ws_server (websockets.WebSocketServer | None): The WebSocket server.
+      clients (List[websockets.WebSocketServerProtocol]): The list of connected clients.
+
+    Methods:
+      loop: The main loop for the WebSocket server.
+      stop: Stops the WebSocket server.
+    """
+
     def __init__(
         self,
         worker: WSWorker,
@@ -43,6 +62,17 @@ class WSLoop(CustomLoop):
         *args,
         **kwargs,
     ) -> None:
+        """
+        Initializes a new WSLoop instance.
+
+        Args:
+          worker (WSWorker): The WebSocket worker.
+          host (str): The host address for the WebSocket server.
+          port (int): The port number for the WebSocket server.
+          delay (int): The delay between loop iterations.
+          *args: Additional arguments.
+          **kwargs: Additional keyword arguments.
+        """
         super().__init__(*args, delay=delay, **kwargs)
         self._host = host
         self._port = port
@@ -54,6 +84,13 @@ class WSLoop(CustomLoop):
     async def _handle_connection(
         self, websocket: websockets.WebSocketServerProtocol, path
     ):
+        """
+        Handles a new client connection.
+
+        Args:
+          websocket (websockets.WebSocketServerProtocol): The WebSocket connection.
+          path: The path for the WebSocket connection.
+        """
         self.clients.append(websocket)
         try:
             async for message in websocket:
@@ -72,6 +109,14 @@ class WSLoop(CustomLoop):
         error: Exception,
         id: Optional[str] = None,
     ):
+        """
+        Sends an error message to a client.
+
+        Args:
+          websocket (websockets.WebSocketServerProtocol): The WebSocket connection.
+          error (Exception): The error to send.
+          id (str | None): The ID of the message that caused the error.
+        """
         await websocket.send(
             json.dumps(
                 ErrorMessage(
@@ -84,6 +129,9 @@ class WSLoop(CustomLoop):
         )
 
     async def _assert_connection(self):
+        """
+        Asserts that the WebSocket server is running.
+        """
         while True:
             try:
                 if self.ws_server is None:
@@ -99,9 +147,15 @@ class WSLoop(CustomLoop):
                     raise Exception("No free ports available")
 
     async def loop(self):
+        """
+        The main loop for the WebSocket server.
+        """
         await self._assert_connection()
 
     async def stop(self):
+        """
+        Stops the WebSocket server.
+        """
         if self.ws_server is not None:
             self.ws_server.close()
             await self.ws_server.wait_closed()
@@ -109,12 +163,31 @@ class WSLoop(CustomLoop):
 
 
 class WSWorker(RemoteWorker):
+    """
+    Remote worker for WebSocket connections.
+    """
+
     def __init__(
         self,
         host=None,
         port=None,
         **kwargs,
     ) -> None:
+        """
+        Initializes a new WSWorker object.
+
+        Args:
+          host (str, optional): The host to connect to. Defaults to None.
+          port (int, optional): The port to connect to. Defaults to None.
+          **kwargs: Additional keyword arguments.
+
+                  Notes:
+          If host or port are not provided, they will be retrieved from the config dictionary if available.
+
+        Examples:
+          >>> worker = WSWorker(host='localhost', port=9382)
+          >>> worker = WSWorker()
+        """
         super().__init__(**kwargs)
         c = self.config
         if c is None:
@@ -143,15 +216,60 @@ class WSWorker(RemoteWorker):
                 )
 
     def _on_nodespaceerror(self, error: Exception, src: NodeSpace):
+        """
+        Handles an error that occurred in a NodeSpace.
+
+        Args:
+          error (Exception): The error that occurred.
+          src (NodeSpace): The NodeSpace where the error occurred.
+
+        Returns:
+          None.
+
+        Examples:
+          >>> worker._on_nodespaceerror(Exception('Error'), NodeSpace())
+        """
         return super()._on_nodespaceerror(error, src)
 
     def _on_nodespaceevent(self, event: str, src: NodeSpace, **kwargs):
+        """
+        Handles an event that occurred in a NodeSpace.
+
+        Args:
+          event (str): The event that occurred.
+          src (NodeSpace): The NodeSpace where the event occurred.
+          **kwargs: Additional keyword arguments.
+
+        Returns:
+          None.
+
+        Examples:
+          >>> worker._on_nodespaceevent('event', NodeSpace(), arg1='value1', arg2='value2')
+        """
         return super()._on_nodespaceevent(event, src, **kwargs)
 
     def stop(self):
+        """
+        Stops the WSWorker.
+
+        Returns:
+          None.
+
+        Examples:
+          >>> worker.stop()
+        """
         super().stop()
 
     def generate_config(self) -> WSWorkerJson:
+        """
+        Generates a configuration dictionary for the WSWorker.
+
+        Returns:
+          WSWorkerJson: The configuration dictionary for the WSWorker.
+
+        Examples:
+          >>> worker.generate_config()
+        """
         return WSWorkerJson(
             **super().generate_config(),
             host=self.ws_loop._host,

@@ -19,11 +19,27 @@ if DEVMODE:
 
 
 class ReturnValueThread(threading.Thread):
+    """
+    A thread class for returning values from a thread.
+    """
     def __init__(self, *args, **kwargs):
+        """
+        Initializes a new instance of the ReturnValueThread class.
+
+        Args:
+          *args: Variable length argument list.
+          **kwargs: Arbitrary keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self.result = None
 
     def run(self):
+        """
+        Runs the target function in a new thread.
+
+        Returns:
+          None
+        """
         if self._target is None:
             return  # could alternatively raise an exception, depends on the use case
         try:
@@ -34,11 +50,27 @@ class ReturnValueThread(threading.Thread):
             )  # properly handle the exception
 
     def join(self, *args, **kwargs):
+        """
+        Waits for the thread to finish and returns the result of the target function.
+
+        Returns:
+          Any: The result of the target function.
+        """
         super().join(*args, **kwargs)
         return self.result
 
 
 def run_in_new_process(*args, **kwargs):
+    """
+    Starts a new process with the given arguments.
+
+    Args:
+      *args (str): The arguments to pass to the new process.
+      **kwargs (str): The keyword arguments to pass to the new process.
+
+    Returns:
+      subprocess.Popen: The new process.
+    """
     print(f"Starting new process: {' '.join(args)}")
     if os.name == "posix":
         p = subprocess.Popen(args, start_new_session=True)
@@ -54,6 +86,15 @@ def run_in_new_process(*args, **kwargs):
 
 
 def create_worker_env(workerconfig: WorkerJson):
+    """
+    Creates a virtual environment for the worker and installs funcnodes.
+
+    Args:
+      workerconfig (WorkerJson): The worker configuration.
+
+    Returns:
+      None
+    """
     # install env
     if not os.path.exists(workerconfig["env_path"]):
         os.makedirs(workerconfig["env_path"], exist_ok=True)
@@ -88,6 +129,15 @@ def create_worker_env(workerconfig: WorkerJson):
 
 
 def start_worker(workerconfig: WorkerJson):
+    """
+    Starts the worker process.
+
+    Args:
+      workerconfig (WorkerJson): The worker configuration.
+
+    Returns:
+      None
+    """
 
     run_in_new_process(
         workerconfig["python_path"],
@@ -104,6 +154,15 @@ def start_worker(workerconfig: WorkerJson):
 
 
 async def check_worker(workerconfig: WorkerJson):
+    """
+    Checks if the worker is active.
+
+    Args:
+      workerconfig (WorkerJson): The worker configuration.
+
+    Returns:
+      Tuple[str, bool]: The worker UUID and whether the worker is active.
+    """
     active_worker: List[str] = []
     inactive_worker: List[str] = []
     if "host" in workerconfig and "port" in workerconfig:
@@ -141,13 +200,31 @@ async def check_worker(workerconfig: WorkerJson):
 
 
 def sync_check_worker(workerconfig: WorkerJson):
+    """
+    Synchronously checks if the worker is active.
+
+    Args:
+      workerconfig (WorkerJson): The worker configuration.
+
+    Returns:
+      Tuple[str, bool]: The worker UUID and whether the worker is active.
+    """
     return asyncio.run(check_worker(workerconfig))
 
 
 class WorkerManager:
+    """
+    This class is responsible for managing the workers.
+    """
     def __init__(
         self,
     ):
+        """
+        Initializes the WorkerManager.
+
+        Returns:
+          None
+        """
         self._worker_dir = os.path.join(fn.config.CONFIG_DIR, "workers")
         if not os.path.exists(self._worker_dir):
             os.makedirs(self._worker_dir)
@@ -157,6 +234,12 @@ class WorkerManager:
         self._inactive_workers: List[WorkerJson] = []
 
     async def run_forever(self):
+        """
+        Runs the WorkerManager forever.
+
+        Returns:
+          None
+        """
         self.ws_server = await websockets.serve(
             self._handle_connection,
             fn.config.CONFIG["worker_manager"]["host"],
@@ -184,6 +267,16 @@ class WorkerManager:
     async def _handle_connection(
         self, websocket: websockets.WebSocketServerProtocol, path
     ):
+        """
+        Handles a new connection to the WorkerManager.
+
+        Args:
+          websocket (websockets.WebSocketServerProtocol): The websocket connection.
+          path (str): The path of the connection.
+
+        Returns:
+          None
+        """
         fn.FUNCNODES_LOGGER.debug(f"New connection: {websocket}")
         self._connections.append(websocket)
         try:
@@ -198,6 +291,20 @@ class WorkerManager:
     async def _handle_message(
         self, message: str, websocket: websockets.WebSocketServerProtocol
     ):
+        """
+        Handles incoming messages from the websocket.
+
+        Args:
+          message (str): The message received from the websocket.
+          websocket (websockets.WebSocketServerProtocol): The websocket connection.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await _handle_message("ping", websocket)
+          "pong"
+        """
         fn.FUNCNODES_LOGGER.debug(f"Received message: {message}")
         if message == "ping":
             return await websocket.send("pong")
@@ -243,6 +350,18 @@ class WorkerManager:
     async def reset_progress_state(
         self, websocket: websockets.WebSocketServerProtocol = None
     ):
+        """
+        Resets the progress state.
+
+        Args:
+          websocket (websockets.WebSocketServerProtocol, optional): The websocket connection. Defaults to None.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await reset_progress_state(websocket)
+        """
         await self.set_progress_state(
             message="",
             progress=1,
@@ -259,6 +378,22 @@ class WorkerManager:
         blocking=False,
         websocket: websockets.WebSocketServerProtocol = None,
     ):
+        """
+        Sets the progress state.
+
+        Args:
+          message (str): The message to display.
+          status (str, optional): The status of the message. Defaults to "info".
+          progress (float, optional): The progress value. Defaults to 0.0.
+          blocking (bool, optional): Whether the message should block other messages. Defaults to False.
+          websocket (websockets.WebSocketServerProtocol, optional): The websocket connection. Defaults to None.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await set_progress_state("Processing...", "info", 0.5, False, websocket)
+        """
         msg = json.dumps(
             {
                 "type": "progress",
@@ -274,6 +409,15 @@ class WorkerManager:
             await self.broadcast(msg)
 
     async def stop(self):
+        """
+        Stops the worker manager.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await stop()
+        """
 
         if self.ws_server is not None:
             self.ws_server.close()
@@ -281,11 +425,29 @@ class WorkerManager:
         self._is_running = False
 
     async def check_shutdown(self):
+        """
+        Checks if the worker manager should be shut down.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await check_shutdown()
+        """
         if os.path.exists(os.path.join(fn.config.CONFIG_DIR, "kill_worker_manager")):
             await self.stop()
             os.remove(os.path.join(fn.config.CONFIG_DIR, "kill_worker_manager"))
 
     def worker_changed(self):
+        """
+        Checks if the worker configuration has changed.
+
+        Returns:
+          bool: True if the worker configuration has changed, False otherwise.
+
+        Examples:
+          >>> worker_changed()
+        """
         active_uuids = set([w["uuid"] for w in self._active_workers])
         active_files = set()
         for f in os.listdir(self._worker_dir):
@@ -313,6 +475,15 @@ class WorkerManager:
         return False
 
     def get_all_workercfg(self):
+        """
+        Gets all worker configurations.
+
+        Returns:
+          List[WorkerJson]: A list of all worker configurations.
+
+        Examples:
+          >>> get_all_workercfg()
+        """
         workerconfigs: List[WorkerJson] = []
         for f in os.listdir(self._worker_dir):
             if f.startswith("worker_") and f.endswith(".json"):
@@ -331,6 +502,15 @@ class WorkerManager:
         return workerconfigs
 
     async def reload_workers(self):
+        """
+        Reloads all workers.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await reload_workers()
+        """
         active_worker: List[WorkerJson] = []
         inactive_worker: List[WorkerJson] = []
         active_worker_ids: List[WorkerJson] = []
@@ -390,6 +570,15 @@ class WorkerManager:
         await self.broadcast_worker_status()
 
     async def broadcast_worker_status(self):
+        """
+        Broadcasts the worker status to all connected websockets.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await broadcast_worker_status()
+        """
         await self.broadcast(
             json.dumps(
                 {
@@ -401,7 +590,34 @@ class WorkerManager:
         )
 
     async def broadcast(self, message: str):
+        """
+        Broadcasts a message to all connected workers.
+
+        Args:
+          message (str): The message to broadcast.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await broadcast("Hello world!")
+          None
+        """
         async def try_send(conn, message):
+            """
+        Tries to send a message to a specific connection.
+
+        Args:
+          conn (websockets.WebSocketServerProtocol): The connection to send the message to.
+          message (str): The message to send.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await try_send(conn, "Hello world!")
+          None
+        """
             try:
                 await conn.send(message)
             except Exception:
@@ -412,6 +628,20 @@ class WorkerManager:
     async def stop_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol
     ):
+        """
+        Stops a worker.
+
+        Args:
+          workerid (str): The id of the worker to stop.
+          websocket (websockets.WebSocketServerProtocol): The websocket connection to send status updates to.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await stop_worker("1234", websocket)
+          None
+        """
         await self.set_progress_state(
             message="Stopping worker.",
             progress=0.1,
@@ -469,6 +699,20 @@ class WorkerManager:
     async def activate_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol
     ):
+        """
+        Activates a worker.
+
+        Args:
+          workerid (str): The id of the worker to activate.
+          websocket (websockets.WebSocketServerProtocol): The websocket connection to send status updates to.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await activate_worker("1234", websocket)
+          None
+        """
         try:
             fn.FUNCNODES_LOGGER.info(f"Activating worker {workerid}")
             await self.set_progress_state(
@@ -581,6 +825,22 @@ class WorkerManager:
         copyLib: bool = False,
         copyNS: bool = False,
     ):
+        """
+        Creates a new worker.
+
+        Args:
+          name (str): The name of the new worker.
+          reference (str): The id of the worker to use as a reference.
+          copyLib (bool): Whether to copy the libraries from the reference worker.
+          copyNS (bool): Whether to copy the nodespace from the reference worker.
+
+        Returns:
+          None
+
+        Examples:
+          >>> await new_worker("MyWorker", "1234", True, False)
+          None
+        """
         ref_cfg = None
         if reference:
             for cfg in self.get_all_workercfg():
@@ -622,6 +882,19 @@ class WorkerManager:
 
 
 def start_worker_manager():
+    """
+    Starts the worker manager.
+
+    Args:
+      None
+
+    Returns:
+      None
+
+    Examples:
+      >>> start_worker_manager()
+      None
+    """
     asyncio.run(WorkerManager().run_forever())
 
 

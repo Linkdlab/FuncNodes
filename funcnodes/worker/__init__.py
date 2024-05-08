@@ -1,4 +1,5 @@
-from .worker import Worker, RemoteWorker
+from .worker import Worker
+from .remote_worker import RemoteWorker
 from .external_worker import FuncNodesExternalWorker
 from .loop import CustomLoop
 from .websocket import WSWorker
