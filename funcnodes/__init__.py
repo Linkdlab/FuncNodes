@@ -66,6 +66,6 @@ __all__ = [
     "DataEnum",
 ]
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 DEBUG = True
