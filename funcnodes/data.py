@@ -33,23 +33,34 @@ class DataEnum(enum.Enum):
             cls.__name__,
         )
 
+        cls._lookup = {}
+        for member in cls:
+            cls._lookup[member.name] = member
+            try:
+                if member.value not in cls._lookup:
+                    cls._lookup[member.value] = member
+            except TypeError:
+                pass
+            if str(member.value) not in cls._lookup:
+                cls._lookup[str(member.value)] = member
+
     @classmethod
     def interfere(cls: Type[ET], a: Union[ET, str, Any]) -> ET:
-        if isinstance(a, str) and a in cls.__members__:
-            return cls[a]
-        elif isinstance(a, cls):
-            return a
-        else:
-            try:
-                return cls(a)
-            except ValueError as e:
-                if isinstance(a, str):
-                    if a.startswith(cls.__name__ + "."):
-                        a = a[len(cls.__name__) + 1 :]
-                        if a in cls.__members__:
-                            return cls[a]
 
-                raise e
+        if isinstance(a, cls):
+            return a
+        if a in cls._lookup:
+            return cls._lookup[a]
+        try:
+            return cls(a)
+        except ValueError as e:
+            if isinstance(a, str):
+                if a.startswith(cls.__name__ + "."):
+                    a = a[len(cls.__name__) + 1 :]
+                    if a in cls._lookup:
+                        return cls._lookup[a]
+
+            raise e
 
     @classmethod
     def v(cls: Type[ET], a: Union[ET, str, Any]) -> Any:
