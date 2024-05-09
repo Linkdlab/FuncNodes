@@ -14,6 +14,7 @@ from funcnodes.node import (
     NodeKeyError,
     get_nodeclass,
 )
+import funcnodes as fn
 
 
 class DummyNode(Node):
@@ -22,6 +23,7 @@ class DummyNode(Node):
     output = NodeOutput(id="output", type=int)
 
     async def func(self, input: int) -> int:
+        self.outputs["output"].value = input
         return input
 
 
@@ -61,6 +63,8 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
         await test_node
         trigger_stack = test_node.trigger()
         self.assertIsInstance(trigger_stack, TriggerStack)
+        self.assertEqual(test_node.inputs["input"].value, 1)
+        self.assertEqual(test_node.outputs["output"].value, 1)
 
     async def test_node_trigger_when_already_triggered_raises_error(self):
         """Test triggering a node that is already in trigger raises InTriggerError."""
@@ -167,6 +171,72 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
                         pprint(vars(ref))
                 print(len(gc.get_referrers(g)))
         self.assertEqual(garb, [])
+
+    async def test_call_seperate_thread(self):
+        import time
+
+        class BlockingNode(Node):
+            node_id = "blocking_node"
+            input = NodeInput(id="input", type=int, default=1)
+            output = NodeOutput(id="output", type=int)
+
+            async def func(self, input: int) -> int:
+                time.sleep(1)
+                self.outputs["output"].value = input
+                return input
+
+        test_node1 = BlockingNode()
+        test_node2 = BlockingNode()
+
+        enternode = DummyNode()
+
+        enternode.outputs["output"].connect(test_node1.inputs["input"])
+        enternode.outputs["output"].connect(test_node2.inputs["input"])
+
+        enternode.inputs["input"].value = 2
+        start = time.time()
+
+        await fn.run_until_complete(enternode, test_node1, test_node2)
+        end = time.time()
+        self.assertEqual(enternode.outputs["output"].value, 2)
+        self.assertEqual(test_node1.outputs["output"].value, 2)
+        self.assertEqual(test_node2.outputs["output"].value, 2)
+        self.assertGreaterEqual(end - start, 2)
+
+        class NoneBlockingNode(Node):
+            node_id = "non_blocking_node"
+            input = NodeInput(id="input", type=int, default=1)
+            output = NodeOutput(id="output", type=int)
+
+            serperate_thread = True
+
+            async def func(self, input: int) -> int:
+                print("Start")
+                time.sleep(1)
+                self.outputs["output"].value = input
+                print("End")
+                return input
+
+        test_node1 = NoneBlockingNode()
+        test_node2 = NoneBlockingNode()
+
+        enternode = DummyNode()
+
+        enternode.outputs["output"].connect(test_node1.inputs["input"])
+        enternode.outputs["output"].connect(test_node2.inputs["input"])
+
+        enternode.inputs["input"].value = 2
+        start = time.time()
+        fn.FUNCNODES_LOGGER.info("Start wait")
+
+        await fn.run_until_complete(enternode, test_node1, test_node2)
+        fn.FUNCNODES_LOGGER.info("End wait")
+        end = time.time()
+        self.assertEqual(enternode.outputs["output"].value, 2)
+        self.assertEqual(test_node1.outputs["output"].value, 2)
+        self.assertEqual(test_node2.outputs["output"].value, 2)
+        self.assertLessEqual(end - start, 2)
+        self.assertGreaterEqual(end - start, 1)
 
 
 class NodeClassMetaTest(unittest.TestCase):
