@@ -73,7 +73,10 @@ def find_shelf_from_module(
 
         module = importlib.import_module(strmod)
         # reload module to get the latest version
-        importlib.reload(module)
+        try:
+            importlib.reload(module)
+        except Exception as e:
+            pass
         # for submod in submodules[1:]:
         #     mod = getattr(mod, submod)
 
