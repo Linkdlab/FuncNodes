@@ -264,7 +264,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
 
     default_render_options: RenderOptions = {}
     default_io_options: Dict[str, NodeInputOptions | NodeOutputOptions] = {}
-    default_trigger_on_create: bool = False
+    default_trigger_on_create: bool = True
 
     triggerinput = NodeInput(
         id="_triggerinput",
