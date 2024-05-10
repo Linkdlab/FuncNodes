@@ -37,6 +37,7 @@ def node_class_maker(
     id: Optional[str] = None,
     func: Callable[..., ReturnType] = None,
     superclass: Type[Node] = Node,
+    seperate_thread: bool = False,
     **kwargs: Unpack[NodeClassDict],
 ) -> Type[Node]:
     """
@@ -86,6 +87,22 @@ def node_class_maker(
     else:
         in_func: ExposedFunction[Coroutine[Any, Any, ReturnType]] = in_func
         asyncfunc = in_func
+
+    if seperate_thread:
+        oasyncfunc = asyncfunc
+
+        @wraps(oasyncfunc)
+        async def _wrapped_func(*args, **kwargs):
+            """
+            A wrapper for the exposed function that sets the output values of the node.
+            """
+            loop = asyncio.get_event_loop()
+            outs = await loop.run_in_executor(
+                None, lambda: asyncio.run(oasyncfunc(*args, **kwargs))
+            )
+            return outs
+
+        asyncfunc = _wrapped_func
 
     exfunc: ExposedFunction[Coroutine[Any, Any, ReturnType]] = asyncfunc
 
@@ -146,6 +163,7 @@ class NodeDecoratorKwargs(ExposedMethodKwargs, NodeClassDict, total=False):
     """
 
     superclass: Optional[Type[Node]]
+    seperate_thread: Optional[bool]
 
 
 def NodeDecorator(
@@ -176,7 +194,11 @@ def NodeDecorator(
         func = assure_exposed_method(func, **exposed_method_kwargs)
         # Create the node class
         return node_class_maker(
-            id, func, superclass=kwargs.get("superclass", Node), **node_class_kwargs
+            id,
+            func,
+            superclass=kwargs.get("superclass", Node),
+            seperate_thread=kwargs.get("seperate_thread", False),
+            **node_class_kwargs,
         )
 
     return decorator

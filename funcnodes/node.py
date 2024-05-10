@@ -266,8 +266,6 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
     default_io_options: Dict[str, NodeInputOptions | NodeOutputOptions] = {}
     default_trigger_on_create: bool = False
 
-    serperate_thread: bool = False
-
     triggerinput = NodeInput(
         id="_triggerinput",
         name="( )",
@@ -707,14 +705,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
                 del kwargs["_triggerinput"]
             try:
 
-                if self.serperate_thread:
-                    loop = asyncio.get_running_loop()
-                    ans = await loop.run_in_executor(
-                        None, lambda: asyncio.run(self.func(**kwargs))
-                    )
-
-                else:
-                    ans = await self.func(**kwargs)
+                ans = await self.func(**kwargs)
                 # reset the inputs if requested
                 if self.reset_inputs_on_trigger:
                     for ip in self._inputs:
