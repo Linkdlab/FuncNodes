@@ -117,7 +117,9 @@ def _parse_nodeclass_io(node: Node):
         node_io_options: NodeInputOptions = node.io_options.get(ip.uuid, {})
 
         if node_io_render:
-            deep_fill_dict(ser, node_io_render, overwrite_existing=True)
+            deep_fill_dict(
+                ser["render_options"], node_io_render, overwrite_existing=True
+            )
 
         if node_io_options:
             deep_fill_dict(ser, node_io_options, overwrite_existing=True)
@@ -135,7 +137,9 @@ def _parse_nodeclass_io(node: Node):
         node_io_options: NodeInputOptions = node.io_options.get(op.uuid, {})
 
         if node_io_render:
-            deep_fill_dict(ser, node_io_render, overwrite_existing=True)
+            deep_fill_dict(
+                ser["render_options"], node_io_render, overwrite_existing=True
+            )
 
         if node_io_options:
             deep_fill_dict(ser, node_io_options, overwrite_existing=True)
@@ -382,6 +386,10 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             for iod in self._inputs + self._outputs:
                 if iod.uuid in data["io"]:
                     iod.deserialize(data["io"][iod.uuid])  # type: ignore
+
+        if self.trigger_on_create:
+            if self.ready_to_trigger():
+                self.request_trigger()
 
     def serialize(self) -> NodeJSON:
         """
