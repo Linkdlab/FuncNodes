@@ -749,11 +749,17 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             ser["does_trigger"] = self.does_trigger
         if self._default is not NoValue:
             ser["default"] = self._default
-        if (
-            self.value != self.default
-            and not self.is_connected()  # value is stored only if not connected
-        ):
-            ser["value"] = self.value
+        v, d = self.value, self.default
+        if not self.is_connected() and type(v) == type(  # check for connection first
+            d
+        ):  # check same type
+            comp = v != d
+            if not isinstance(bool, comp):
+                # other comaring results are handled by the encoder
+                comp = json.dumps(v, cls=JSONEncoder) != json.dumps(d, cls=JSONEncoder)
+            if comp:
+                ser["value"] = self.value
+
         return ser
 
     def to_dict(self) -> NodeInputOptions:
