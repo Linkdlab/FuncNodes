@@ -1,5 +1,15 @@
 from __future__ import annotations
-from typing import Dict, Type, Optional, TypedDict, List, NotRequired, Literal
+from typing import (
+    Dict,
+    Type,
+    Optional,
+    TypedDict,
+    List,
+    NotRequired,
+    Literal,
+    Tuple,
+    Any,
+)
 from abc import ABC, ABCMeta, abstractmethod
 import asyncio
 import inspect
@@ -997,3 +1007,15 @@ class PlaceHolderNode(Node):
                     self.add_input(NodeInput.from_serialized_nodeio(iodate))  # type: ignore
                 else:
                     self.add_output(NodeOutput.from_serialized_nodeio(iodate))  # type: ignore
+
+
+def nodeencoder(obj, preview=False) -> Tuple[Any, bool]:
+    """
+    Encodes Nodes
+    """
+    if isinstance(obj, Node):
+        return obj.full_serialize(), True
+    return obj, False
+
+
+JSONEncoder.prepend_encoder(nodeencoder)  # prepand to skip __repr_json__ method

@@ -918,3 +918,15 @@ class NodeOutput(NodeIO):
             connection.set_value(self.value)
             connection.trigger(triggerstack=triggerstack)
         return triggerstack
+
+
+def nodeioencoder(obj, preview=False) -> Tuple[Any, bool]:
+    """
+    Encodes Nodes
+    """
+    if isinstance(obj, NodeIO):
+        return obj.full_serialize(), True
+    return obj, False
+
+
+JSONEncoder.prepend_encoder(nodeioencoder)  # prepand to skip __repr_json__ method

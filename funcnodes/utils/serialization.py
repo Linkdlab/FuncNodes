@@ -2,6 +2,7 @@ from typing import Callable, Any, Union, Tuple, List, Literal
 import json
 import base64
 
+
 VALID_JSON_TYPE = Union[int, float, str, bool, list, dict, type(None)]
 
 
@@ -88,6 +89,23 @@ class JSONEncoder(json.JSONEncoder):
           >>> JSONEncoder.add_encoder(complex_encoder)
         """
         cls.encoder.append(enc)
+
+    @classmethod
+    def prepend_encoder(cls, enc: encodertype):
+        """
+        Adds a new encoder to the list of encoders.
+
+        Args:
+          enc (encodertyoe): A function that takes in an object and a boolean indicating whether or not to use a default preview and returns a tuple containing the encoded object and a boolean indicating whether or not the object was encoded.
+
+        Examples:
+          >>> def complex_encoder(obj, preview=False):
+          ...     if isinstance(obj, complex):
+          ...         return {"__complex__": True}, True
+          ...     return obj, False
+          >>> JSONEncoder.add_encoder(complex_encoder)
+        """
+        cls.encoder.insert(0, enc)
 
     @classmethod
     def apply_custom_encoding(cls, obj, preview=False):
