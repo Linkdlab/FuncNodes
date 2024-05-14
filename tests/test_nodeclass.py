@@ -173,21 +173,15 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
                 print(len(gc.get_referrers(g)))
         self.assertEqual(garb, [])
 
-    async def test_call_seperate_thread(self):
+    async def test_call_blocking_node(self):
         import time
-
-        # if self.serperate_thread:
-        #             loop = asyncio.get_running_loop()
-        #             ans = await loop.run_in_executor(
-        #                 None, lambda: asyncio.run(self.func(**kwargs))
-        #             )
-
-        #         else:
-        #             ans = await self.func(**kwargs)
 
         @fn.NodeDecorator(node_id="blocking_node")
         def BlockingNode(input: int) -> int:
-            time.sleep(1)
+            start = time.time()
+            while True:
+                if time.time() - start > 1:
+                    break
             return input
 
         test_node1 = BlockingNode()
@@ -198,15 +192,17 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
         enternode.outputs["output"].connect(test_node1.inputs["input"])
         enternode.outputs["output"].connect(test_node2.inputs["input"])
 
-        enternode.inputs["input"].value = 2
         start = time.time()
 
         await fn.run_until_complete(enternode, test_node1, test_node2)
         end = time.time()
-        self.assertEqual(enternode.outputs["output"].value, 2)
-        self.assertEqual(test_node1.outputs["out"].value, 2)
-        self.assertEqual(test_node2.outputs["out"].value, 2)
+        self.assertEqual(enternode.outputs["output"].value, 1)
+        self.assertEqual(test_node1.outputs["out"].value, 1)
+        self.assertEqual(test_node2.outputs["out"].value, 1)
         self.assertGreaterEqual(end - start, 2)
+
+    async def test_call_seperate_thread(self):
+        import time
 
         @fn.NodeDecorator(node_id="non_blocking_node", seperate_thread=True)
         def NoneBlockingNode(input: int) -> int:
@@ -222,17 +218,14 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
 
         enternode.outputs["output"].connect(test_node1.inputs["input"])
         enternode.outputs["output"].connect(test_node2.inputs["input"])
-
-        enternode.inputs["input"].value = 2
         start = time.time()
         fn.FUNCNODES_LOGGER.info("Start wait")
-
         await fn.run_until_complete(enternode, test_node1, test_node2)
         fn.FUNCNODES_LOGGER.info("End wait")
         end = time.time()
-        self.assertEqual(enternode.outputs["output"].value, 2)
-        self.assertEqual(test_node1.outputs["out"].value, 2)
-        self.assertEqual(test_node2.outputs["out"].value, 2)
+        self.assertEqual(enternode.outputs["output"].value, 1)
+        self.assertEqual(test_node1.outputs["out"].value, 1)
+        self.assertEqual(test_node2.outputs["out"].value, 1)
         self.assertLessEqual(end - start, 2)
         self.assertGreaterEqual(end - start, 1)
 

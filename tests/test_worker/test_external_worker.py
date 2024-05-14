@@ -40,6 +40,8 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
 
             class ExternalWorker2(FuncNodesExternalWorker):
+                IS_ABSTRACT = False
+
                 async def loop(self):
                     pass
 

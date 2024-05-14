@@ -45,14 +45,15 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0.5)
             while_node.inputs["condition"].value = False
 
-        while_node.on(
-            "after_trigger",
+        while_node.get_output("do").on(
+            "after_set_value",
             lambda **msg: results.append(while_node.outputs["do"].value),
         )
         await _t()
-        await run_until_complete(while_node)
+        await while_node
 
         self.assertGreater(len(results), 5)
+
         for i, r in enumerate(results):
             self.assertEqual(r, i + 1)
 
