@@ -29,6 +29,7 @@ from .io import (
     IORenderOptions,
     NodeInputOptions,
     NodeOutputOptions,
+    InputReadyState,
 )
 from .triggerstack import TriggerStack
 from .eventmanager import (
@@ -520,9 +521,15 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
     # endregion properties
 
     # region node methods
-    def ready(self):
+    def ready(self) -> bool:
         """Whether the node is ready"""
         return self.inputs_ready()
+
+    def ready_state(self) -> NodeReadyState:
+        """Returns the ready state of the node"""
+        return {
+            "inputs": {ip.uuid: ip.ready_state() for ip in self._inputs},
+        }
 
     def ready_to_trigger(self):
         """Whether the node is ready to be triggered"""
@@ -541,6 +548,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         """Returns a dictionary containing the status of the node."""
         return NodeStatus(
             ready=self.ready(),
+            ready_state=self.ready_state(),
             in_trigger=self.in_trigger,
             requests_trigger=self._requests_trigger,
             inputs={ip.uuid: ip.status() for ip in self._inputs},
@@ -849,6 +857,12 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         self.prepdelete()
 
 
+class NodeReadyState(TypedDict):
+    """A dictionary containing the ready state of a node"""
+
+    inputs: Dict[str, InputReadyState]
+
+
 class NodeStatus(TypedDict):
     """A dictionary containing the status of a node.
 
@@ -862,6 +876,7 @@ class NodeStatus(TypedDict):
     """
 
     ready: bool
+    ready_state: NodeReadyState
     in_trigger: bool
 
     requests_trigger: bool

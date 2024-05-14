@@ -1039,6 +1039,11 @@ class Worker(ABC):
         node = self.get_node(nid)
         node.request_trigger()
         return True
+    
+    @exposed_method()
+    def get_node_status(self,nid:str):
+        node = self.get_node(nid)
+        return node.status()
 
     @requests_save
     @exposed_method()

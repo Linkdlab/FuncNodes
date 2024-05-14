@@ -117,6 +117,14 @@ class NoValueType:
 NoValue: NoValueType = NoValueType()
 
 
+class IOReadyState(TypedDict):
+    node: bool
+
+
+class InputReadyState(IOReadyState):
+    value: bool
+
+
 def NoValueEndocer(obj, preview=False):
     if obj is NoValue:
         return "<NoValue>", True
@@ -516,6 +524,9 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
     def ready(self) -> bool:
         return self.node is not None
 
+    def ready_state(self) -> IOReadyState:
+        return {"node": self.node is not None}
+
     def status(self) -> NodeIOStatus:
         return NodeIOStatus(
             has_value=self.value is not NoValue,
@@ -781,6 +792,9 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
 
     def ready(self):
         return super().ready() and (self.value is not NoValue or not self.required)
+
+    def ready_state(self) -> InputReadyState:
+        return InputReadyState(**super().ready_state(), value=self.value is not NoValue)
 
     def status(self) -> NodeInputStatus:
         return NodeInputStatus(required=self.required, **super().status())
