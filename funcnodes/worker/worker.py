@@ -359,7 +359,7 @@ def find_worker_from_path(
     # install requirements
     if "pyproject.toml" in os.listdir(data["path"]):
         funcnodes.FUNCNODES_LOGGER.debug(
-            f"pyproject.toml found, generating requirements.txt"
+            f"pyproject.toml found in {data['path']}, generating requirements.txt"
         )
         # install poetry requirements
         # save current path
@@ -375,7 +375,7 @@ def find_worker_from_path(
         os.chdir(cwd)
     if "requirements.txt" in os.listdir(data["path"]):
         funcnodes.FUNCNODES_LOGGER.debug(
-            f"requirements.txt found, installing requirements"
+            f"requirements.txt found in {data['path']}, installing requirements"
         )
         # install pip requirements
         os.system(

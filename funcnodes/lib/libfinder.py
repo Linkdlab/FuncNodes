@@ -172,7 +172,9 @@ def find_shelf_from_path(
     # install requirements
 
     if "pyproject.toml" in os.listdir(data["path"]):
-        fn.FUNCNODES_LOGGER.debug(f"pyproject.toml found, generating requirements.txt")
+        fn.FUNCNODES_LOGGER.debug(
+            f"pyproject.toml found in {data['path']}, generating requirements.txt"
+        )
         # install poetry requirements
         # save current path
         cwd = os.getcwd()
@@ -186,7 +188,9 @@ def find_shelf_from_path(
         # cd back
         os.chdir(cwd)
     if "requirements.txt" in os.listdir(data["path"]):
-        fn.FUNCNODES_LOGGER.debug(f"requirements.txt found, installing requirements")
+        fn.FUNCNODES_LOGGER.debug(
+            f"requirements.txt found in {data['path']}, installing requirements"
+        )
         # install pip requirements
         os.system(
             f"{sys.executable} -m pip install -r {os.path.join(data['path'],'requirements.txt')}"
