@@ -750,11 +750,9 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
         if self._default is not NoValue:
             ser["default"] = self._default
         v, d = self.value, self.default
-        if not self.is_connected() and type(v) == type(  # check for connection first
-            d
-        ):  # check same type
+        if not self.is_connected():  # check same type
             comp = v != d
-            if not isinstance(bool, comp):
+            if not isinstance(comp, bool):
                 # other comaring results are handled by the encoder
                 comp = json.dumps(v, cls=JSONEncoder) != json.dumps(d, cls=JSONEncoder)
             if comp:
