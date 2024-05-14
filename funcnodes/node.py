@@ -733,7 +733,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         task = asyncio.create_task(_wrapped_func())
         return task
 
-    def trigger_if_requested(self, triggerstack: Optional[TriggerStack] = None):
+    def trigger_if_requested(self, triggerstack: Optional[TriggerStack] = None) -> bool:
         """
         Triggers the node if it is ready to be triggered and a trigger has been requested.
 
