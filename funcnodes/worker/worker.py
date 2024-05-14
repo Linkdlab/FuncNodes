@@ -572,6 +572,7 @@ class Worker(ABC):
             )
         )
         self.data_path = self._data_path
+        funcnodes._logging.set_logging_dir(self.data_path)
         self.logger = funcnodes.get_logger(self._uuid, propagate=False)
         self.logger.addHandler(
             RotatingFileHandler(

@@ -13,9 +13,7 @@ FUNCNODES_LOGGER.setLevel(logging.DEBUG)
 
 
 ch = logging.StreamHandler()
-fh = RotatingFileHandler(
-    os.path.join(LOGGINGDIR, "funcnodes.log"), maxBytes=1024 * 1024 * 5, backupCount=5
-)
+
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 # Add the handler to the logger
@@ -38,17 +36,17 @@ def _overwrite_add_handler(logger):
 
     def _new_add_handler(hdlr):
         """
-    Adds a handler to the given logger.
+        Adds a handler to the given logger.
 
-    Args:
-      hdlr (Handler): The handler to add to the logger.
+        Args:
+          hdlr (Handler): The handler to add to the logger.
 
-    Returns:
-      None.
+        Returns:
+          None.
 
-    Examples:
-      >>> _new_add_handler(ch)
-    """
+        Examples:
+          >>> _new_add_handler(ch)
+        """
         hdlr.setFormatter(formatter)
         if hdlr not in logger.handlers:
             _old_add_handler(hdlr)
@@ -59,7 +57,25 @@ def _overwrite_add_handler(logger):
 _overwrite_add_handler(FUNCNODES_LOGGER)
 
 FUNCNODES_LOGGER.addHandler(ch)
-FUNCNODES_LOGGER.addHandler(fh)
+
+
+def set_logging_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    for hdlr in FUNCNODES_LOGGER.handlers:
+        if isinstance(hdlr, RotatingFileHandler):
+            if hdlr.baseFilename.endswith("funcnodes.log"):
+                hdlr.close()
+                FUNCNODES_LOGGER.removeHandler(hdlr)
+
+    fh = RotatingFileHandler(
+        os.path.join(path, "funcnodes.log"), maxBytes=1024 * 1024 * 5, backupCount=5
+    )
+    fh.setFormatter(formatter)
+    FUNCNODES_LOGGER.addHandler(fh)
+
+
+set_logging_dir(LOGGINGDIR)
 
 
 def get_logger(name, propagate=True):
