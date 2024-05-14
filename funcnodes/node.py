@@ -46,7 +46,7 @@ from .utils import (
     deep_remove_dict_on_equal,
 )
 from logging import getLogger
-from funcnodes._logging import get_logger
+from funcnodes._logging import get_logger, FUNCNODES_LOGGER
 
 triggerlogger = get_logger("trigger")
 
@@ -314,10 +314,14 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             # check if it is present in the previous
             while ipser["id"] in cls._class_io_serialized:
                 io._uuid = io.uuid + "_"
+
+                FUNCNODES_LOGGER.warning(
+                    "IO with id %s already exists in %s. Changing id to %s",
+                    ipser["id"],
+                    cls,
+                    io.uuid,
+                )
                 ipser = io.serialize()
-                # raise NodeIdAlreadyExistsError(
-                #     f"IO with id {ipser['id']} already exists in {cls}"
-                # )
 
             cls._class_io_serialized[ipser["id"]] = ipser
 
