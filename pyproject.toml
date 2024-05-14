@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "funcnodes"
-version = "0.2.8"
+version = "0.2.9"
 description = "funcnodes"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 readme = "README.md"

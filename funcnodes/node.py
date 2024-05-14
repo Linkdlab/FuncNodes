@@ -135,7 +135,7 @@ def _parse_nodeclass_io(node: Node):
 
         if node_io_render:
             deep_fill_dict(
-                ser["render_options"], node_io_render, overwrite_existing=True
+                ser.get("render_options", {}), node_io_render, overwrite_existing=True
             )
 
         if node_io_options:
@@ -434,7 +434,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             if self.ready_to_trigger():
                 self.request_trigger()
 
-    def serialize(self) -> NodeJSON:
+    def serialize(self, drop=True) -> NodeJSON:
         """
         returns a json serializable dict of the node
         """
@@ -450,37 +450,38 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         for iod in self._inputs + self._outputs:
             if iod.uuid == "_triggerinput":
                 continue
-            ioser = dict(iod.serialize())
-            del ioser["id"]
+            ioser = dict(iod.serialize(drop=drop))
+            if drop:
+                del ioser["id"]
 
-            cls_ser = None
-            if iod.uuid in self._class_io_serialized:
-                cls_ser = self._class_io_serialized[iod.uuid]
+                cls_ser = None
+                if iod.uuid in self._class_io_serialized:
+                    cls_ser = self._class_io_serialized[iod.uuid]
 
-            if cls_ser:
-                if "description" in ioser:
-                    if ioser["description"] == cls_ser.get("description", ""):
-                        del ioser["description"]
+                if cls_ser:
+                    if "description" in ioser:
+                        if ioser["description"] == cls_ser.get("description", ""):
+                            del ioser["description"]
 
-                if "default" in ioser:
-                    if ioser["default"] == cls_ser.get("default", NoValue):
-                        del ioser["default"]
+                    if "default" in ioser:
+                        if ioser["default"] == cls_ser.get("default", NoValue):
+                            del ioser["default"]
 
-                if "type" in ioser:
-                    if ioser["type"] == cls_ser.get("type", "Any"):
-                        del ioser["type"]
+                    if "type" in ioser:
+                        if ioser["type"] == cls_ser.get("type", "Any"):
+                            del ioser["type"]
 
-                if "value_options" in ioser:
-                    if ioser["value_options"] == cls_ser.get("value_options", {}):
-                        del ioser["value_options"]
+                    if "value_options" in ioser:
+                        if ioser["value_options"] == cls_ser.get("value_options", {}):
+                            del ioser["value_options"]
 
-                if "render_options" in ioser:
-                    if ioser["render_options"] == cls_ser.get("render_options", {}):
-                        del ioser["render_options"]
+                    if "render_options" in ioser:
+                        if ioser["render_options"] == cls_ser.get("render_options", {}):
+                            del ioser["render_options"]
 
-                if "default" in ioser:
-                    if ioser["default"] == cls_ser.get("default", NoValue):
-                        del ioser["default"]
+                    if "default" in ioser:
+                        if ioser["default"] == cls_ser.get("default", NoValue):
+                            del ioser["default"]
 
             ser["io"][iod.uuid] = ioser
 

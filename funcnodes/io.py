@@ -353,7 +353,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         if "value" in data:
             self._value = data["value"]
 
-    def serialize(self) -> NodeIOSerialization:
+    def serialize(self, drop=True) -> NodeIOSerialization:
         """Serializes the NodeIO instance to a dictionary.
 
         Returns:
@@ -375,14 +375,15 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         ):
             ser["allow_multiple"] = self.allow_multiple
 
-        if ser["name"] == ser["id"]:
-            del ser["name"]
+        if drop:
+            if ser["name"] == ser["id"]:
+                del ser["name"]
 
-        if len(ser["render_options"]) == 0:
-            del ser["render_options"]
+            if len(ser["render_options"]) == 0:
+                del ser["render_options"]
 
-        if len(ser["value_options"]) == 0:
-            del ser["value_options"]
+            if len(ser["value_options"]) == 0:
+                del ser["value_options"]
 
         return ser
 
@@ -732,7 +733,7 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             default=serialized_input.get("default", NoValue),
         )
 
-    def serialize(self) -> NodeInputSerialization:
+    def serialize(self, drop=True) -> NodeInputSerialization:
         """
         Serializes the NodeInput instance to a dictionary for storage or transmission.
 
@@ -740,7 +741,7 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             A dictionary containing the serialized name and description of the node input.
         """
         ser = NodeInputSerialization(
-            **super().serialize(),
+            **super().serialize(drop=drop),
         )
         if self.required is not NodeInput.default_required:
             ser["required"] = self.required
@@ -757,7 +758,7 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
 
     def to_dict(self) -> NodeInputOptions:
         ser: IOOptions = NodeInputOptions(
-            **self.serialize(),
+            **self.serialize(drop=False),
         )
         return ser
 
@@ -895,7 +896,7 @@ class NodeOutput(NodeIO):
 
     def to_dict(self) -> NodeOutputOptions:
         ser: IOOptions = NodeOutputOptions(
-            **self.serialize(),
+            **self.serialize(drop=False),
         )
         return ser
 

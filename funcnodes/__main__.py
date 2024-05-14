@@ -5,7 +5,11 @@ import argparse
 from pprint import pprint
 import sys
 import os
-import setproctitle
+
+try:
+    from setproctitle import setproctitle
+except ModuleNotFoundError:
+    setproctitle = print
 
 
 def task_run_server(args: argparse.Namespace):
@@ -22,7 +26,7 @@ def task_run_server(args: argparse.Namespace):
       >>> task_run_server(args)
       None
     """
-    setproctitle.setproctitle("funcnodes_server")
+    setproctitle("funcnodes_server")
     run_server(port=args.port, open_browser=args.no_browser)
 
 
@@ -66,7 +70,7 @@ def start_new_worker(args: argparse.Namespace):
     fn.FUNCNODES_LOGGER.info(f"Starting new worker of type {args.workertype}")
 
     worker = worker_class(uuid=args.uuid, name=args.name)
-    setproctitle.setproctitle("worker " + worker.uuid())
+    setproctitle("worker " + worker.uuid())
     worker.run_forever()
 
 
@@ -123,7 +127,7 @@ def start_existing_worker(args: argparse.Namespace):
     fn.FUNCNODES_LOGGER.info(f"Starting existing worker of type {args.workertype}")
     worker = worker_class(uuid=cfg["uuid"])
 
-    setproctitle.setproctitle("worker " + worker.uuid())
+    setproctitle("worker " + worker.uuid())
     worker.run_forever()
 
 
@@ -170,7 +174,7 @@ def start_worker_manager(args: argparse.Namespace):
       >>> start_worker_manager(args)
       None
     """
-    setproctitle.setproctitle("worker_manager")
+    setproctitle("worker_manager")
     fn.worker.worker_manager.start_worker_manager()
 
 
