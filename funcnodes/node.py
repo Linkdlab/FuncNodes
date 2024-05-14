@@ -741,10 +741,12 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             triggerstack (Optional[TriggerStack]): The trigger stack to use for the operation, if any.
 
         Returns:
-            None
+            bool: Whether the node was triggered.
         """
         if self._requests_trigger and self.ready_to_trigger():
             self.trigger(triggerstack)
+            return True
+        return False
 
     @emit_before()
     @emit_after()
