@@ -27,6 +27,8 @@ from .data import DataEnum
 from . import config
 from .config import RenderOptions
 
+from exposedfunctionality import add_type
+
 __all__ = [
     "NodeInput",
     "NodeOutput",
@@ -64,6 +66,7 @@ __all__ = [
     "RenderOptions",
     "NoValue",
     "DataEnum",
+    "add_type",
 ]
 
 __version__ = "0.2.6"
