@@ -885,14 +885,14 @@ class NodeOutput(NodeIO):
             type=serialized_output["type"],
         )
 
-    def serialize(self) -> NodeOutputSerialization:
+    def serialize(self, drop: bool = True) -> NodeOutputSerialization:
         """
         Serializes the NodeOutput instance to a dictionary for storage or transmission.
 
         Returns:
             A dictionary containing the serialized name and description of the node output.
         """
-        return NodeOutputSerialization(**super().serialize())
+        return NodeOutputSerialization(**super().serialize(drop=drop))
 
     def to_dict(self) -> NodeOutputOptions:
         ser: IOOptions = NodeOutputOptions(

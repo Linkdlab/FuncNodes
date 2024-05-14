@@ -27,6 +27,7 @@ class DummyNode(Node):
         value_options={"options": [1, 2]},
     )
     output = NodeOutput(id="output", type=int)
+    default_render_options = {"data": {"src": "input"}}
 
     async def func(self, input: int) -> int:
         print("Dummy Input", input)
@@ -314,6 +315,7 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
             "name": "DummyNode(aa)",
             "node_id": "dummy_node",
             "node_name": "DummyNode",
+            "render_options": {"data": {"src": "input"}},
         }
         self.maxDiff = None
         self.assertEqual(

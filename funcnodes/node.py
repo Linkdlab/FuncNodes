@@ -135,7 +135,7 @@ def _parse_nodeclass_io(node: Node):
 
         if node_io_render:
             deep_fill_dict(
-                ser.get("render_options", {}), node_io_render, overwrite_existing=True
+                ser["render_options"], node_io_render, overwrite_existing=True
             )
 
         if node_io_options:
