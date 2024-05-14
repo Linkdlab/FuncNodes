@@ -32,13 +32,11 @@ class TestLib(unittest.TestCase):
                     "inputs": [
                         {
                             "description": "An integer.",
-                            "name": "int",
                             "type": "int",
                             "uuid": "int",
                         },
                         {
                             "description": "A string.",
-                            "name": "str",
                             "type": "str",
                             "uuid": "str",
                         },
@@ -46,7 +44,6 @@ class TestLib(unittest.TestCase):
                     "outputs": [
                         {
                             "description": "A string.",
-                            "name": "out",
                             "type": "str",
                             "uuid": "out",
                         }

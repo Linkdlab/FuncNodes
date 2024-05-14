@@ -41,6 +41,8 @@ class TestNodeIO(unittest.TestCase):
                 "connected": False,
                 "does_trigger": True,
                 "full_id": None,
+                "default": "<NoValue>",
+                "required": True,
             },
         )
 
@@ -56,12 +58,14 @@ class TestNodeIO(unittest.TestCase):
                 "is_input": True,
                 "type": "Any",
                 "node": None,
-                "value": "<NoValue>",
+                "value": NoValue,
                 "render_options": {},
                 "value_options": {},
                 "connected": False,
                 "does_trigger": True,
                 "full_id": None,
+                "default": NoValue,
+                "required": True,
             },
         )
 
@@ -70,24 +74,18 @@ class TestNodeIO(unittest.TestCase):
         self.assertEqual(
             serialized_input,
             {
-                "name": "input1",
                 "id": "input1",
                 "is_input": True,
                 "type": "Any",
-                "render_options": {},
-                "value_options": {},
             },
         )
         serialized_output = self.output_1.serialize()
         self.assertEqual(
             serialized_output,
             {
-                "name": "output1",
                 "type": "Any",
                 "id": "output1",
                 "is_input": False,
-                "render_options": {},
-                "value_options": {},
             },
         )
 

@@ -75,9 +75,12 @@ def _get_nodeclass_inputs(node: Type[Node] | Node) -> List[NodeInput]:
             classattr.append(attr_name)
 
     for attr_name in classattr:
-        attr = getattr(node, attr_name)
-        if isinstance(attr, NodeInput):
-            inputs.append(attr)
+        try:
+            attr = getattr(node, attr_name)
+            if isinstance(attr, NodeInput):
+                inputs.append(attr)
+        except AttributeError:
+            pass
     return inputs
 
 
@@ -99,9 +102,12 @@ def _get_nodeclass_outputs(node: Type[Node] | Node) -> List[NodeOutput]:
             classattr.append(attr_name)
 
     for attr_name in classattr:
-        attr = getattr(node, attr_name)
-        if isinstance(attr, NodeOutput):
-            outputs.append(attr)
+        try:
+            attr = getattr(node, attr_name)
+            if isinstance(attr, NodeOutput):
+                outputs.append(attr)
+        except AttributeError:
+            pass
     return outputs
 
 
@@ -134,6 +140,7 @@ def _parse_nodeclass_io(node: Node):
 
         if node_io_options:
             deep_fill_dict(ser, node_io_options, overwrite_existing=True)
+
         node.add_input(
             NodeInput(
                 **ser,
@@ -289,9 +296,30 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
         required=False,
     )
 
+    _class_io_serialized: Dict[str, NodeIOSerialization]
+
     @abstractmethod
     async def func(self, *args, **kwargs):
         """The function to be executed when the node is triggered."""
+
+    def __init_subclass__(cls, **kwargs):
+        ips = _get_nodeclass_inputs(cls)
+        ops = _get_nodeclass_outputs(cls)
+
+        cls._class_io_serialized: Dict[str, NodeIOSerialization] = {}
+
+        for io in ips + ops:
+            ipser = io.serialize()
+
+            # check if it is present in the previous
+            while ipser["id"] in cls._class_io_serialized:
+                io._uuid = io.uuid + "_"
+                ipser = io.serialize()
+                # raise NodeIdAlreadyExistsError(
+                #     f"IO with id {ipser['id']} already exists in {cls}"
+                # )
+
+            cls._class_io_serialized[ipser["id"]] = ipser
 
     def __init__(
         self,
@@ -349,7 +377,7 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             ],
             outputs=[op.serialize_class() for op in _get_nodeclass_outputs(cls)],
             description=cls.description,
-            node_name=cls.node_name,
+            node_name=getattr(cls, "node_name", cls.__name__),
         )
         if cls.default_reset_inputs_on_trigger != Node.default_reset_inputs_on_trigger:
             ser["reset_inputs_on_trigger"] = cls.default_reset_inputs_on_trigger
@@ -411,13 +439,46 @@ class Node(EventEmitterMixin, ABC, metaclass=NodeMeta):
             name=self.name,
             id=self.uuid,
             node_id=self.node_id,
-            node_name=self.node_name,
-            io={
-                iod.uuid: iod.serialize()
-                for iod in self._inputs + self._outputs
-                if iod.uuid != "_triggerinput"
-            },
+            node_name=getattr(self, "node_name", self.__class__.__name__),
+            io={},
         )
+
+        for iod in self._inputs + self._outputs:
+            if iod.uuid == "_triggerinput":
+                continue
+            ioser = dict(iod.serialize())
+            del ioser["id"]
+
+            cls_ser = None
+            if iod.uuid in self._class_io_serialized:
+                cls_ser = self._class_io_serialized[iod.uuid]
+
+            if cls_ser:
+                if "description" in ioser:
+                    if ioser["description"] == cls_ser.get("description", ""):
+                        del ioser["description"]
+
+                if "default" in ioser:
+                    if ioser["default"] == cls_ser.get("default", NoValue):
+                        del ioser["default"]
+
+                if "type" in ioser:
+                    if ioser["type"] == cls_ser.get("type", "Any"):
+                        del ioser["type"]
+
+                if "value_options" in ioser:
+                    if ioser["value_options"] == cls_ser.get("value_options", {}):
+                        del ioser["value_options"]
+
+                if "render_options" in ioser:
+                    if ioser["render_options"] == cls_ser.get("render_options", {}):
+                        del ioser["render_options"]
+
+                if "default" in ioser:
+                    if ioser["default"] == cls_ser.get("default", NoValue):
+                        del ioser["default"]
+
+            ser["io"][iod.uuid] = ioser
 
         if self.reset_inputs_on_trigger != self.default_reset_inputs_on_trigger:
             ser["reset_inputs_on_trigger"] = self.reset_inputs_on_trigger

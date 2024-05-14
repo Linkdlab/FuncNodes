@@ -92,6 +92,7 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
         )
         self.assertEqual(nodeclass.node_name, "Test")
         node = retmoteworker.add_node("testexternalworker.test.test", name="TestNode")
+        self.maxDiff = None
         expected_node_ser = {
             "name": "TestNode",
             "id": node.uuid,
@@ -99,20 +100,10 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
             "node_name": "Test",
             "io": {
                 "a": {
-                    "name": "a",
-                    "type": "int",
-                    "id": "a",
                     "is_input": True,
-                    "render_options": {},
-                    "value_options": {},
                 },
                 "out": {
-                    "name": "out",
-                    "type": "int",
-                    "id": "out",
                     "is_input": False,
-                    "render_options": {},
-                    "value_options": {},
                 },
             },
         }

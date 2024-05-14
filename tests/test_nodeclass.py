@@ -19,7 +19,13 @@ import funcnodes as fn
 
 class DummyNode(Node):
     node_id = "dummy_node"
-    input = NodeInput(id="input", type=int, default=1)
+    input = NodeInput(
+        id="input",
+        type=int,
+        default=1,
+        description="i1",
+        value_options={"options": [1, 2]},
+    )
     output = NodeOutput(id="output", type=int)
 
     async def func(self, input: int) -> int:
@@ -140,6 +146,12 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
                         "ready": True,
                     }
                 },
+                "ready_state": {
+                    "inputs": {
+                        "_triggerinput": {"node": True, "value": True},
+                        "input": {"node": True, "value": True},
+                    },
+                },
             },
         )
 
@@ -166,7 +178,7 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
                 print("=" * 60)
                 print(g, hex(id(g)))
                 for ref in gc.get_referrers(g):
-                    print("-" * 60)
+                    print("" * 60)
                     print(ref)
                     if hasattr(ref, "__dict__"):
                         pprint(vars(ref))
@@ -248,6 +260,74 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(bn.outputs["out"].value, 1)
         self.assertEqual(dum.inputs["input"].value, 1)
         self.assertEqual(dum.outputs["output"].value, 1)
+
+    async def test__init__subclass(self):
+        self.assertEqual(
+            len(DummyNode._class_io_serialized), 3, DummyNode._class_io_serialized
+        )
+
+    async def test_serialize_nodeclass(self):
+
+        nser = DummyNode.serialize_cls()
+        expected = {
+            "description": None,
+            "inputs": [
+                {
+                    "description": "i1",
+                    "type": "int",
+                    "uuid": "input",
+                }
+            ],
+            "node_id": "dummy_node",
+            "node_name": "DummyNode",
+            "outputs": [
+                {
+                    "description": None,
+                    "type": "int",
+                    "uuid": "output",
+                }
+            ],
+        }
+        self.assertEqual(
+            nser,
+            expected,
+        )
+
+    async def test_serialize_node(self):
+        n = DummyNode(uuid="aa")
+        n2 = DummyNode(uuid="bb")
+
+        n.inputs["input"].value = 2
+        n2.inputs["input"].connect(n.outputs["output"])
+        await n
+        await n2
+        self.assertEqual(n2.outputs["output"].value, 2)
+        nser = n.serialize()
+        expected = {
+            "id": "aa",
+            "io": {
+                "input": {"is_input": True, "value": 2},
+                "output": {
+                    "is_input": False,
+                },
+            },
+            "name": "DummyNode(aa)",
+            "node_id": "dummy_node",
+            "node_name": "DummyNode",
+        }
+        self.maxDiff = None
+        self.assertEqual(
+            nser,
+            expected,
+        )
+
+        del expected["io"]["input"]["value"]
+        expected["name"] = "DummyNode(bb)"
+        expected["id"] = "bb"
+        self.assertEqual(
+            n2.serialize(),
+            expected,
+        )
 
 
 class NodeClassMetaTest(unittest.TestCase):

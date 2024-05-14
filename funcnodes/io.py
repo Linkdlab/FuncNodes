@@ -375,6 +375,15 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         ):
             ser["allow_multiple"] = self.allow_multiple
 
+        if ser["name"] == ser["id"]:
+            del ser["name"]
+
+        if len(ser["render_options"]) == 0:
+            del ser["render_options"]
+
+        if len(ser["value_options"]) == 0:
+            del ser["value_options"]
+
         return ser
 
     @property
@@ -560,6 +569,8 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         if self._allow_multiple is not None:
             ser["allow_multiple"] = self._allow_multiple
 
+        if ser["name"] == ser["uuid"]:
+            del ser["name"]
         return ser
 
     def full_serialize(self) -> FullNodeIOJSON:
@@ -570,7 +581,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         FullNodeIOJSON:
             JSON serializable dictionary of the NodeIO
         """
-        return FullNodeIOJSON(
+        ser = FullNodeIOJSON(
             id=self.uuid,
             full_id=self.full_id,
             name=self.name,
@@ -583,6 +594,8 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             render_options=self.render_options,
             value_options=self.value_options,
         )
+
+        return ser
 
     def _repr_json_(self) -> FullNodeIOJSON:
         return JSONEncoder.apply_custom_encoding(self.full_serialize(), preview=False)  # type: ignore
@@ -735,6 +748,11 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             ser["does_trigger"] = self.does_trigger
         if self._default is not NoValue:
             ser["default"] = self._default
+        if (
+            self.value != self.default
+            and not self.is_connected()  # value is stored only if not connected
+        ):
+            ser["value"] = self.value
         return ser
 
     def to_dict(self) -> NodeInputOptions:
