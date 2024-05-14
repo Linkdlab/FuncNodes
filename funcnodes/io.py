@@ -91,6 +91,13 @@ class FullNodeIOJSON(TypedDict):
     value_options: ValueOptions
 
 
+class FullNodeInputJSON(FullNodeIOJSON):
+    """Full JSON representation of a NodeInput."""
+
+    default: Any
+    required: bool
+
+
 # A unique object that represents the absence of a value
 class NoValueType:
     _instance = None
@@ -560,14 +567,14 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             is_input=self.is_input(),
             connected=self.is_connected(),
             node=self.node.uuid if self.node else None,
-            value=JSONEncoder.apply_custom_encoding(self.value, preview=True),
+            value=self.value,
             does_trigger=self.does_trigger,
             render_options=self.render_options,
             value_options=self.value_options,
         )
 
     def _repr_json_(self) -> FullNodeIOJSON:
-        return JSONEncoder.apply_custom_encoding(self.full_serialize())  # type: ignore
+        return JSONEncoder.apply_custom_encoding(self.full_serialize(), preview=False)  # type: ignore
 
     @property
     def allow_multiple(self) -> bool:
@@ -663,6 +670,13 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
     def value(self, value: NodeIOType) -> None:
         """Sets the value of the NodeIO."""
         self.set_value(value)
+
+    def full_serialize(self) -> FullNodeInputJSON:
+        return FullNodeInputJSON(
+            **super().full_serialize(),
+            default=self.default,
+            required=self.required,
+        )
 
     def set_default(self, default: NodeIOType | NoValueType):
         self._default = default
