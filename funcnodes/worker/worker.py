@@ -39,6 +39,7 @@ from funcnodes import (
     NodeClassNotFoundError,
     NodeOutput,
     NodeInput,
+    NoValue,
 )
 from funcnodes.utils import deep_fill_dict
 from funcnodes.lib import find_shelf, ShelfDict
@@ -1023,7 +1024,9 @@ class Worker(ABC):
     def set_io_value(self, nid: str, ioid: str, value: Any, set_default: bool = False):
         node = self.get_node(nid)
         io = node.get_input(ioid)
-        if set_default:
+        if (
+            set_default and value != NoValue
+        ):  # novalue should not be set automatically as default via io set
             io.set_default(value)
         io.set_value(value)
 
@@ -1040,9 +1043,9 @@ class Worker(ABC):
         node = self.get_node(nid)
         node.request_trigger()
         return True
-    
+
     @exposed_method()
-    def get_node_status(self,nid:str):
+    def get_node_status(self, nid: str):
         node = self.get_node(nid)
         return node.status()
 
