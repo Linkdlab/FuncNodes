@@ -205,7 +205,10 @@ class WSWorker(RemoteWorker):
     ):
         """send a message to the frontend"""
         if websocket:
-            await websocket.send(msg)
+            try:
+                await websocket.send(msg)
+            except websockets.exceptions.WebSocketException:
+                pass
         else:
             clients = self.ws_loop.clients
 
