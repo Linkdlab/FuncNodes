@@ -69,6 +69,6 @@ __all__ = [
     "add_type",
 ]
 
-__version__ = "0.2.14"
+__version__ = "0.2.15"
 
 DEBUG = True
