@@ -122,11 +122,20 @@ class NodeSpace(EventEmitterMixin):
           FullNodeSpaceJSON: A JSON object containing the serialized NodeSpace.
         """
         return {
-            "nodes": [node.full_serialize() for node in self.nodes],
+            "nodes": self.full_nodes_serialize(),
             "prop": self._properties,
             "lib": self.lib.full_serialize(),
             "edges": self.serialize_edges(),
         }
+
+    def full_nodes_serialize(self) -> List[FullNodeJSON]:
+        """
+        Serializes all nodes in the NodeSpace.
+
+        Returns:
+          List[FullNodeJSON]: A list of JSON objects containing the serialized nodes.
+        """
+        return [node.full_serialize() for node in self.nodes]
 
     def deserialize_nodes(self, data: List[NodeJSON]):
         """

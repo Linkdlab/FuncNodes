@@ -1,10 +1,11 @@
 import importlib
-from typing import Tuple, TypedDict, Union
+from typing import Tuple, TypedDict, Union, List, Optional
 from .lib import Shelf
 from .libparser import module_to_shelf
 import os
 import sys
 import funcnodes as fn
+import argparse
 
 
 class BaseShelfDict(TypedDict):
@@ -42,13 +43,15 @@ class PathShelfDict(BaseShelfDict):
     """
 
     path: str
+    skip_requirements: bool
 
 
 ShelfDict = Union[BaseShelfDict, PackageShelfDict, PathShelfDict]
 
 
 def find_shelf_from_module(
-    mod: Union[str, BaseShelfDict]
+    mod: Union[str, BaseShelfDict],
+    args: Optional[List[str]] = None,
 ) -> Union[Tuple[Shelf, BaseShelfDict], None]:
     """
     Finds a shelf from a module.
@@ -88,7 +91,9 @@ def find_shelf_from_module(
 
 
 def find_shelf_from_package(
-    pgk: Union[str, PackageShelfDict], update: bool = False
+    pgk: Union[str, PackageShelfDict],
+    update: bool = False,
+    args: Optional[List[str]] = None,
 ) -> Union[Tuple[Shelf, PackageShelfDict], None]:
     """
     Finds a shelf from a package.
@@ -140,7 +145,8 @@ def find_shelf_from_package(
 
 
 def find_shelf_from_path(
-    path: Union[str, PathShelfDict]
+    path: Union[str, PathShelfDict],
+    args: Optional[List[str]] = None,
 ) -> Union[Tuple[Shelf, PathShelfDict], None]:
     """
     Finds a shelf from a path.
@@ -153,12 +159,30 @@ def find_shelf_from_path(
     """
 
     if isinstance(path, str):
+        parser = argparse.ArgumentParser(description="Parse a path for Funcnodes.")
+        parser.add_argument(
+            "path",
+            type=str,
+            help="The path to parse.",
+        )
+        parser.add_argument(
+            "--skip_requirements",
+            action="store_true",
+            help="Skip installing requirements",
+            default=False,
+        )
+        if args is None:
+            args = []
+
         path = path.replace("\\", os.sep).replace("/", os.sep)
         path = path.strip(os.sep)
+        args = [path] + args
+        args = parser.parse_args(args=args)
 
         data = PathShelfDict(
             path=os.path.dirname(os.path.abspath(path)),
             module=os.path.basename(path),
+            skip_requirements=args.skip_requirements,
         )
     else:
         data = path
@@ -170,31 +194,31 @@ def find_shelf_from_path(
         sys.path.insert(0, data["path"])
 
     # install requirements
-
-    if "pyproject.toml" in os.listdir(data["path"]):
-        fn.FUNCNODES_LOGGER.debug(
-            f"pyproject.toml found in {data['path']}, generating requirements.txt"
-        )
-        # install poetry requirements
-        # save current path
-        cwd = os.getcwd()
-        # cd into the module path
-        os.chdir(data["path"])
-        # install via poetry
-        os.system(f"poetry update --no-interaction")
-        os.system(
-            f"poetry export --without-hashes -f requirements.txt --output requirements.txt"
-        )
-        # cd back
-        os.chdir(cwd)
-    if "requirements.txt" in os.listdir(data["path"]):
-        fn.FUNCNODES_LOGGER.debug(
-            f"requirements.txt found in {data['path']}, installing requirements"
-        )
-        # install pip requirements
-        os.system(
-            f"{sys.executable} -m pip install -r {os.path.join(data['path'],'requirements.txt')}"
-        )
+    if not data.get("skip_requirements", False):
+        if "pyproject.toml" in os.listdir(data["path"]):
+            fn.FUNCNODES_LOGGER.debug(
+                f"pyproject.toml found in {data['path']}, generating requirements.txt"
+            )
+            # install poetry requirements
+            # save current path
+            cwd = os.getcwd()
+            # cd into the module path
+            os.chdir(data["path"])
+            # install via poetry
+            os.system(f"poetry update --no-interaction")
+            os.system(
+                f"poetry export --without-hashes -f requirements.txt --output requirements.txt"
+            )
+            # cd back
+            os.chdir(cwd)
+        if "requirements.txt" in os.listdir(data["path"]):
+            fn.FUNCNODES_LOGGER.debug(
+                f"requirements.txt found in {data['path']}, installing requirements"
+            )
+            # install pip requirements
+            os.system(
+                f"{sys.executable} -m pip install -r {os.path.join(data['path'],'requirements.txt')}"
+            )
 
     ndata = find_shelf_from_module(data)
     if ndata is not None:
@@ -236,18 +260,20 @@ def find_shelf(src: Union[ShelfDict, str]) -> Tuple[Shelf, ShelfDict] | None:
 
     # check if identifier is a python module e.g. "funcnodes.lib"
     fn.FUNCNODES_LOGGER.debug(f"trying to import {src}")
-    data = {}
+
+    args = src.split(" ")
+    src = args.pop(0)
 
     if src.startswith("pip://"):
         src = src[6:]
-        return find_shelf_from_package(src, update=True)
+        return find_shelf_from_package(src, update=True, args=args)
 
     # check if file path:
     if src.startswith("file://"):
         # unifiy path between windows and linux
         src = src[7:]
-        return find_shelf_from_path(src)
+        return find_shelf_from_path(src, args=args)
 
     # try to get via pip
-    dat = find_shelf_from_module(src)
+    dat = find_shelf_from_module(src, args=args)
     return dat

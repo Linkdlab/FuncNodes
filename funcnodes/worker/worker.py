@@ -46,6 +46,11 @@ from funcnodes.lib import find_shelf, ShelfDict
 import traceback
 from exposedfunctionality import exposed_method, get_exposed_methods
 from typing_extensions import deprecated
+from funcnodes.frontends.funcnodes_react import (
+    FUNCNODES_REACT_PLUGIN,
+    get_react_plugin_content,
+)
+from funcnodes.nodespace import FullNodeJSON
 
 
 class MetaInfo(TypedDict):
@@ -755,6 +760,10 @@ class Worker(ABC):
                         return self.add_local_worker(wcls["_classref"], uuid4().hex)
         raise ValueError(f"Worker {cls_name}({cls_module}) not found in {module}")
 
+    @exposed_method()
+    def get_worker_dependencies(self) -> List[WorkerDict]:
+        return self._worker_dependencies
+
     # region states
     @exposed_method()
     def uuid(self) -> str:
@@ -809,7 +818,7 @@ class Worker(ABC):
                 w.NODECLASSID: [i.uuid for i in w.running_instances()]
                 for w in self.local_worker_lookup_loop.worker_classes
             },
-            worker_dependencies=self._worker_dependencies,
+            worker_dependencies=self.get_worker_dependencies(),
             progress_state=self._progress_state,
             meta=self.get_meta(),
         )
@@ -819,6 +828,26 @@ class Worker(ABC):
     @exposed_method()
     def get_library(self) -> dict:
         return self.nodespace.lib.full_serialize()
+
+    @exposed_method()
+    def get_nodes(self, with_frontend=False) -> List[FullNodeJSON]:
+        nodes = self.nodespace.full_nodes_serialize()
+        if with_frontend:
+            nodes_viewdata = self.viewdata.get("nodes", {})
+            for node in nodes:
+                node["frontend"] = nodes_viewdata.get(
+                    node["id"],
+                    NodeViewState(
+                        pos=(0, 0),
+                        size=(200, 250),
+                    ),
+                )
+
+        return nodes
+
+    @exposed_method()
+    def get_edges(self) -> List[Tuple[str, str, str, str]]:
+        return self.nodespace.serialize_edges()
 
     @exposed_method()
     async def stop_worker(self):
@@ -832,6 +861,20 @@ class Worker(ABC):
             message="Stopping worker", status="info", progress=1, blocking=False
         )
         return True
+
+    @exposed_method()
+    def get_plugin_keys(self, type=Literal["react"]) -> List[str]:
+        if type == "react":
+            return list(FUNCNODES_REACT_PLUGIN.keys())
+
+        raise ValueError(f"Plugin type {type} not found")
+
+    @exposed_method()
+    def get_plugin(self, key: str, type=Literal["react"]) -> Any:
+        if type == "react":
+            return get_react_plugin_content(key)
+
+        raise ValueError(f"Plugin type {type} not found")
 
     # endregion states
 
