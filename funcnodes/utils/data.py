@@ -47,7 +47,7 @@ def deep_fill_dict(
                     target_dict=node,
                     source_dict=value,
                     overwrite_existing=overwrite_existing,
-                    inplace=inplace,
+                    inplace=True,  # always inplace for nested dicts
                 )
                 continue
         if overwrite_existing or (key not in target_dict):
