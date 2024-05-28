@@ -12,6 +12,18 @@ class TestDictFunctions(unittest.TestCase):
         source = {"b": 2}
         expected = {"a": 1, "b": 2}
         self.assertEqual(deep_fill_dict(target, source), expected)
+        self.assertEqual(target, expected)
+
+    def test_deep_fill_basic2(self):
+        """Test basic functionality of deep_fill_dict."""
+        target = {}
+        source = {"b": {"c": [2]}}
+        expected = {"b": {"c": [2]}}
+        self.assertEqual(
+            deep_fill_dict(target, source, inplace=False, overwrite_existing=True),
+            expected,
+        )
+        self.assertEqual(target, {})
 
     def test_deep_fill_overwrite(self):
         """Test overwriting existing keys in deep_fill_dict."""
