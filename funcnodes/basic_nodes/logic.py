@@ -1,11 +1,12 @@
 """Logic Nodes for control flow and decision making."""
 
 from funcnodes.node import Node, TriggerStack
-from typing import Any, List
+from typing import Any, List, Optional, Union
 from funcnodes.io import NodeInput, NodeOutput, NoValue
 import asyncio
 from funcnodes.lib import module_to_shelf
 import sys
+import funcnodes as fn
 
 
 class IfNode(Node):
@@ -101,4 +102,17 @@ class CollectorNode(Node):
         self.outputs["output"].value = self.collection
 
 
-NODE_SHELF = module_to_shelf(sys.modules[__name__], name="logic")
+@fn.NodeDecorator(
+    id="contains_node",
+    name="Contains",
+)
+def contains(collection: List[Union[str, Any]], item: Union[str, Any]) -> bool:
+    return item in collection
+
+
+NODE_SHELF = fn.Shelf(
+    nodes=[IfNode, WhileNode, WaitNode, ForNode, CollectorNode, contains],
+    subshelves=[],
+    name="Logic",
+    description="Control flow and decision making nodes.",
+)
