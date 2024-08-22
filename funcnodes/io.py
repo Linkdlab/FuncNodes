@@ -280,7 +280,7 @@ def identity_preview_generator(value: Any) -> Any:
     return value
 
 
-def generate_value_options(value_options, _type):
+def generate_value_options(value_options, _type: Union[str, dict]):
     if value_options is not None:
         return value_options
 
@@ -293,6 +293,10 @@ def generate_value_options(value_options, _type):
         for _t in _type["anyOf"]:
             nopts.update(generate_value_options(None, _t))
         opts = {**nopts, **opts}
+
+    if isinstance(_type, str):
+        if _type == "int":
+            opts["step"] = 1
 
     return opts
 

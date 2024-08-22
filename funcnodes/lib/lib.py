@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, TypedDict, Dict, Type, Tuple, Set
 from funcnodes.node import Node, SerializedNodeClass
+from funcnodes.utils.serialization import JSONEncoder
 
 
 class NodeClassNotFoundError(Exception):
@@ -213,3 +214,12 @@ class FullLibJSON(TypedDict):
     """
 
     shelves: List[SerializedShelf]
+
+
+def libencode(obj, preview=False):
+    if isinstance(obj, Library):
+        return obj.full_serialize(), True
+    return obj, False
+
+
+JSONEncoder.add_encoder(libencode)

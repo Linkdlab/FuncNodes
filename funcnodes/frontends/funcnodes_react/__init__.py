@@ -11,6 +11,8 @@ class ReactPlugin(TypedDict):
     """
 
     js: list[str]
+    css: list[str]
+    module: str
 
 
 class ExpandedReactPlugin(TypedDict):
@@ -22,6 +24,8 @@ class ExpandedReactPlugin(TypedDict):
     """
 
     js: List[bytes]
+    module: bytes
+    css: List[bytes]
 
 
 FUNCNODES_REACT_PLUGIN: Dict[str, ReactPlugin] = {}
@@ -49,10 +53,17 @@ def get_react_plugin_content(key: str) -> ExpandedReactPlugin:
       str: The content of the plugin.
     """
     key = str(key)
-    resp: ExpandedReactPlugin = {"js": []}
+
+    with open(FUNCNODES_REACT_PLUGIN[key]["module"], "rb") as f:
+        module = f.read()
+    resp: ExpandedReactPlugin = {"js": [], "module": module, "css": []}
     if "js" in FUNCNODES_REACT_PLUGIN[key]:
-        resp["js"] = []
         for js in FUNCNODES_REACT_PLUGIN[key]["js"]:
             with open(js, "rb") as f:
                 resp["js"].append(f.read())
+
+    if "css" in FUNCNODES_REACT_PLUGIN[key]:
+        for css in FUNCNODES_REACT_PLUGIN[key]["css"]:
+            with open(css, "rb") as f:
+                resp["css"].append(f.read())
     return resp

@@ -128,12 +128,12 @@ class JSONEncoder(json.JSONEncoder):
             encoders = cls.encoder_registry.get(base)
             if encoders:
                 for enc in encoders:
-                    try:
-                        res, handled = enc(obj, preview)
-                        if handled:
-                            return cls.apply_custom_encoding(res, preview=preview)
-                    except Exception as e:
-                        pass
+                    # try:
+                    res, handled = enc(obj, preview)
+                    if handled:
+                        return cls.apply_custom_encoding(res, preview=preview)
+                # except Exception as e:
+                #     pass
         if isinstance(obj, (int, float, bool, type(None))):
             # convert nan to None
             if isinstance(obj, float) and obj != obj:
