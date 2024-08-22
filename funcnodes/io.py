@@ -11,9 +11,7 @@ from typing import (
     Union,
     Tuple,
     Required,
-    Callable,
     Dict,
-    Literal,
 )
 from uuid import uuid4
 from exposedfunctionality import FunctionInputParam, FunctionOutputParam
@@ -32,7 +30,6 @@ from .utils.data import deep_fill_dict, deep_remove_dict_on_equal
 from .utils.serialization import JSONEncoder, JSONDecoder
 import json
 import weakref
-import enum
 
 if TYPE_CHECKING:
     # Avoid circular import
@@ -233,7 +230,13 @@ class IORenderOptions(TypedDict, total=False):
     type: str
 
 
-class NumberValueOptions(TypedDict, total=False):
+class GenericValueOptions(TypedDict, total=False):
+    """Typing definition for Node Input/Output generic value options."""
+
+    pass
+
+
+class NumberValueOptions(GenericValueOptions, total=False):
     """Typing definition for Node Input/Output number value options."""
 
     min: int
@@ -241,19 +244,21 @@ class NumberValueOptions(TypedDict, total=False):
     step: int
 
 
-class EnumValueOptions(TypedDict, total=False):
+class EnumValueOptions(GenericValueOptions, total=False):
     """Typing definition for Node Input/Output enum value options."""
 
     options: Dict[str, Union[int, str, float]]
 
 
-class LiteralValueOptions(TypedDict, total=False):
+class LiteralValueOptions(GenericValueOptions, total=False):
     """Typing definition for Node Input/Output literal value options."""
 
     options: List[str, int, float]
 
 
-ValueOptions = Union[NumberValueOptions, EnumValueOptions, LiteralValueOptions]
+ValueOptions = Union[
+    NumberValueOptions, EnumValueOptions, LiteralValueOptions, GenericValueOptions
+]
 
 
 NodeIOType = TypeVar("NodeIOType")
@@ -308,6 +313,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         render_options: Optional[IORenderOptions] = None,
         value_options: Optional[ValueOptions] = None,
         is_input: Optional[bool] = None,  # catch and ignore
+        value: Optional[Any] = None,  # catch and ignore
         emit_value_set: bool = True,
         #  **kwargs,
     ) -> None:
@@ -418,7 +424,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         """Gets a list of NodeIO instances connected to this one."""
         return list(self._connected)
 
-    def set_value(self, value: NodeIOType) -> None:
+    def set_value(self, value: NodeIOType) -> NodeIOType | NoValueType:
         """Sets the internal value of the NodeIO.
 
         Args:
@@ -682,7 +688,10 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             self.default_does_trigger if does_trigger is None else does_trigger
         )
         self.required = self.default_required if required is None else required
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            *args,
+            **kwargs,
+        )
         self._connected: List[NodeOutput] = self._connected
         self._default = default
 
@@ -752,8 +761,8 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             ser["required"] = self.required
         if self.does_trigger is not NodeInput.default_does_trigger:
             ser["does_trigger"] = self.does_trigger
-        if self._default is not NoValue:
-            ser["default"] = self._default
+        if self.default is not NoValue:
+            ser["default"] = self.default
         v, d = self.value, self.default
         if not self.is_connected():  # check same type
             comp = v != d
@@ -873,6 +882,7 @@ class NodeOutput(NodeIO):
         """
 
         super().__init__(*args, **kwargs)
+
         # self._connected: List[NodeInput] = self._connected
 
     @classmethod
