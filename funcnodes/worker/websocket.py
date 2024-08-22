@@ -11,6 +11,7 @@ from .remote_worker import RemoteWorker, RemoteWorkerJson
 import json
 import traceback
 import asyncio
+from funcnodes import FUNCNODES_LOGGER
 
 
 class WSWorkerJson(RemoteWorkerJson):
@@ -97,8 +98,8 @@ class WSLoop(CustomLoop):
                 json_msg = json.loads(message, cls=JSONDecoder)
                 await self._worker.recieve_message(json_msg, websocket=websocket)
 
-        except (websockets.exceptions.WebSocketException,):
-            pass
+        except websockets.exceptions.WebSocketException as e:
+            FUNCNODES_LOGGER.exception(e)
         finally:
             print("Client disconnected")
             self.clients.remove(websocket)
@@ -136,7 +137,7 @@ class WSLoop(CustomLoop):
             try:
                 if self.ws_server is None:
                     self.ws_server = await websockets.serve(
-                        self._handle_connection, self._host, self._port
+                        self._handle_connection, self._host, self._port, max_size=2**32
                     )
                     self._worker.write_config()
                 return
