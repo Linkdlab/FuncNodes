@@ -41,7 +41,7 @@ from funcnodes import (
     NodeInput,
     NoValue,
 )
-from funcnodes.utils import deep_fill_dict
+from funcnodes.utils import deep_fill_dict, saving
 from funcnodes.lib import find_shelf, ShelfDict
 import traceback
 from exposedfunctionality import exposed_method, get_exposed_methods
@@ -796,9 +796,9 @@ class Worker(ABC):
         }
 
     @exposed_method()
-    def get_state(self) -> WorkerState:
+    def get_save_state(self) -> WorkerState:
         data: WorkerState = {
-            "backend": self.nodespace.serialize(),
+            "backend": saving.serialize_nodespace_for_saving(self.nodespace),
             "view": self.view_state(),
             "meta": self.get_meta(),
             "dependencies": self.nodespace.lib.get_dependencies(),
@@ -812,7 +812,7 @@ class Worker(ABC):
     @exposed_method()
     def full_state(self) -> FullState:
         data = FullState(
-            backend=self.nodespace.full_serialize(),
+            backend=JSONEncoder.apply_custom_encoding(self.nodespace),
             view=self.view_state(),
             worker={
                 w.NODECLASSID: [i.uuid for i in w.running_instances()]
@@ -830,7 +830,7 @@ class Worker(ABC):
         return self.nodespace.lib.full_serialize()
 
     @exposed_method()
-    def get_nodes(self, with_frontend=False) -> List[FullNodeJSON]:
+    def get_nodes(self, with_frontend: bool = False) -> List[FullNodeJSON]:
         nodes = self.nodespace.full_nodes_serialize()
         if with_frontend:
             nodes_viewdata = self.viewdata.get("nodes", {})
@@ -863,14 +863,14 @@ class Worker(ABC):
         return True
 
     @exposed_method()
-    def get_plugin_keys(self, type=Literal["react"]) -> List[str]:
+    def get_plugin_keys(self, type: Literal["react"]) -> List[str]:
         if type == "react":
             return list(FUNCNODES_REACT_PLUGIN.keys())
 
         raise ValueError(f"Plugin type {type} not found")
 
     @exposed_method()
-    def get_plugin(self, key: str, type=Literal["react"]) -> Any:
+    def get_plugin(self, key: str, type: Literal["react"]) -> Any:
         if type == "react":
             return get_react_plugin_content(key)
 
@@ -884,7 +884,7 @@ class Worker(ABC):
 
     @exposed_method()
     def save(self):
-        data: WorkerState = self.get_state()
+        data: WorkerState = self.get_save_state()
         with open(self.local_nodespace, "w+", encoding="utf-8") as f:
             f.write(json.dumps(data, indent=2, cls=JSONEncoder))
         self.write_config()
@@ -909,9 +909,8 @@ class Worker(ABC):
         if "view" not in data:
             data["view"] = {}
 
-        print("BBBB", data.keys())
         if "external_workers" in data:
-            print(data["external_workers"])
+
             for worker_id, worker_uuid in data["external_workers"].items():
                 print(
                     worker_id, worker_uuid, self.local_worker_lookup_loop.worker_classes
@@ -977,7 +976,7 @@ class Worker(ABC):
         self.loop_manager.async_call(self.set_progress_state(*args, **kwargs))
 
     @exposed_method()
-    def add_shelf(self, src: Union[str, ShelfDict], save=True):
+    def add_shelf(self, src: Union[str, ShelfDict], save: bool = True):
 
         self.set_progress_state_sync(
             message="Adding shelf", status="info", progress=0.0, blocking=True
