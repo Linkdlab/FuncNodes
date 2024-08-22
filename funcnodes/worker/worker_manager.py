@@ -22,6 +22,7 @@ class ReturnValueThread(threading.Thread):
     """
     A thread class for returning values from a thread.
     """
+
     def __init__(self, *args, **kwargs):
         """
         Initializes a new instance of the ReturnValueThread class.
@@ -216,6 +217,7 @@ class WorkerManager:
     """
     This class is responsible for managing the workers.
     """
+
     def __init__(
         self,
     ):
@@ -513,8 +515,8 @@ class WorkerManager:
         """
         active_worker: List[WorkerJson] = []
         inactive_worker: List[WorkerJson] = []
-        active_worker_ids: List[WorkerJson] = []
-        inactive_worker_ids: List[WorkerJson] = []
+        active_worker_ids: List[str] = []
+        inactive_worker_ids: List[str] = []
 
         workerchecks = []
         workerconfigs = {}
@@ -564,8 +566,18 @@ class WorkerManager:
 
         self._active_workers = active_worker
         self._inactive_workers = inactive_worker
-        print(f"Active workers: {active_worker_ids}")
-        print(f"inactive workers: {inactive_worker_ids}")
+
+        active_names = [
+            f"{workerconfigs[uuid].get('name')}({uuid})" for uuid in active_worker_ids
+        ]
+        joined_names = "\n".join(active_names)
+
+        print(f"Active workers: [{joined_names}]")
+        inactive_names = [
+            f"{workerconfigs[uuid].get('name')}({uuid})" for uuid in inactive_worker_ids
+        ]
+        joined_names = "\n".join(inactive_names)
+        print(f"inactive workers:[{joined_names}]")
 
         await self.broadcast_worker_status()
 
@@ -603,21 +615,22 @@ class WorkerManager:
           >>> await broadcast("Hello world!")
           None
         """
+
         async def try_send(conn, message):
             """
-        Tries to send a message to a specific connection.
+            Tries to send a message to a specific connection.
 
-        Args:
-          conn (websockets.WebSocketServerProtocol): The connection to send the message to.
-          message (str): The message to send.
+            Args:
+              conn (websockets.WebSocketServerProtocol): The connection to send the message to.
+              message (str): The message to send.
 
-        Returns:
-          None
+            Returns:
+              None
 
-        Examples:
-          >>> await try_send(conn, "Hello world!")
-          None
-        """
+            Examples:
+              >>> await try_send(conn, "Hello world!")
+              None
+            """
             try:
                 await conn.send(message)
             except Exception:
@@ -681,11 +694,7 @@ class WorkerManager:
                         await asyncio.sleep(0.5)
                         print("Waiting for worker to stop.")
 
-                for worker in self._active_workers:
-                    if worker["uuid"] == workerid:
-                        self._active_workers.remove(worker)
-                        self._inactive_workers.append(worker)
-                        break
+                await self.reload_workers()
 
         except Exception:
             raise
