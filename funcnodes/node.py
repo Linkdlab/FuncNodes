@@ -1095,7 +1095,15 @@ def nodeencoder(obj, preview=False) -> Tuple[Any, bool]:
     Encodes Nodes
     """
     if isinstance(obj, Node):
-        return obj.full_serialize(), True
+        ser: FullNodeJSON = obj.full_serialize()
+        # io values should be serialized as preview
+        serios = []
+        for iod in ser["io"]:
+            serios.append(JSONEncoder.apply_custom_encoding(iod, preview=True))
+
+        ser["io"] = serios
+
+        return ser, True
     return obj, False
 
 

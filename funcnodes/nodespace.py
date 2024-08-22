@@ -408,3 +408,17 @@ class NodeSpace(EventEmitterMixin):
     ):
         """await_done waits until all nodes are done"""
         return await run_until_complete(*self.nodes)
+
+
+def nodespaceendcoder(obj, preview=False):
+    if isinstance(obj, NodeSpace):
+        return {
+            "nodes": obj.nodes,
+            "prop": obj._properties,
+            "lib": obj.lib,
+            "edges": obj.serialize_edges(),
+        }, True
+    return obj, False
+
+
+JSONEncoder.add_encoder(nodespaceendcoder)
