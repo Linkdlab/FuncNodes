@@ -8,6 +8,7 @@ from .io import (
     MultipleConnectionsError,
     NoValue,
     SameNodeConnectionError,
+    NodeIOSerialization,
 )
 from .utils import run_until_complete, JSONEncoder, JSONDecoder
 from .node import Node, get_nodeclass, NodeJSON
@@ -26,6 +27,8 @@ from .data import DataEnum
 
 from . import config
 from .config import RenderOptions
+
+from .utils import special_types as types
 
 from exposedfunctionality import add_type
 
@@ -67,8 +70,9 @@ __all__ = [
     "NoValue",
     "DataEnum",
     "add_type",
+    "types",
 ]
 
-__version__ = "0.2.18"
+__version__ = "0.3.0"
 
 DEBUG = True
