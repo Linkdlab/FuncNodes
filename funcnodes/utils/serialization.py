@@ -1,4 +1,4 @@
-from typing import Callable, Any, Union, Tuple, List, Literal
+from typing import Callable, Any, Union, Tuple, List, Literal, Dict, Optional
 import json
 import base64
 
@@ -69,12 +69,12 @@ class JSONEncoder(json.JSONEncoder):
     Custom JSON encoder that uses a list of encoders to encode JSON objects.
     """
 
-    encoder: List[encodertype] = []
+    encoder_registry: Dict[type, List[encodertype]] = {}
 
     default_preview = False
 
     @classmethod
-    def add_encoder(cls, enc: encodertype):
+    def add_encoder(cls, enc: encodertype, enc_cls: Optional[List[type]] = None):
         """
         Adds a new encoder to the list of encoders.
 
@@ -88,10 +88,15 @@ class JSONEncoder(json.JSONEncoder):
           ...     return obj, False
           >>> JSONEncoder.add_encoder(complex_encoder)
         """
-        cls.encoder.append(enc)
+        if enc_cls is None:
+            enc_cls = [object]
+        for _enc_cls in enc_cls:
+            if _enc_cls not in cls.encoder_registry:
+                cls.encoder_registry[_enc_cls] = []
+            cls.encoder_registry[_enc_cls].append(enc)
 
     @classmethod
-    def prepend_encoder(cls, enc: encodertype):
+    def prepend_encoder(cls, enc: encodertype, enc_cls: Optional[List[type]] = None):
         """
         Adds a new encoder to the list of encoders.
 
@@ -105,18 +110,39 @@ class JSONEncoder(json.JSONEncoder):
           ...     return obj, False
           >>> JSONEncoder.add_encoder(complex_encoder)
         """
-        cls.encoder.insert(0, enc)
+        if enc_cls is None:
+            enc_cls = [object]
+        for _enc_cls in enc_cls:
+            if _enc_cls not in cls.encoder_registry:
+                cls.encoder_registry[_enc_cls] = []
+            cls.encoder_registry[_enc_cls].insert(0, enc)
 
     @classmethod
     def apply_custom_encoding(cls, obj, preview=False):
         """
         Recursively apply custom encoding to an object, using the encoders defined in JSONEncoder.
         """
-        if isinstance(obj, (int, float, str, bool, type(None))):
+        # Attempt to apply custom encodings
+        obj_type = type(obj)
+        for base in obj_type.__mro__:
+            encoders = cls.encoder_registry.get(base)
+            if encoders:
+                for enc in encoders:
+                    try:
+                        res, handled = enc(obj, preview)
+                        if handled:
+                            return cls.apply_custom_encoding(res, preview=preview)
+                    except Exception as e:
+                        pass
+        if isinstance(obj, (int, float, bool, type(None))):
             # convert nan to None
             if isinstance(obj, float) and obj != obj:
                 return None
             # Base types
+            return obj
+        elif isinstance(obj, str):
+            # if preview and len(obj) > 1000:
+            #     return obj[:1000] + "..."
             return obj
         elif isinstance(obj, dict):
             # Handle dictionaries
@@ -127,12 +153,6 @@ class JSONEncoder(json.JSONEncoder):
             if preview:
                 return [cls.apply_custom_encoding(item, preview) for item in obj[:10]]
             return [cls.apply_custom_encoding(item) for item in obj]
-        else:
-            # Attempt to apply custom encodings
-            for enc in cls.encoder:
-                res, handled = enc(obj, preview)
-                if handled:
-                    return cls.apply_custom_encoding(res)
 
         # Fallback to string representation
         return str(obj)
@@ -172,7 +192,7 @@ def bytes_handler(obj, preview=False):
     if isinstance(obj, bytes):
         # Convert bytes to base64 string
         if preview:
-            return base64.b64encode(obj).decode("utf-8")[:100], True
+            return base64.b64encode(obj).decode("utf-8"), True
         return base64.b64encode(obj).decode("utf-8"), True
     return obj, False
 
