@@ -982,11 +982,24 @@ class NodeOutput(NodeIO):
         return NodeOutputStatus(**super().status())
 
     def trigger(self, triggerstack: Optional[TriggerStack] = None) -> TriggerStack:
+        """Triggers the node connected to this output via the connected inputs.
+        First all connected inputs are set to the value of this output and then all connected inputs are triggered.
+        """
         if triggerstack is None:
             triggerstack = TriggerStack()
         for connection in self.connections:
-            connection.set_value(self.value)
-            connection.trigger(triggerstack=triggerstack)
+            connection.set_value(
+                self.value,
+                does_trigger=False,  # no triggering since this happens manually in the next line
+            )
+        for connection in self.connections:
+            try:
+                # the triggering of the connections should not be hindered by exceptions
+                # this can happen e.g. if the outputs connects to two inputs of one node,
+                # resulting in a double trigger, which will likely raise an InTriggerError
+                connection.trigger(triggerstack=triggerstack)
+            except Exception as e:
+                pass
         return triggerstack
 
 
