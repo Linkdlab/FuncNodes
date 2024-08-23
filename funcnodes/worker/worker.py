@@ -46,7 +46,7 @@ from funcnodes.lib import find_shelf, ShelfDict
 import traceback
 from exposedfunctionality import exposed_method, get_exposed_methods
 from typing_extensions import deprecated
-from funcnodes.frontends.funcnodes_react import (
+from funcnodes_react_flow import (
     FUNCNODES_REACT_PLUGIN,
     get_react_plugin_content,
 )

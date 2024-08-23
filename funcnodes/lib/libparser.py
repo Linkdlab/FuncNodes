@@ -4,7 +4,7 @@ from ..config import update_render_options
 import inspect
 from warnings import warn
 from .._logging import FUNCNODES_LOGGER
-from ..frontends.funcnodes_react import add_react_plugin
+from funcnodes_react_flow import add_react_plugin
 
 
 def module_to_shelf(mod, name: Optional[str] = None) -> Shelf:

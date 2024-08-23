@@ -1,5 +1,5 @@
 from typing import Type
-from funcnodes.frontends.funcnodes_react import run_server
+from funcnodes_react_flow import run_server
 import funcnodes as fn
 import argparse
 from pprint import pprint
