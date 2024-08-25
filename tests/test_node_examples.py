@@ -4,20 +4,30 @@ Test examples
 
 import unittest
 from funcnodes.utils import run_until_complete
+from funcnodes_basic.math import (
+    value_node,
+    add_node,
+    greater_node,
+    mod_node,
+    equal_node,
+    div_node,
+    mul_node,
+)
+from funcnodes_basic.logic import IfNode, WhileNode
+from funcnodes.utils import get_deep_connected_nodeset
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
     async def test_linear_add(self):
-        from funcnodes.basic_nodes.math import add_node as add
 
         N = 3
-        preadd = add()
+        preadd = add_node()
         preadd.inputs["a"].value = 1
         preadd.inputs["b"].value = 1
         adds = [preadd]
 
         for i in range(N):
-            nadd = add()
+            nadd = add_node()
             nadd.inputs["a"].c(preadd.outputs["out"])
             nadd.inputs["b"].value = 1
             preadd = nadd
@@ -28,18 +38,6 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(adds[-1].outputs["out"].value, N + 2)
 
     async def test_3np1(self):
-        from funcnodes.basic_nodes.math import (
-            value_node,
-            add_node,
-            greater_node,
-            mod_node,
-            equal_node,
-            div_node,
-            mul_node,
-        )
-
-        from funcnodes.basic_nodes.logic import IfNode, WhileNode
-        from funcnodes.utils import get_deep_connected_nodeset
 
         N = 27
         n = N
@@ -55,12 +53,12 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
 
         start = value_node()
 
-        greater_node = greater_node()
-        greater_node.inputs["a"].c(start.outputs["out"])
-        greater_node.inputs["b"].value = 1
+        greater_node_ins = greater_node()
+        greater_node_ins.inputs["a"].c(start.outputs["out"])
+        greater_node_ins.inputs["b"].value = 1
 
         while_node = WhileNode(reset_inputs_on_trigger=True)
-        while_node.inputs["condition"].c(greater_node.outputs["out"])
+        while_node.inputs["condition"].c(greater_node_ins.outputs["out"])
         while_node.inputs["input"].c(start.outputs["out"])
 
         mod = mod_node()
@@ -96,7 +94,8 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         nodeteps = []
 
         def _add_step(src, result):
-            nodeteps.append(start.outputs["out"].value)
+            if not nodeteps or nodeteps[-1] != result:
+                nodeteps.append(result)
 
         start.outputs["out"].on("after_set_value", _add_step)
 

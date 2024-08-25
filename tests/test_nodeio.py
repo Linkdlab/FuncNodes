@@ -73,20 +73,12 @@ class TestNodeIO(unittest.TestCase):
         serialized_input = self.input_1.serialize()
         self.assertEqual(
             serialized_input,
-            {
-                "id": "input1",
-                "is_input": True,
-                "type": "Any",
-            },
+            {"id": "input1", "is_input": True, "type": "Any", "value": NoValue},
         )
         serialized_output = self.output_1.serialize()
         self.assertEqual(
             serialized_output,
-            {
-                "type": "Any",
-                "id": "output1",
-                "is_input": False,
-            },
+            {"type": "Any", "id": "output1", "is_input": False, "value": NoValue},
         )
 
     def test_connect_input_to_output(self):

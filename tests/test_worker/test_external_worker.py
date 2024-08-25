@@ -3,6 +3,7 @@ from funcnodes import FuncNodesExternalWorker, RemoteWorker, instance_nodefuncti
 import asyncio
 from unittest.mock import patch, MagicMock
 import tempfile
+import funcnodes as fn
 
 
 class ExternalWorker_Test(FuncNodesExternalWorker):
@@ -99,12 +100,8 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
             "node_id": "testexternalworker.test.test",
             "node_name": "Test",
             "io": {
-                "a": {
-                    "is_input": True,
-                },
-                "out": {
-                    "is_input": False,
-                },
+                "a": {"is_input": True, "value": fn.NoValue},
+                "out": {"is_input": False, "value": fn.NoValue},
             },
         }
         self.assertEqual(node.serialize(), expected_node_ser)

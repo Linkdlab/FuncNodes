@@ -339,7 +339,7 @@ def generate_value_options(
     return opts
 
 
-class NodeIO(EventEmitterMixin, Generic[NodeIoT]):
+class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
     """Abstract base class representing an input or output of a node in a node-based system."""
 
     default_allow_multiple = False
@@ -372,7 +372,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIoT]):
         self._uuid = uuid or uuid4().hex
         self._name = name or self._uuid
         self._description = description
-        self._value: Union[NodeIoT, NoValueType] = NoValue
+        self._value: Union[NodeIOType, NoValueType] = NoValue
 
         self._connected: List[NodeIO] = []
         self._allow_multiple: Optional[bool] = allow_multiple
@@ -380,11 +380,13 @@ class NodeIO(EventEmitterMixin, Generic[NodeIoT]):
         if isinstance(type, str):
             true_type: type = string_to_type(type)
             ser_type = serialize_type(true_type)
-        else:
+        elif isinstance(type, dict):
             ser_type = type
+        else:
+            ser_type = serialize_type(type)
         if not isinstance(ser_type, (str, dict)):
             raise TypeError(
-                "type must be a string or a dict (exposedfunctionality.SerializedType) or type "
+                f"type must be a string or a dict (exposedfunctionality.SerializedType) or type not {ser_type}"
             )
 
         self._sertype: SerializedType = ser_type
@@ -459,12 +461,12 @@ class NodeIO(EventEmitterMixin, Generic[NodeIoT]):
         return f"{self.node.uuid}__{self.uuid}"
 
     @property
-    def value(self) -> NodeIoT | NoValueType:
+    def value(self) -> NodeIOType | NoValueType:
         """Gets the current value of the NodeIO."""
         return self._value
 
     @value.setter
-    def value(self, value: NodeIoT) -> None:
+    def value(self, value: NodeIOType) -> None:
         """Sets the value of the NodeIO."""
         self.set_value(value)
 
@@ -473,7 +475,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIoT]):
         """Gets a list of NodeIO instances connected to this one."""
         return list(self._connected)
 
-    def set_value(self, value: NodeIoT) -> NodeIoT | NoValueType:
+    def set_value(self, value: NodeIOType) -> NodeIOType | NoValueType:
         """Sets the internal value of the NodeIO.
 
         Args:
@@ -715,7 +717,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIoT]):
         return len(self._connected) > 0
 
 
-class NodeInput(NodeIO, Generic[NodeIoT]):
+class NodeInput(NodeIO, Generic[NodeIOType]):
     """
     Represents an input connection point for a node in a node-based system.
     Inherits from NodeIO and represents a connection that can receive data.
@@ -730,7 +732,7 @@ class NodeInput(NodeIO, Generic[NodeIoT]):
         *args,
         does_trigger: Optional[bool] = None,
         required: Optional[bool] = None,
-        default: Union[NodeIoT, NoValueType] = NoValue,
+        default: Union[NodeIOType, NoValueType] = NoValue,
         **kwargs,
     ) -> None:
         """
@@ -751,12 +753,12 @@ class NodeInput(NodeIO, Generic[NodeIoT]):
         self._default = default
 
     @property
-    def value(self) -> Union[NodeIoT, NoValueType]:
+    def value(self) -> Union[NodeIOType, NoValueType]:
         """Gets the current value of the NodeIO."""
         return self._value if self._value is not NoValue else self._default
 
     @value.setter
-    def value(self, value: NodeIoT) -> None:
+    def value(self, value: NodeIOType) -> None:
         """Sets the value of the NodeIO."""
         self.set_value(value)
 
@@ -767,15 +769,15 @@ class NodeInput(NodeIO, Generic[NodeIoT]):
             required=self.required,
         )
 
-    def set_default(self, default: NodeIoT | NoValueType):
+    def set_default(self, default: NodeIOType | NoValueType):
         self._default = default
 
     @property
-    def default(self) -> NodeIoT | NoValueType:
+    def default(self) -> NodeIOType | NoValueType:
         return self._default
 
     @default.setter
-    def default(self, default: NodeIoT | NoValueType):
+    def default(self, default: NodeIOType | NoValueType):
         self.set_default(default)
 
     def disconnect(self, *args, **kwargs):

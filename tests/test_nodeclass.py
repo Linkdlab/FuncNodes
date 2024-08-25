@@ -304,13 +304,13 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
         await n2
         self.assertEqual(n2.outputs["output"].value, 2)
         nser = n.serialize()
+        import pprint
+
         expected = {
             "id": "aa",
             "io": {
                 "input": {"is_input": True, "value": 2},
-                "output": {
-                    "is_input": False,
-                },
+                "output": {"is_input": False, "value": 2},
             },
             "name": "DummyNode(aa)",
             "node_id": "dummy_node",
@@ -323,9 +323,10 @@ class TestNodeClass(unittest.IsolatedAsyncioTestCase):
             expected,
         )
 
-        del expected["io"]["input"]["value"]
         expected["name"] = "DummyNode(bb)"
         expected["id"] = "bb"
+
+        pprint.pprint(n2.serialize())
         self.assertEqual(
             n2.serialize(),
             expected,

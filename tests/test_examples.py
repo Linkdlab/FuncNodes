@@ -1,11 +1,11 @@
 import unittest
 import funcnodes as fn
+from funcnodes_basic.math import add_node
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
 
     async def test_simple_node_creation(self):
-        from funcnodes.basic_nodes.math import add_node
 
         add_node_ins = add_node()  # basically lambda a, b: a+b
 
@@ -22,7 +22,6 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(add_node_ins.outputs["out"].value, 5)
 
     async def test_simple_connection(self):
-        from funcnodes.basic_nodes.math import add_node
 
         add_node1 = add_node()
         add_node2 = add_node()
