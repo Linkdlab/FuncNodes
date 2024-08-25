@@ -71,8 +71,9 @@ __all__ = [
     "DataEnum",
     "add_type",
     "types",
+    "NodeIOSerialization",
 ]
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 DEBUG = True

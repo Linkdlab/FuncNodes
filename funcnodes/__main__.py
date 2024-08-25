@@ -178,6 +178,26 @@ def start_worker_manager(args: argparse.Namespace):
     fn.worker.worker_manager.start_worker_manager()
 
 
+def task_modules(args: argparse.Namespace):
+    """
+    Performs a task on modules.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Examples:
+      >>> task_modules(args)
+      None
+    """
+    if args.moduletask == "list":
+        pprint(fn.utils.plugins.get_installed_modules())
+    else:
+        raise Exception(f"Unknown moduletask: {args.moduletask}")
+
+
 def main():
     """
     The main function.
@@ -235,6 +255,9 @@ def main():
         "--version", action="version", version=f"%(prog)s {fn.__version__}"
     )
 
+    modules_parser = subparsers.add_parser("modules", help="")
+    modules_parser.add_argument("moduletask", help="The task to run on the modules")
+
     args = parser.parse_args()
     # try:
     if args.task == "runserver":
@@ -243,6 +266,8 @@ def main():
         task_worker(args)
     elif args.task == "startworkermanager":
         start_worker_manager(args)
+    elif args.task == "modules":
+        task_modules(args)
     else:
         raise Exception(f"Unknown task: {args.task}")
     # except Exception as exc:

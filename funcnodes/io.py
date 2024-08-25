@@ -11,11 +11,14 @@ from typing import (
     Union,
     Tuple,
     Required,
-    Dict,
 )
 from uuid import uuid4
 from exposedfunctionality import FunctionInputParam, FunctionOutputParam
-from exposedfunctionality.function_parser.types import type_to_string, string_to_type
+from exposedfunctionality.function_parser.types import (
+    string_to_type,
+    SerializedType,
+    EnumOf,
+)
 from exposedfunctionality import serialize_type
 from .eventmanager import (
     AsyncEventManager,
@@ -36,16 +39,19 @@ if TYPE_CHECKING:
     from .node import Node
 
 
-class NodeIOSerialization(TypedDict):
+class NodeIOSerialization(
+    TypedDict,
+    total=False,
+):
     """Typing definition for serialized Node Input/Output serialization."""
 
     name: str
-    description: Optional[str]
-    type: str
-    allow_multiple: Optional[bool]
+    description: str
+    type: Required[SerializedType]
+    allow_multiple: bool
     id: Required[str]
     value: Required[Any]
-    is_input: bool
+    is_input: Required[bool]
     render_options: IORenderOptions
     value_options: ValueOptions
 
@@ -55,7 +61,7 @@ class NodeInputSerialization(NodeIOSerialization, total=False):
 
     required: bool
     does_trigger: bool
-    default: Optional[Any]
+    default: Any
 
 
 class NodeOutputSerialization(NodeIOSerialization):
@@ -67,9 +73,9 @@ class NodeIOClassSerialization(TypedDict, total=False):
 
     name: str
     description: Optional[str]
-    type: str
+    type: SerializedType
     allow_multiple: Optional[bool]
-    uuid: str
+    uuid: Required[str]
 
 
 class FullNodeIOJSON(TypedDict):
@@ -78,7 +84,7 @@ class FullNodeIOJSON(TypedDict):
     id: str
     full_id: str | None
     name: str
-    type: str
+    type: SerializedType
     is_input: bool
     connected: bool
     node: str | None
@@ -97,6 +103,8 @@ class FullNodeInputJSON(FullNodeIOJSON):
 
 # A unique object that represents the absence of a value
 class NoValueType:
+    """A unique object that represents the absence of a value."""
+
     _instance = None
 
     def __new__(cls):
@@ -115,27 +123,33 @@ NoValue: NoValueType = NoValueType()
 
 
 class IOReadyState(TypedDict):
+    """Typing definition for Node Input/Output ready state."""
+
     node: bool
 
 
 class InputReadyState(IOReadyState):
+    """Typing definition for Node Input ready state."""
+
     value: bool
 
 
-def NoValueEndocer(obj, preview=False):
+def novalue_endocer(obj, preview=False):
+    """Encodes NoValue objects."""
     if obj is NoValue:
         return "<NoValue>", True
     return obj, False
 
 
-def NoValueDecoder(obj):
+def novalue_decoder(obj):
+    """Decodes NoValue objects."""
     if obj == "<NoValue>":
         return NoValue, True
     return obj, False
 
 
-JSONDecoder.add_decoder(NoValueDecoder)
-JSONEncoder.add_encoder(NoValueEndocer)
+JSONDecoder.add_decoder(novalue_decoder)
+JSONEncoder.add_encoder(novalue_endocer, enc_cls=[NoValueType])
 
 
 class NodeIOError(Exception):
@@ -155,11 +169,14 @@ class SameNodeConnectionError(NodeConnectionError):
 
 
 class MultipleConnectionsError(NodeConnectionError):
-    """Exception raised when attempting to connect an IO that does not allow multiple connections."""
+    """
+    Exception raised when attempting to connect an IO that does not allow
+    multiple connections.
+    """
 
 
 class NodeIOStatus(TypedDict):
-    """Typing definition for Node Input status."""
+    """Typing definition for Node IO status."""
 
     has_value: bool
     has_node: bool
@@ -168,10 +185,13 @@ class NodeIOStatus(TypedDict):
 
 
 class NodeInputStatus(NodeIOStatus):
+    """Typing definition for Node Input status."""
+
     required: bool
 
 
-class NodeOutputStatus(NodeIOStatus): ...
+class NodeOutputStatus(NodeIOStatus):
+    """Typing definition for Node Output status."""
 
 
 def raise_allow_connections(src: NodeIO, trg: NodeIO):
@@ -186,7 +206,8 @@ def raise_allow_connections(src: NodeIO, trg: NodeIO):
 
     Raises:
         NodeConnectionError: If attempting to connect two outputs or two inputs.
-        MultipleConnectionsError: If either the source or target does not allow multiple connections.
+        MultipleConnectionsError: If either the source or target does not allow
+            multiple connections.
     """
     # Check if connection is not allowed between two outputs or two inputs
     if isinstance(src, NodeOutput):
@@ -233,8 +254,6 @@ class IORenderOptions(TypedDict, total=False):
 class GenericValueOptions(TypedDict, total=False):
     """Typing definition for Node Input/Output generic value options."""
 
-    pass
-
 
 class NumberValueOptions(GenericValueOptions, total=False):
     """Typing definition for Node Input/Output number value options."""
@@ -247,13 +266,13 @@ class NumberValueOptions(GenericValueOptions, total=False):
 class EnumValueOptions(GenericValueOptions, total=False):
     """Typing definition for Node Input/Output enum value options."""
 
-    options: Dict[str, Union[int, str, float]]
+    options: EnumOf
 
 
 class LiteralValueOptions(GenericValueOptions, total=False):
     """Typing definition for Node Input/Output literal value options."""
 
-    options: List[str, int, float]
+    options: List[Union[str, int, float]]
 
 
 ValueOptions = Union[
@@ -265,43 +284,62 @@ NodeIOType = TypeVar("NodeIOType")
 
 
 class IOOptions(NodeIOSerialization, total=False):
+    """Typing definition for Node Input/Output options."""
+
     emit_value_set: bool
 
 
 class NodeInputOptions(IOOptions, NodeInputSerialization, total=False):
-    pass
+    """Typing definition for Node Input options."""
 
 
 class NodeOutputOptions(IOOptions, NodeOutputSerialization, total=False):
-    pass
+    """Typing definition for Node Output options."""
 
 
-def identity_preview_generator(value: Any) -> Any:
-    return value
+def generate_value_options(
+    _type: SerializedType, value_options: Optional[GenericValueOptions] = None
+) -> ValueOptions:
+    """Generates value options for a NodeIO instance based on the type.
 
+    Args:
+        _type: The type of the NodeIO instance.
+        value_options: Optional value options to update.
 
-def generate_value_options(value_options, _type: Union[str, dict]):
+    Returns:
+        The generated value options.
+    """
     if value_options is not None:
-        return value_options
+        opts = value_options
+    else:
+        opts = GenericValueOptions()
 
-    opts = {}
     if isinstance(_type, dict) and "type" in _type and _type["type"] == "enum":
-        opts["options"] = _type
+        opts.update(
+            EnumValueOptions(
+                options=_type,
+            )
+        )
 
     if isinstance(_type, dict) and "anyOf" in _type:
-        nopts = {}
+        nopts = GenericValueOptions()
         for _t in _type["anyOf"]:
-            nopts.update(generate_value_options(None, _t))
-        opts = {**nopts, **opts}
+            nopts.update(generate_value_options(_t, None))
+        nopts.update(opts)
+        opts = nopts
 
     if isinstance(_type, str):
         if _type == "int":
-            opts["step"] = 1
+            opts.update(
+                NumberValueOptions(
+                    step=1,
+                )
+            )
 
     return opts
 
 
-class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
+class NodeIO(EventEmitterMixin, Generic[NodeIoT]):
     """Abstract base class representing an input or output of a node in a node-based system."""
 
     default_allow_multiple = False
@@ -309,7 +347,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
     def __init__(
         self,
         name: Optional[str] = None,
-        type: str | Type = "Any",
+        type: SerializedType | Type = "Any",
         description: Optional[str] = None,
         allow_multiple: Optional[bool] = None,
         uuid: Optional[str] = None,
@@ -334,22 +372,28 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         self._uuid = uuid or uuid4().hex
         self._name = name or self._uuid
         self._description = description
-        self._value: Union[NodeIOType, NoValueType] = NoValue
+        self._value: Union[NodeIoT, NoValueType] = NoValue
 
         self._connected: List[NodeIO] = []
         self._allow_multiple: Optional[bool] = allow_multiple
         self._node: Optional[weakref.ref[Node]] = None
         if isinstance(type, str):
-            type = string_to_type(type)
-        if not isinstance(type, (str, dict)):
-            type = serialize_type(type)
-        self._typestr: Union[str, dict] = type
+            true_type: type = string_to_type(type)
+            ser_type = serialize_type(true_type)
+        else:
+            ser_type = type
+        if not isinstance(ser_type, (str, dict)):
+            raise TypeError(
+                "type must be a string or a dict (exposedfunctionality.SerializedType) or type "
+            )
+
+        self._sertype: SerializedType = ser_type
 
         self.eventmanager = AsyncEventManager(self)
-        self._value_options: ValueOptions = {}
+        self._value_options: ValueOptions = GenericValueOptions()
         self._default_render_options = render_options or {}
         self._default_value_options = generate_value_options(
-            value_options, self._typestr
+            self._sertype, value_options
         )
         self._emit_value_set = emit_value_set
 
@@ -371,11 +415,12 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         """
         ser = NodeIOSerialization(
             name=self._name,
-            type=self._typestr,
+            type=self._sertype,
             id=self._uuid,
             is_input=self.is_input(),
             render_options=self.render_options,
             value_options=self.value_options,
+            value=self.value,
         )
         if self._description is not None:
             ser["description"] = self._description
@@ -386,13 +431,13 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             ser["allow_multiple"] = self.allow_multiple
 
         if drop:
-            if ser["name"] == ser["id"]:
+            if "name" in ser and ser["name"] == ser["id"]:
                 del ser["name"]
 
-            if len(ser["render_options"]) == 0:
+            if "render_options" in ser and len(ser["render_options"]) == 0:
                 del ser["render_options"]
 
-            if len(ser["value_options"]) == 0:
+            if "value_options" in ser and len(ser["value_options"]) == 0:
                 del ser["value_options"]
 
         return ser
@@ -414,12 +459,12 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         return f"{self.node.uuid}__{self.uuid}"
 
     @property
-    def value(self) -> NodeIOType | NoValueType:
+    def value(self) -> NodeIoT | NoValueType:
         """Gets the current value of the NodeIO."""
         return self._value
 
     @value.setter
-    def value(self, value: NodeIOType) -> None:
+    def value(self, value: NodeIoT) -> None:
         """Sets the value of the NodeIO."""
         self.set_value(value)
 
@@ -428,7 +473,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         """Gets a list of NodeIO instances connected to this one."""
         return list(self._connected)
 
-    def set_value(self, value: NodeIOType) -> NodeIOType | NoValueType:
+    def set_value(self, value: NodeIoT) -> NodeIoT | NoValueType:
         """Sets the internal value of the NodeIO.
 
         Args:
@@ -573,14 +618,14 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
     def serialize_class(self) -> NodeIOClassSerialization:
         ser = NodeIOClassSerialization(
             name=self.name,
-            type=self._typestr,
+            type=self._sertype,
             description=self._description,
             uuid=self.uuid,
         )
         if self._allow_multiple is not None:
             ser["allow_multiple"] = self._allow_multiple
 
-        if ser["name"] == ser["uuid"]:
+        if "name" in ser and ser["name"] == ser["uuid"]:
             del ser["name"]
         return ser
 
@@ -596,7 +641,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
             id=self.uuid,
             full_id=self.full_id,
             name=self.name,
-            type=self._typestr,
+            type=self._sertype,
             is_input=self.is_input(),
             connected=self.is_connected(),
             node=self.node.uuid if self.node else None,
@@ -633,8 +678,8 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
     @property
     def value_options(self) -> ValueOptions:
         return deep_fill_dict(
-            self._default_value_options,
-            self._value_options,
+            self._default_value_options,  # type: ignore
+            self._value_options,  # type: ignore
             inplace=False,
             overwrite_existing=True,
         )
@@ -642,13 +687,19 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
     @value_options.setter
     def value_options(self, value_options: ValueOptions):
         self._value_options = deep_remove_dict_on_equal(
-            value_options, self._default_value_options, inplace=False
+            value_options,  # type: ignore
+            self._default_value_options,  # type: ignore
+            inplace=False,
         )
 
     @emit_after()
-    def update_value_options(self, **kwargs):
+    def update_value_options(self, **kwargs) -> ValueOptions:
+
         deep_fill_dict(
-            self._value_options, kwargs, inplace=True, overwrite_existing=True
+            self._value_options,  # type: ignore
+            kwargs,  # type: ignore
+            inplace=True,
+            overwrite_existing=True,
         )
 
         return self.value_options
@@ -664,7 +715,7 @@ class NodeIO(EventEmitterMixin, Generic[NodeIOType]):
         return len(self._connected) > 0
 
 
-class NodeInput(NodeIO, Generic[NodeIOType]):
+class NodeInput(NodeIO, Generic[NodeIoT]):
     """
     Represents an input connection point for a node in a node-based system.
     Inherits from NodeIO and represents a connection that can receive data.
@@ -679,7 +730,7 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
         *args,
         does_trigger: Optional[bool] = None,
         required: Optional[bool] = None,
-        default: Union[NodeIOType, NoValueType] = NoValue,
+        default: Union[NodeIoT, NoValueType] = NoValue,
         **kwargs,
     ) -> None:
         """
@@ -700,12 +751,12 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
         self._default = default
 
     @property
-    def value(self) -> NodeIOType | NoValueType:
+    def value(self) -> Union[NodeIoT, NoValueType]:
         """Gets the current value of the NodeIO."""
         return self._value if self._value is not NoValue else self._default
 
     @value.setter
-    def value(self, value: NodeIOType) -> None:
+    def value(self, value: NodeIoT) -> None:
         """Sets the value of the NodeIO."""
         self.set_value(value)
 
@@ -716,15 +767,15 @@ class NodeInput(NodeIO, Generic[NodeIOType]):
             required=self.required,
         )
 
-    def set_default(self, default: NodeIOType | NoValueType):
+    def set_default(self, default: NodeIoT | NoValueType):
         self._default = default
 
     @property
-    def default(self) -> NodeIOType | NoValueType:
+    def default(self) -> NodeIoT | NoValueType:
         return self._default
 
     @default.setter
-    def default(self, default: NodeIOType | NoValueType):
+    def default(self, default: NodeIoT | NoValueType):
         self.set_default(default)
 
     def disconnect(self, *args, **kwargs):
@@ -946,7 +997,7 @@ class NodeOutput(NodeIO):
     @property
     def connections(self) -> List[NodeInput]:
         """Gets a list of NodeIO instances connected to this one."""
-        return list(self._connected)
+        return list(self._connected)  # type: ignore connected has to be a list of NodeInput since outputs dont connect
 
     def set_value(self, value: object, does_trigger: Optional[bool] = None) -> None:
         """Sets the internal value of the NodeIO.
@@ -998,7 +1049,7 @@ class NodeOutput(NodeIO):
                 # this can happen e.g. if the outputs connects to two inputs of one node,
                 # resulting in a double trigger, which will likely raise an InTriggerError
                 connection.trigger(triggerstack=triggerstack)
-            except Exception as e:
+            except Exception:
                 pass
         return triggerstack
 

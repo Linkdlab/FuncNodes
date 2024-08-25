@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "funcnodes"
-version = "0.3.2"
+version = "0.3.3"
 description = "funcnodes"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-exposedfunctionality = ">=0.3.7"
+exposedfunctionality = ">=0.3.8"
 websockets = "^12.0"
 virtualenv = "*"
 poetry-plugin-export = "^1.7"

@@ -1,4 +1,4 @@
-from typing import Any, MutableMapping, Mapping, Dict, TypeVar
+from typing import Any, MutableMapping, Mapping, Dict, TypeVar, TypedDict
 from copy import deepcopy, copy
 
 T = TypeVar("T", bound=MutableMapping[Any, Any])

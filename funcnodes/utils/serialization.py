@@ -80,7 +80,7 @@ class JSONEncoder(json.JSONEncoder):
 
         Args:
           enc (encodertyoe): A function that takes in an object and a boolean indicating whether or not to use a default preview and returns a tuple containing the encoded object and a boolean indicating whether or not the object was encoded.
-
+          enc_cls (Optional[List[type]]): A list of classes that the encoder should be applied to primarily.
         Examples:
           >>> def complex_encoder(obj, preview=False):
           ...     if isinstance(obj, complex):
