@@ -19,6 +19,7 @@ funcnodes-core = ">=0.1.1"
 pytest = "*"
 coverage = "*"
 pre-commit = "*"
+vulture = "*"
 
 [build-system]
 requires = ["poetry-core"]
