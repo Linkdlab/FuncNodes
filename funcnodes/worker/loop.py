@@ -76,7 +76,7 @@ class LoopManager:
                 )
             )
         else:
-            stoptasks = [self._loop.create_task(loop.stop()) for loop in self._loops]
+            _ = [self._loop.create_task(loop.stop()) for loop in self._loops]
 
         if loop in self._loops:
             idx = self._loops.index(loop)

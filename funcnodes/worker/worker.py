@@ -5,16 +5,13 @@ from functools import wraps
 from typing import (
     List,
     Type,
-    Callable,
     Tuple,
-    Awaitable,
     TypedDict,
     Any,
     Literal,
     Optional,
     Dict,
     Union,
-    get_type_hints,
 )
 import os
 import json
@@ -41,9 +38,8 @@ from funcnodes import (
     NodeInput,
     NoValue,
 )
-from funcnodes_core.utils import deep_fill_dict, saving
+from funcnodes_core.utils import saving
 from funcnodes_core.lib import find_shelf, ShelfDict
-import traceback
 from exposedfunctionality import exposed_method, get_exposed_methods
 from typing_extensions import deprecated
 
@@ -380,9 +376,9 @@ def find_worker_from_path(
         # cd into the module path
         os.chdir(data["path"])
         # install via poetry
-        os.system(f"poetry update --no-interaction")
+        os.system("poetry update --no-interaction")
         os.system(
-            f"poetry export --without-hashes -f requirements.txt --output requirements.txt"
+            "poetry export --without-hashes -f requirements.txt --output requirements.txt"
         )
         # cd back
         os.chdir(cwd)
@@ -621,7 +617,7 @@ class Worker(ABC):
             if d != "":
                 try:
                     self.loop_manager.async_call(self.run_cmd(json.loads(d)))
-                except Exception as e:
+                except Exception:
                     pass
 
     @property

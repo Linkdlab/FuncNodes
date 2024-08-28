@@ -1,24 +1,22 @@
 import os
 
-os.environ["OPENCV_LOG_LEVEL"] = "FATAL"
+
 from funcnodes import WSWorker, FuncNodesExternalWorker, instance_nodefunction
 from PIL import Image
 import numpy as np
-from funcnodes.utils import JSONEncoder
 import time
 import asyncio
 
 from typing import Optional, List
-from funcnodes import FuncNodesExternalWorker, instance_nodefunction
+
 from funcnodes.io import NoValue
-import numpy as np
-from PIL import Image
 import cv2
 import threading
-import time
 import signal
 import sys
 from multiprocessing import Process, Queue
+
+os.environ["OPENCV_LOG_LEVEL"] = "FATAL"
 
 if sys.platform.startswith("win"):
 
@@ -113,7 +111,6 @@ class WebcamWorker(FuncNodesExternalWorker):
         self._capture_thread.start()
 
     async def update_available_cameras(self):
-
         available_devices = await self.list_available_cameras()
         if available_devices is None:
             return
@@ -160,6 +157,7 @@ class WebcamWorker(FuncNodesExternalWorker):
         """Continuously grabs images from the webcam."""
         cap = VideoCapture(self._device)  # Open the default camera
         while not self._stop_thread.is_set() and self._capturing:
+            print(".")
             if not cap.isOpened():
                 time.sleep(0.1)
                 cap = VideoCapture(self._device)
@@ -210,10 +208,9 @@ class WebcamWorker(FuncNodesExternalWorker):
         """Generates an random image."""
         ...
 
-    def stop(self):
-
+    async def stop(self):
         self.stop_capture()
-        return super().stop()
+        return await super().stop()
 
 
 def main():
