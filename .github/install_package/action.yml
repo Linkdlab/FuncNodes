@@ -1,0 +1,28 @@
+name: install_package
+description: Install a package from local poetry
+inputs:
+  python_version:
+    description: "Python version to install"
+    default: "3.12"
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Set up Python
+      uses: ./.github/actions/cache_py
+      with:
+        python_version: ${{ inputs.python_version }}
+      id: setup_python_cached
+
+    - uses: actions/cache@v3
+      name: Define a cache for the virtual environment based on the dependencies lock file
+      with:
+        path: ./.venv
+        key: venv-${{ hashFiles('poetry.lock') }}-${{ steps.setup_python_cached.outputs.python-version }}-${{ runner.os }}
+
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        poetry install  --no-interaction
+        echo "python-version=${{ steps.setup_python.outputs.python-version }}" >> "$GITHUB_OUTPUT"
