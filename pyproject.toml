@@ -26,3 +26,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 funcnodes = 'funcnodes.__main__:main'
+
+
+[tool.vulture]
+min_confidence = 80
+paths = ["funcnodes"]
