@@ -1,7 +1,6 @@
 from unittest import IsolatedAsyncioTestCase
 from funcnodes import FuncNodesExternalWorker, RemoteWorker, instance_nodefunction
-import asyncio
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 import tempfile
 import funcnodes as fn
 
