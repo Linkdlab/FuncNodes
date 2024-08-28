@@ -53,8 +53,14 @@ class TestLib(unittest.TestCase):
             "subshelves": [],
         }
         self.maxDiff = None
-        from pprint import pprint
 
         self.assertEqual(
-            expected, serialize_shelfe(module_to_shelf(sys.modules[self.__module__]))
+            expected,
+            serialize_shelfe(
+                module_to_shelf(
+                    sys.modules[self.__module__],
+                    # name needs to be explicitly set for the test since the module name changes with the testenv
+                    name="test_lib",
+                )
+            ),
         )

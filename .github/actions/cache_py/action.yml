@@ -1,0 +1,36 @@
+name: cache_py
+description: Installs python, pip and poetry and caches the python environment
+inputs:
+  python_version:
+    description: "Python version to install"
+    required: true
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      id: setup_python
+      with:
+        python-version: ${{ inputs.python_version }}
+        allow-prereleases: true
+
+    - uses: actions/cache@v3
+      name: Cache Python environment
+      with:
+        path: ~/.cache/pip
+        key: py-${{ steps.setup_python.outputs.python-version }}-${{ runner.os }}
+
+    - name: Install Poetry
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+        echo "python-version=${{ steps.setup_python.outputs.python-version }}" >> "$GITHUB_OUTPUT"
+
+    - name: Setup a local virtual environment (if no poetry.toml file)
+      shell: bash
+      run: |
+        poetry config virtualenvs.create true --local
+        poetry config virtualenvs.in-project true --local
