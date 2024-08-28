@@ -1,30 +1,24 @@
 [tool.poetry]
 name = "funcnodes"
-version = "0.3.3"
+version = "0.4.0"
 description = "funcnodes"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
-exposedfunctionality = ">=0.3.8"
-websockets = "^12.0"
+python = ">=3.11"
+websockets = "*"
 virtualenv = "*"
-poetry-plugin-export = "^1.7"
-python-dotenv = "*"
-poetry = "*" 
 
-networkx = "^3.3"
-setproctitle = "^1.3.3"
-funcnodes-basic = "*"
-funcnodes-react-flow = "^0.1.0"
+setproctitle = ">=1"
+funcnodes-basic = ">=0.1.6"
+funcnodes-core = ">=0.1.1"
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 coverage = "*"
-pillow = "^10.2"
-opencv-python = "^4.9"
-vulture = "^2.11"
+pre-commit = "*"
 
 [build-system]
 requires = ["poetry-core"]

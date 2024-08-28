@@ -1,18 +1,40 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v4.6.0
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: no-commit-to-branch
-        args: ["--branch", "master"]
-  - repo: https://github.com/psf/black
-    rev: 22.10.0
+        args: ["--branch", "main", "--branch", "master", "--branch", "test"]
+
+  - repo: https://github.com/python-poetry/poetry
+    rev: "1.8.0" # add version here
     hooks:
-      - id: black
+      - id: poetry-check
+        verbose: true
+      - id: poetry-lock
+        verbose: true
+      - id: poetry-install
+        verbose: true
+
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: "v2.11" # or any later Vulture version
+    hooks:
+      - id: vulture
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.6.2
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [--fix]
+      # Run the formatter.
+      - id: ruff-format
+
   - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0 # pick a git hash / tag to point to
+    rev: 7.1.1 # pick a git hash / tag to point to
     hooks:
       - id: flake8
         args: ["--config=.flake8"]

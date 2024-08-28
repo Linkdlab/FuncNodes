@@ -41,16 +41,23 @@ from funcnodes import (
     NodeInput,
     NoValue,
 )
-from funcnodes.utils import deep_fill_dict, saving
-from funcnodes.lib import find_shelf, ShelfDict
+from funcnodes_core.utils import deep_fill_dict, saving
+from funcnodes_core.lib import find_shelf, ShelfDict
 import traceback
 from exposedfunctionality import exposed_method, get_exposed_methods
 from typing_extensions import deprecated
-from funcnodes_react_flow import (
-    FUNCNODES_REACT_PLUGIN,
-    get_react_plugin_content,
-)
-from funcnodes.nodespace import FullNodeJSON
+
+try:
+    from funcnodes_react_flow import (
+        FUNCNODES_REACT_PLUGIN,
+        get_react_plugin_content,
+    )
+
+    FUNCNODES_REACT = True
+except (ModuleNotFoundError, ImportError):
+    FUNCNODES_REACT = False
+
+from funcnodes_core.nodespace import FullNodeJSON
 
 
 class MetaInfo(TypedDict):
@@ -578,7 +585,7 @@ class Worker(ABC):
             )
         )
         self.data_path = self._data_path
-        funcnodes._logging.set_logging_dir(self.data_path)
+        funcnodes.logging.set_logging_dir(self.data_path)
         self.logger = funcnodes.get_logger(self._uuid, propagate=False)
         self.logger.addHandler(
             RotatingFileHandler(

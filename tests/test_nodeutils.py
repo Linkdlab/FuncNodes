@@ -1,11 +1,11 @@
 import unittest
 
-from funcnodes.utils.nodeutils import (
+from funcnodes_core.utils.nodeutils import (
     get_deep_connected_nodeset,
     run_until_complete,
 )
 
-from funcnodes.nodemaker import NodeDecorator
+from funcnodes_core.nodemaker import NodeDecorator
 
 
 @NodeDecorator("dummy_nodefor testnodeutils")

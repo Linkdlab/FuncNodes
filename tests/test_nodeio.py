@@ -7,7 +7,7 @@ from funcnodes import (
     MultipleConnectionsError,
 )
 import json
-from funcnodes.io import raise_allow_connections, NodeAlreadyDefinedError, NoValue
+from funcnodes_core.io import raise_allow_connections, NodeAlreadyDefinedError, NoValue
 
 
 class TestNodeIO(unittest.TestCase):

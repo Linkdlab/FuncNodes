@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import asyncio
 from typing import List
 import logging
-from funcnodes import NodeSpace
+from funcnodes_core import NodeSpace
 import time
 
 

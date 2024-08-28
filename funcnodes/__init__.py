@@ -1,21 +1,43 @@
-from .io import (
+from funcnodes_core import (
     NodeInput,
     NodeOutput,
     NodeIO,
-    NodeInputSerialization,
-    NodeOutputSerialization,
     NodeConnectionError,
     MultipleConnectionsError,
-    NoValue,
     SameNodeConnectionError,
+    NodeInputSerialization,
+    NodeOutputSerialization,
+    Node,
+    get_nodeclass,
+    run_until_complete,
+    NodeSpace,
+    FullNodeSpaceJSON,
+    NodeSpaceJSON,
+    FullLibJSON,
+    Shelf,
+    NodeJSON,
+    NodeClassMixin,
+    NodeDecorator,
+    Library,
+    find_shelf,
+    JSONEncoder,
+    JSONDecoder,
+    NodeClassNotFoundError,
+    FUNCNODES_LOGGER,
+    get_logger,
+    instance_nodefunction,
+    config,
+    RenderOptions,
+    NoValue,
+    DataEnum,
+    add_type,
+    types,
     NodeIOSerialization,
+    lib,
+    nodemaker,
+    _logging as logging,
 )
-from .utils import run_until_complete, JSONEncoder, JSONDecoder
-from .node import Node, get_nodeclass, NodeJSON
-from .nodespace import NodeSpace, FullNodeSpaceJSON, NodeSpaceJSON
-from .lib import FullLibJSON, Shelf, Library, find_shelf, NodeClassNotFoundError
-from .nodemaker import NodeClassMixin, NodeDecorator, instance_nodefunction
-from ._logging import FUNCNODES_LOGGER, get_logger
+
 from .worker import (
     FuncNodesExternalWorker,
     RemoteWorker,
@@ -23,16 +45,13 @@ from .worker import (
     WorkerManager,
     assert_worker_manager_running,
 )
-from .data import DataEnum
-
-from . import config
-from .config import RenderOptions
-
-from .utils import special_types as types
-
-from exposedfunctionality import add_type
 
 __all__ = [
+    "FuncNodesExternalWorker",
+    "RemoteWorker",
+    "WSWorker",
+    "WorkerManager",
+    "assert_worker_manager_running",
     "NodeInput",
     "NodeOutput",
     "NodeIO",
@@ -60,11 +79,6 @@ __all__ = [
     "FUNCNODES_LOGGER",
     "get_logger",
     "instance_nodefunction",
-    "FuncNodesExternalWorker",
-    "RemoteWorker",
-    "WSWorker",
-    "WorkerManager",
-    "assert_worker_manager_running",
     "config",
     "RenderOptions",
     "NoValue",
@@ -72,8 +86,11 @@ __all__ = [
     "add_type",
     "types",
     "NodeIOSerialization",
+    "lib",
+    "nodemaker",
+    "logging",
 ]
 
-__version__ = "0.3.3"
+__version__ = "0.4.0"
 
 DEBUG = True

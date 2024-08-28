@@ -4,7 +4,7 @@ Test examples
 
 import unittest
 from typing import Tuple
-from funcnodes.nodemaker import (
+from funcnodes_core.nodemaker import (
     NodeDecorator,
     node_class_maker,
 )

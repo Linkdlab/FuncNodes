@@ -3,8 +3,8 @@ Test examples
 """
 
 import unittest
-from funcnodes.utils import run_until_complete
-from funcnodes_basic.math import (
+from funcnodes_core.utils import run_until_complete
+from funcnodes_basic.math_nodes import (
     value_node,
     add_node,
     greater_node,
@@ -14,7 +14,7 @@ from funcnodes_basic.math import (
     mul_node,
 )
 from funcnodes_basic.logic import IfNode, WhileNode
-from funcnodes.utils import get_deep_connected_nodeset
+from funcnodes_core.utils import get_deep_connected_nodeset
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):

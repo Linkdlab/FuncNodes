@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 from unittest.mock import MagicMock
-from funcnodes.eventmanager import (
+from funcnodes_core.eventmanager import (
     AsyncEventManager,
     EventEmitterMixin,
     MessageInArgs,

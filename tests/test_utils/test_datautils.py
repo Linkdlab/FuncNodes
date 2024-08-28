@@ -1,6 +1,6 @@
 import unittest
 from typing import Dict, Any
-from funcnodes.utils.data import deep_fill_dict, deep_remove_dict_on_equal
+from funcnodes_core.utils.data import deep_fill_dict, deep_remove_dict_on_equal
 
 # Assuming the functions deep_fill_dict and deep_remove_dict_on_equal are defined as provided
 

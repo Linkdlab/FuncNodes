@@ -2,8 +2,8 @@
 
 import unittest
 import sys
-from funcnodes.nodemaker import NodeDecorator
-from funcnodes.lib import module_to_shelf, serialize_shelfe, get_node_in_shelf
+from funcnodes import NodeDecorator
+from funcnodes_core.lib import module_to_shelf, serialize_shelfe
 
 
 @NodeDecorator("test_lib_testfunc")

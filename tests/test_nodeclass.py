@@ -1,7 +1,7 @@
 import unittest
 import gc
 from unittest.mock import patch
-from funcnodes.node import (
+from funcnodes_core.node import (
     Node,
     AsyncEventManager,
     InTriggerError,
@@ -348,7 +348,7 @@ class NodeClassMetaTest(unittest.TestCase):
         """
 
         # Mock register_node to prevent actual registration during test.
-        with patch("funcnodes.node.register_node") as mock_register_node:
+        with patch("funcnodes_core.node.register_node") as mock_register_node:
 
             class BaseNodeClass(Node):
                 async def func(self, *args, **kwargs):
@@ -390,7 +390,7 @@ class NodeClassMetaTest(unittest.TestCase):
 
         # Mock register_node to check that it's being called correctly.
         with patch(
-            "funcnodes.node.register_node", side_effect=register_node
+            "funcnodes_core.node.register_node", side_effect=register_node
         ) as mock_register_node:
             NewNodeClass = NodeMeta(
                 "NewNodeClass", (BaseNodeClass,), {"node_id": "new_node_class"}

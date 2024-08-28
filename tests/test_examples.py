@@ -1,6 +1,6 @@
 import unittest
 import funcnodes as fn
-from funcnodes_basic.math import add_node
+from funcnodes_basic.math_nodes import add_node
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):

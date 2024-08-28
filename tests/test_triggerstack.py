@@ -1,6 +1,6 @@
 import asyncio
 import unittest
-from funcnodes.triggerstack import TriggerStack  # Replace with your actual import
+from funcnodes_core.triggerstack import TriggerStack  # Replace with your actual import
 
 
 class TestTriggerStack(unittest.IsolatedAsyncioTestCase):
