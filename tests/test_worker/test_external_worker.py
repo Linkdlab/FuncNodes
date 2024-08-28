@@ -78,7 +78,7 @@ class TestExternalWorker(IsolatedAsyncioTestCase):
             NODECLASSID = "testexternalworker"
 
             async def loop(self):
-                self.stop()
+                await self.stop()
 
             @instance_nodefunction()
             def test(self, a: int) -> int:

@@ -19,6 +19,7 @@ funcnodes-core = ">=0.1.1"
 pytest = "*"
 coverage = "*"
 pre-commit = "*"
+vulture = "*"
 
 [build-system]
 requires = ["poetry-core"]
@@ -26,3 +27,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 funcnodes = 'funcnodes.__main__:main'
+
+
+[tool.vulture]
+min_confidence = 80
+paths = ["funcnodes"]

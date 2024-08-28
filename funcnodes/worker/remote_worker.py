@@ -29,7 +29,7 @@ class RemoteWorkerJson(WorkerJson):
 
 
 class RemoteWorker(Worker):
-    def __init__(self, *args, trigger_delay=0.05, data_delay=0.2, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self._messagehandlers: List[
