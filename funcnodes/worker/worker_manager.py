@@ -15,7 +15,7 @@ from funcnodes.worker.worker import WorkerJson, WorkerState
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 
 if DEVMODE:
-    import shutil
+    pass
 
 
 class ReturnValueThread(threading.Thread):
@@ -164,8 +164,7 @@ async def check_worker(workerconfig: WorkerJson):
     Returns:
       Tuple[str, bool]: The worker UUID and whether the worker is active.
     """
-    active_worker: List[str] = []
-    inactive_worker: List[str] = []
+
     if "host" in workerconfig and "port" in workerconfig:
         # reqest uuid
         print(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
@@ -194,7 +193,7 @@ async def check_worker(workerconfig: WorkerJson):
             asyncio.TimeoutError,
             KeyError,
             json.JSONDecodeError,
-        ) as e:
+        ):
             pass
 
     return workerconfig["uuid"], False
@@ -344,7 +343,7 @@ class WorkerManager:
                 elif msg["type"] == "new_worker":
                     return await self.new_worker(**msg.get("kwargs", {}))
 
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 pass
 
             print(f"Unknown message: {message}")

@@ -141,7 +141,7 @@ class WSLoop(CustomLoop):
                     )
                     self._worker.write_config()
                 return
-            except OSError as e:
+            except OSError:
                 self._port += 1
                 if self._port > ENDPORT:
                     self._port = STARTPORT
