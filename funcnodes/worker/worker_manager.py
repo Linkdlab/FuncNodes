@@ -253,7 +253,7 @@ class WorkerManager:
             fn.config.CONFIG["worker_manager"]["port"],
         )
         fn.FUNCNODES_LOGGER.info(
-            "Worker manager started at ws://%s:%s",
+            f"Worker manager started at ws{'s' if fn.config.CONFIG['worker_manager'].get('ssl',False) else ''}://%s:%s",
             fn.config.CONFIG["worker_manager"]["host"],
             fn.config.CONFIG["worker_manager"]["port"],
         )
@@ -924,6 +924,7 @@ async def assert_worker_manager_running(
     max_retries=5,
     host: Optional[str] = None,
     port: Optional[int] = None,
+    ssl: Optional[bool] = None,
 ):
     """
     build a connection to the worker manager and assert that it is running.
@@ -934,11 +935,16 @@ async def assert_worker_manager_running(
         host = fn.config.CONFIG["worker_manager"]["host"]
     if port is None:
         port = fn.config.CONFIG["worker_manager"]["port"]
-
+    if ssl is None:
+        ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
     for i in range(max_retries):
         try:
-            print(f"Trying to connect to worker manager at ws://{host}:{port}")
-            async with websockets.connect(f"ws://{host}:{port}") as ws:
+            print(
+                f"Trying to connect to worker manager at ws{'s' if ssl else ''}://{host}:{port}"
+            )
+            async with websockets.connect(
+                f"ws{'s' if ssl else ''}://{host}:{port}"
+            ) as ws:
                 # healtch check via ping pong
                 await ws.send("ping")
                 response = await ws.recv()
