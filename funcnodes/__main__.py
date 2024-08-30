@@ -27,7 +27,12 @@ def task_run_server(args: argparse.Namespace):
       None
     """
     setproctitle("funcnodes_server")
-    run_server(port=args.port, open_browser=args.no_browser)
+    run_server(
+        port=args.port,
+        open_browser=args.no_browser,
+        worker_manager_host=args.worker_manager_host,
+        worker_manager_port=args.worker_manager_port,
+    )
 
 
 def list_workers(args: argparse.Namespace):
@@ -224,6 +229,19 @@ def main():
         "--no-browser",
         action="store_false",
         help="Open the browser after starting the server",
+    )
+
+    parser_runserver.add_argument(
+        "--worker_manager_host",
+        default=None,
+        help="The host to run the worker manager on",
+    )
+
+    parser_runserver.add_argument(
+        "--worker_manager_port",
+        default=None,
+        help="The port to run the worker manager on",
+        type=int,
     )
 
     # Subparser for the 'startworker' task
