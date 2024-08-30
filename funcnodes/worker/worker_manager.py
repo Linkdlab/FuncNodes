@@ -919,22 +919,26 @@ def start_worker_manager(
     asyncio.run(WorkerManager(host=host, port=port).run_forever())
 
 
-async def assert_worker_manager_running(retry_interval=1.0, max_retries=5):
+async def assert_worker_manager_running(
+    retry_interval=1.0,
+    max_retries=5,
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+):
     """
     build a connection to the worker manager and assert that it is running.
     If it is not running, start it in a new process.
     """
 
+    if host is None:
+        host = fn.config.CONFIG["worker_manager"]["host"]
+    if port is None:
+        port = fn.config.CONFIG["worker_manager"]["port"]
+
     for i in range(max_retries):
         try:
-            print(
-                "Trying to connect to worker manager at ws://"
-                f"{fn.config.CONFIG['worker_manager']['host']}:"
-                f"{fn.config.CONFIG['worker_manager']['port']}"
-            )
-            async with websockets.connect(
-                f"ws://{fn.config.CONFIG['worker_manager']['host']}:{fn.config.CONFIG['worker_manager']['port']}"
-            ) as ws:
+            print(f"Trying to connect to worker manager at ws://{host}:{port}")
+            async with websockets.connect(f"ws://{host}:{port}") as ws:
                 # healtch check via ping pong
                 await ws.send("ping")
                 response = await ws.recv()
@@ -943,14 +947,19 @@ async def assert_worker_manager_running(retry_interval=1.0, max_retries=5):
         except ConnectionRefusedError:
             print("Worker manager not running. Starting new worker manager.")
             # start worker manager in a new process
-            run_in_new_process(sys.executable, __file__)
+            run_in_new_process(
+                sys.executable,
+                "-m",
+                "funcnodes",
+                "startworkermanager",
+                "--host",
+                host,
+                "--port",
+                str(port),
+            )
 
             await asyncio.sleep(retry_interval)
     else:
         raise ConnectionRefusedError("Could not connect to worker manager.")
     print("Connected to worker manager.")
     return True
-
-
-if __name__ == "__main__":
-    start_worker_manager()

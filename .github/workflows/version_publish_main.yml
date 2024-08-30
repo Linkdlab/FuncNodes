@@ -26,9 +26,7 @@ jobs:
           python_version: 3.12
 
       - name: Run Tests
-        run: |
-          poetry run pip install pytest
-          poetry run pytest
+        run: poetry run pytest
 
       - name: Get current package version
         shell: bash
