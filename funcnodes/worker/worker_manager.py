@@ -6,7 +6,7 @@ import websockets
 import asyncio
 import subprocess
 import sys
-from typing import List
+from typing import List, Optional
 from funcnodes.worker.websocket import WSWorker
 import threading
 
@@ -219,6 +219,8 @@ class WorkerManager:
 
     def __init__(
         self,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
     ):
         """
         Initializes the WorkerManager.
@@ -226,6 +228,10 @@ class WorkerManager:
         Returns:
           None
         """
+        if host is not None:
+            fn.config.CONFIG["worker_manager"]["host"] = host
+        if port is not None:
+            fn.config.CONFIG["worker_manager"]["port"] = port
         self._worker_dir = os.path.join(fn.config.CONFIG_DIR, "workers")
         if not os.path.exists(self._worker_dir):
             os.makedirs(self._worker_dir)
@@ -247,7 +253,9 @@ class WorkerManager:
             fn.config.CONFIG["worker_manager"]["port"],
         )
         fn.FUNCNODES_LOGGER.info(
-            f"Worker manager started at ws://{fn.config.CONFIG['worker_manager']['host']}:{fn.config.CONFIG['worker_manager']['port']}"
+            "Worker manager started at ws://%s:%s",
+            fn.config.CONFIG["worker_manager"]["host"],
+            fn.config.CONFIG["worker_manager"]["port"],
         )
         self._is_running = True
         l_rl = 0
@@ -278,7 +286,7 @@ class WorkerManager:
         Returns:
           None
         """
-        fn.FUNCNODES_LOGGER.debug(f"New connection: {websocket}")
+        fn.FUNCNODES_LOGGER.debug("New connection: %s", websocket)
         self._connections.append(websocket)
         try:
             async for message in websocket:
@@ -306,7 +314,7 @@ class WorkerManager:
           >>> await _handle_message("ping", websocket)
           "pong"
         """
-        fn.FUNCNODES_LOGGER.debug(f"Received message: {message}")
+        fn.FUNCNODES_LOGGER.debug("Received message: %s", message)
         if message == "ping":
             return await websocket.send("pong")
         elif message == "stop":
@@ -661,7 +669,7 @@ class WorkerManager:
             status="info",
             websocket=websocket,
         )
-        fn.FUNCNODES_LOGGER.info(f"Stopping worker {workerid}")
+        fn.FUNCNODES_LOGGER.info("Stopping worker %s", workerid)
         target_worker = None
         for worker in self._active_workers:
             if worker["uuid"] == workerid:
@@ -678,7 +686,8 @@ class WorkerManager:
 
         try:
             async with websockets.connect(
-                f"ws{'s' if target_worker.get('ssl',False) else ''}://{target_worker['host']}:{target_worker['port']}"
+                f"ws{'s' if target_worker.get('ssl',False) else ''}://"
+                f"{target_worker['host']}:{target_worker['port']}"
             ) as ws:
                 # send with timeout
 
@@ -722,7 +731,7 @@ class WorkerManager:
           None
         """
         try:
-            fn.FUNCNODES_LOGGER.info(f"Activating worker {workerid}")
+            fn.FUNCNODES_LOGGER.info("Activating worker %s", workerid)
             await self.set_progress_state(
                 message="Activating worker.",
                 progress=0.1,
@@ -780,7 +789,8 @@ class WorkerManager:
                     )
                 try:
                     async with websockets.connect(
-                        f"ws{'s' if workerconfig.get('ssl',False) else ''}://{workerconfig['host']}:{workerconfig['port']}"
+                        f"ws{'s' if workerconfig.get('ssl',False) else ''}://"
+                        f"{workerconfig['host']}:{workerconfig['port']}"
                     ) as ws:
                         # send with timeout
 
@@ -889,7 +899,10 @@ class WorkerManager:
     #     )
 
 
-def start_worker_manager():
+def start_worker_manager(
+    host: Optional[str] = None,
+    port: Optional[int] = None,
+):
     """
     Starts the worker manager.
 
@@ -903,7 +916,7 @@ def start_worker_manager():
       >>> start_worker_manager()
       None
     """
-    asyncio.run(WorkerManager().run_forever())
+    asyncio.run(WorkerManager(host=host, port=port).run_forever())
 
 
 async def assert_worker_manager_running(retry_interval=1.0, max_retries=5):
@@ -915,19 +928,21 @@ async def assert_worker_manager_running(retry_interval=1.0, max_retries=5):
     for i in range(max_retries):
         try:
             print(
-                f"Trying to connect to worker manager at ws://{fn.config.CONFIG['worker_manager']['host']}:{fn.config.CONFIG['worker_manager']['port']}"
+                "Trying to connect to worker manager at ws://"
+                f"{fn.config.CONFIG['worker_manager']['host']}:"
+                f"{fn.config.CONFIG['worker_manager']['port']}"
             )
             async with websockets.connect(
                 f"ws://{fn.config.CONFIG['worker_manager']['host']}:{fn.config.CONFIG['worker_manager']['port']}"
             ) as ws:
-                ## healtch check via ping pong
+                # healtch check via ping pong
                 await ws.send("ping")
                 response = await ws.recv()
                 if response == "pong":
                     break
         except ConnectionRefusedError:
             print("Worker manager not running. Starting new worker manager.")
-            ### start worker manager in a new process
+            # start worker manager in a new process
             run_in_new_process(sys.executable, __file__)
 
             await asyncio.sleep(retry_interval)

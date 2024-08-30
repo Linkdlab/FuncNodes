@@ -175,7 +175,7 @@ def start_worker_manager(args: argparse.Namespace):
       None
     """
     setproctitle("worker_manager")
-    fn.worker.worker_manager.start_worker_manager()
+    fn.worker.worker_manager.start_worker_manager(host=args.host, port=args.port)
 
 
 def task_modules(args: argparse.Namespace):
@@ -248,7 +248,22 @@ def main():
         "--name", default=None, required=False, help="The name of the worker to start"
     )
     # Subparser for the 'startworkermanager' task
-    subparsers.add_parser("startworkermanager", help="Start the worker manager")
+    startworkermanagerparser = subparsers.add_parser(
+        "startworkermanager", help="Start the worker manager"
+    )
+
+    startworkermanagerparser.add_argument(
+        "--host",
+        default=None,
+        help="The host to run the worker manager on",
+    )
+
+    startworkermanagerparser.add_argument(
+        "--port",
+        default=None,
+        help="The port to run the worker manager on",
+        type=int,
+    )
 
     # Global argument applicable to all subparsers
     parser.add_argument(
