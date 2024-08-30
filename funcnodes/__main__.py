@@ -32,6 +32,7 @@ def task_run_server(args: argparse.Namespace):
         open_browser=args.no_browser,
         worker_manager_host=args.worker_manager_host,
         worker_manager_port=args.worker_manager_port,
+        worker_manager_ssl=args.worker_manager_ssl,
     )
 
 
@@ -242,6 +243,12 @@ def main():
         default=None,
         help="The port to run the worker manager on",
         type=int,
+    )
+
+    parser_runserver.add_argument(
+        "--worker_manager_ssl",
+        action="store_true",
+        help="Use SSL for the worker manager",
     )
 
     # Subparser for the 'startworker' task
