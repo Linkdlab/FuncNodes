@@ -91,6 +91,6 @@ __all__ = [
     "logging",
 ]
 
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 
 DEBUG = True
