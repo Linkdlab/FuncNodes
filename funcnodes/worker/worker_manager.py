@@ -253,8 +253,9 @@ class WorkerManager:
             fn.config.CONFIG["worker_manager"]["port"],
         )
         fn.FUNCNODES_LOGGER.info(
-            f"Worker manager started at ws://{fn.config.CONFIG['worker_manager']['host']}:"
-            f"{fn.config.CONFIG['worker_manager']['port']}"
+            "Worker manager started at ws://%s:%s",
+            fn.config.CONFIG["worker_manager"]["host"],
+            fn.config.CONFIG["worker_manager"]["port"],
         )
         self._is_running = True
         l_rl = 0
@@ -285,7 +286,7 @@ class WorkerManager:
         Returns:
           None
         """
-        fn.FUNCNODES_LOGGER.debug(f"New connection: {websocket}")
+        fn.FUNCNODES_LOGGER.debug("New connection: %s", websocket)
         self._connections.append(websocket)
         try:
             async for message in websocket:
@@ -313,7 +314,7 @@ class WorkerManager:
           >>> await _handle_message("ping", websocket)
           "pong"
         """
-        fn.FUNCNODES_LOGGER.debug(f"Received message: {message}")
+        fn.FUNCNODES_LOGGER.debug("Received message: %s", message)
         if message == "ping":
             return await websocket.send("pong")
         elif message == "stop":
@@ -668,7 +669,7 @@ class WorkerManager:
             status="info",
             websocket=websocket,
         )
-        fn.FUNCNODES_LOGGER.info(f"Stopping worker {workerid}")
+        fn.FUNCNODES_LOGGER.info("Stopping worker %s", workerid)
         target_worker = None
         for worker in self._active_workers:
             if worker["uuid"] == workerid:
@@ -685,7 +686,8 @@ class WorkerManager:
 
         try:
             async with websockets.connect(
-                f"ws{'s' if target_worker.get('ssl',False) else ''}://{target_worker['host']}:{target_worker['port']}"
+                f"ws{'s' if target_worker.get('ssl',False) else ''}://"
+                f"{target_worker['host']}:{target_worker['port']}"
             ) as ws:
                 # send with timeout
 
@@ -729,7 +731,7 @@ class WorkerManager:
           None
         """
         try:
-            fn.FUNCNODES_LOGGER.info(f"Activating worker {workerid}")
+            fn.FUNCNODES_LOGGER.info("Activating worker %s", workerid)
             await self.set_progress_state(
                 message="Activating worker.",
                 progress=0.1,
