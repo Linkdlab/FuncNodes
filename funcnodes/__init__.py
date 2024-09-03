@@ -36,6 +36,7 @@ from funcnodes_core import (
     lib,
     nodemaker,
     _logging as logging,
+    Encdata,
 )
 
 from .worker import (
@@ -89,8 +90,9 @@ __all__ = [
     "lib",
     "nodemaker",
     "logging",
+    "Encdata",
 ]
 
-__version__ = "0.4.4"
+__version__ = "0.4.5"
 
 DEBUG = True
