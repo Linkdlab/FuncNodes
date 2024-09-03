@@ -345,7 +345,7 @@ def module_to_worker(mod) -> List[Type[FuncNodesExternalWorker]]:
 
 
 def find_worker_from_path(
-    path: Union[str, PathWorkerDict]
+    path: Union[str, PathWorkerDict],
 ) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
     if isinstance(path, str):
         path = path.replace("\\", os.sep).replace("/", os.sep)
@@ -397,7 +397,7 @@ def find_worker_from_path(
 
 
 def find_worker_from_module(
-    mod: Union[str, BaseWorkerDict]
+    mod: Union[str, BaseWorkerDict],
 ) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
     try:
         strmod: str
@@ -436,7 +436,6 @@ def find_worker_from_module(
 def find_worker_from_package(
     pgk: Union[str, PackageWorkerDict],
 ) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
-
     if isinstance(pgk, str):
         # remove possible version specifier
         stripped_src = pgk.split("=", 1)[0]
@@ -477,9 +476,8 @@ def find_worker_from_package(
 
 
 def find_worker(
-    src: Union[WorkerDict, str]
+    src: Union[WorkerDict, str],
 ) -> Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict] | None:
-
     if isinstance(src, dict):
         if "path" in src:
             dat = find_worker_from_path(src)
@@ -815,7 +813,7 @@ class Worker(ABC):
     @exposed_method()
     def full_state(self) -> FullState:
         data = FullState(
-            backend=JSONEncoder.apply_custom_encoding(self.nodespace),
+            backend=self.nodespace,
             view=self.view_state(),
             worker={
                 w.NODECLASSID: [i.uuid for i in w.running_instances()]
@@ -913,7 +911,6 @@ class Worker(ABC):
             data["view"] = {}
 
         if "external_workers" in data:
-
             for worker_id, worker_uuid in data["external_workers"].items():
                 print(
                     worker_id, worker_uuid, self.local_worker_lookup_loop.worker_classes
@@ -980,7 +977,6 @@ class Worker(ABC):
 
     @exposed_method()
     def add_shelf(self, src: Union[str, ShelfDict], save: bool = True):
-
         self.set_progress_state_sync(
             message="Adding shelf", status="info", progress=0.0, blocking=True
         )
@@ -1066,24 +1062,6 @@ class Worker(ABC):
         return self.nodespace.remove_node_by_id(id)
 
     @exposed_method()
-    def set_io_value(self, nid: str, ioid: str, value: Any, set_default: bool = False):
-        node = self.get_node(nid)
-        io = node.get_input(ioid)
-        if (
-            set_default and value != NoValue
-        ):  # novalue should not be set automatically as default via io set
-            io.set_default(value)
-        io.set_value(value)
-
-        return io.value
-
-    @exposed_method()
-    def get_io_value(self, nid: str, ioid: str):
-        node = self.get_node(nid)
-        io = node.get_input(ioid)
-        return io.value
-
-    @exposed_method()
     def trigger_node(self, nid: str):
         node = self.get_node(nid)
         node.request_trigger()
@@ -1141,6 +1119,38 @@ class Worker(ABC):
         else:
             self.viewdata["nodes"][nid].update(data)
         return self.viewdata["nodes"][nid]
+
+    @exposed_method()
+    def set_io_value(self, nid: str, ioid: str, value: Any, set_default: bool = False):
+        node = self.get_node(nid)
+        io = node.get_input(ioid)
+        if (
+            set_default and value != NoValue
+        ):  # novalue should not be set automatically as default via io set
+            io.set_default(value)
+        io.set_value(value)
+
+        return io.value
+
+    @exposed_method()
+    def get_io_value(self, nid: str, ioid: str):
+        node = self.get_node(nid)
+        io = node.get_input_or_output(ioid)
+        return JSONEncoder.apply_custom_encoding(io.value, preview=True)
+
+    @exposed_method()
+    def get_ios_values(self, nid: str) -> Dict[str, Any]:
+        node = self.get_node(nid)
+        return {
+            **{
+                ioid: JSONEncoder.apply_custom_encoding(io.value, preview=True)
+                for ioid, io in node.inputs.items()
+            },
+            **{
+                ioid: JSONEncoder.apply_custom_encoding(io.value, preview=True)
+                for ioid, io in node.outputs.items()
+            },
+        }
 
     @exposed_method()
     def get_io_full_value(self, nid: str, ioid: str):

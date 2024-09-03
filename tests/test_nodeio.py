@@ -35,7 +35,6 @@ class TestNodeIO(unittest.TestCase):
                 "is_input": True,
                 "type": "Any",
                 "node": None,
-                "value": "<NoValue>",
                 "render_options": {},
                 "value_options": {},
                 "connected": False,
@@ -49,7 +48,7 @@ class TestNodeIO(unittest.TestCase):
         self.assertEqual(json.loads(json.dumps(serialized_input)), serialized_input)
 
     def test_full_ser(self):
-        serialized_input = self.input_1.full_serialize()
+        serialized_input = self.input_1.full_serialize(with_value=True)
         self.assertEqual(
             serialized_input,
             {
