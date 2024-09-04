@@ -41,7 +41,8 @@ class RemoteWorker(Worker):
         await self.send(ProgressStateMessage(type="progress", **self._progress_state))
 
     async def send(self, data, **kwargs):
-        data = json.dumps(data, cls=JSONEncoder)
+        if not isinstance(data, str):
+            data = json.dumps(data, cls=JSONEncoder)
         # self.logger.debug(f"Sending message {data}")
         await self.sendmessage(data, **kwargs)
 
@@ -67,6 +68,8 @@ class RemoteWorker(Worker):
             "event": event,
             "data": kwargs,
         }
+        if event in ("after_set_value", "before_set_value"):
+            event_bundle = JSONEncoder.apply_custom_encoding(event_bundle, preview=True)
 
         self.loop_manager.async_call(self.send(event_bundle))
         return event_bundle
