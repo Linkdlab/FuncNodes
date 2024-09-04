@@ -14,6 +14,7 @@ from typing import (
     Union,
 )
 import os
+import time
 import json
 import asyncio
 import sys
@@ -293,6 +294,26 @@ def requests_save(func):
         return wrapper
 
 
+class HeartbeatLoop(CustomLoop):
+    def __init__(self, client: Worker, required_heatbeat=None, delay=5) -> None:
+        if required_heatbeat is not None:
+            required_heatbeat = float(required_heatbeat)
+            delay = min(delay, required_heatbeat / 10)
+
+        super().__init__(delay)
+        self._client: Worker = client
+        self.required_heatbeat = required_heatbeat
+        self._last_heartbeat = time.time()
+
+    def heartbeat(self):
+        self._last_heartbeat = time.time()
+
+    async def loop(self):
+        if self.required_heatbeat is not None:
+            if time.time() - self._last_heartbeat > self.required_heatbeat:
+                asyncio.create_task(self._client.stop_worker())
+
+
 class ExternalWorkerSerClass(TypedDict):
     module: str
     class_name: str
@@ -535,6 +556,7 @@ class Worker(ABC):
         nodespace_delay=0.005,
         local_worker_lookup_delay=5,
         save_delay=5,
+        required_heatbeat=None,
         uuid: str | None = None,
         name: str | None = None,
     ) -> None:
@@ -557,6 +579,9 @@ class Worker(ABC):
 
         self.saveloop = SaveLoop(self, delay=save_delay)
         self.loop_manager.add_loop(self.saveloop)
+
+        self.heartbeatloop = HeartbeatLoop(self, required_heatbeat=required_heatbeat)
+        self.loop_manager.add_loop(self.heartbeatloop)
 
         self.nodespace.on("*", self._on_nodespaceevent)
         self.nodespace.on_error(self._on_nodespaceerror)
@@ -788,6 +813,10 @@ class Worker(ABC):
 
         self.viewdata["renderoptions"] = funcnodes.config.FUNCNODES_RENDER_OPTIONS
         return self.viewdata
+
+    @exposed_method()
+    def heartbeat(self):
+        self.heartbeatloop.heartbeat()
 
     @exposed_method()
     def get_meta(self) -> MetaInfo:
