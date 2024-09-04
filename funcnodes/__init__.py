@@ -95,6 +95,6 @@ __all__ = [
     "decorator",
 ]
 
-__version__ = "0.4.6"
+__version__ = "0.4.7"
 
 DEBUG = True
