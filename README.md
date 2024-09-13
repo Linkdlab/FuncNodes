@@ -165,17 +165,20 @@ The workermanager starts, stops and creates worker (the instances that are runni
 
 Each Worker runs in a seperate process in the python environment it was created in.
 New worker can be created via the web interface or via:
-   ```bash
-   funcnodes worker new --name=<otional non unique name> --uuid=<otional unique id>
-   ```
+
+```bash
+funcnodes worker new --name=<otional non unique name> --uuid=<otional unique id>
+```
+
 Where the uuid is created automatically if not provided and the name falls back to the uuid if not provided.
 
 To run a worker process, simpy activate it via the webinterface or in the cli via:
-   ```bash
-   funcnodes worker start --name=<otional non unique name> --uuid=<otional unique id>
-   ```
-   either name or uuid have to be provided. If uuid is provided it will start the respective worker. Otherwise it will start the first worker with the matching name.
 
+```bash
+funcnodes worker start --name=<otional non unique name> --uuid=<otional unique id>
+```
+
+either name or uuid have to be provided. If uuid is provided it will start the respective worker. Otherwise it will start the first worker with the matching name.
 
 ### Using the web interface
 

@@ -56,6 +56,7 @@ def list_workers(args: argparse.Namespace):
     else:
         for cf in mng.get_all_workercfg():
             print(f"{cf['uuid']}\t{cf.get('name')}")
+            print(f"  {cf['python_path']}")
 
 
 def start_new_worker(args: argparse.Namespace):
