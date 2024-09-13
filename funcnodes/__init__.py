@@ -1,3 +1,4 @@
+import os
 from funcnodes_core import (
     NodeInput,
     NodeOutput,
@@ -38,6 +39,8 @@ from funcnodes_core import (
     _logging as logging,
     Encdata,
     decorator,
+    setup,
+    NodeTriggerError,
 )
 
 from .worker import (
@@ -47,6 +50,9 @@ from .worker import (
     WorkerManager,
     assert_worker_manager_running,
 )
+
+if not os.environ.get("FUNCNODES_SKIP_SETUP"):
+    setup()
 
 __all__ = [
     "FuncNodesExternalWorker",
@@ -93,8 +99,10 @@ __all__ = [
     "logging",
     "Encdata",
     "decorator",
+    "setup",
+    "NodeTriggerError",
 ]
 
-__version__ = "0.4.8"
+__version__ = "0.4.9"
 
 DEBUG = True

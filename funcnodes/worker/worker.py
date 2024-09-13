@@ -757,7 +757,7 @@ class Worker(ABC):
     def data_path(self, data_path: str):
         data_path = os.path.abspath(data_path)
         if not os.path.exists(data_path):
-            os.mkdir(data_path)
+            os.makedirs(data_path)
         self._data_path = data_path
 
     @property
