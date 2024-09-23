@@ -559,10 +559,12 @@ class Worker(ABC):
         required_heatbeat=None,
         uuid: str | None = None,
         name: str | None = None,
+        debug: bool = False,
     ) -> None:
         if default_nodes is None:
             default_nodes = []
 
+        self._debug = debug
         self._shelves_dependencies: List[ShelfDict] = []
         self._worker_dependencies: List[WorkerDict] = []
         self.loop_manager = LoopManager(self)
@@ -606,6 +608,8 @@ class Worker(ABC):
         self.data_path = self._data_path
         funcnodes.logging.set_logging_dir(self.data_path)
         self.logger = funcnodes.get_logger(self._uuid, propagate=False)
+        if debug:
+            self.logger.setLevel("DEBUG")
         self.logger.addHandler(
             RotatingFileHandler(
                 os.path.join(self.data_path, "worker.log"),

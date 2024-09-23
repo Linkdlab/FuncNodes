@@ -129,7 +129,7 @@ def create_worker_env(workerconfig: WorkerJson):
     )
 
 
-def start_worker(workerconfig: WorkerJson):
+def start_worker(workerconfig: WorkerJson, debug=False):
     """
     Starts the worker process.
 
@@ -139,15 +139,19 @@ def start_worker(workerconfig: WorkerJson):
     Returns:
       None
     """
-
-    run_in_new_process(
+    args = [
         workerconfig["python_path"],
         "-m",
         "funcnodes",
         "worker",
         "start",
         f"--uuid={workerconfig['uuid']}",
-        #  cwd=os.path.join(workerconfig["data_path"], ".."),
+    ]
+    if debug:
+        args.append("--debug")
+
+    run_in_new_process(
+        *args,
     )
 
 
@@ -221,6 +225,7 @@ class WorkerManager:
         self,
         host: Optional[str] = None,
         port: Optional[int] = None,
+        debug: bool = False,
     ):
         """
         Initializes the WorkerManager.
@@ -239,6 +244,9 @@ class WorkerManager:
         self._connections: List[websockets.WebSocketServerProtocol] = []
         self._active_workers: List[WorkerJson] = []
         self._inactive_workers: List[WorkerJson] = []
+        self._debug = debug
+        if debug:
+            fn.FUNCNODES_LOGGER.setLevel("DEBUG")
 
     async def run_forever(self):
         """
@@ -747,7 +755,7 @@ class WorkerManager:
             if active_worker is None:
                 for worker in self._inactive_workers:
                     if worker["uuid"] == workerid:
-                        start_worker(worker)
+                        start_worker(worker, debug=self._debug)
                         active_worker = worker
 
             if active_worker is None:
@@ -902,6 +910,7 @@ class WorkerManager:
 def start_worker_manager(
     host: Optional[str] = None,
     port: Optional[int] = None,
+    debug: bool = False,
 ):
     """
     Starts the worker manager.
@@ -916,7 +925,7 @@ def start_worker_manager(
       >>> start_worker_manager()
       None
     """
-    asyncio.run(WorkerManager(host=host, port=port).run_forever())
+    asyncio.run(WorkerManager(host=host, port=port, debug=debug).run_forever())
 
 
 async def assert_worker_manager_running(
