@@ -42,6 +42,7 @@ class TestNodeIO(unittest.TestCase):
                 "full_id": None,
                 "default": "<NoValue>",
                 "required": True,
+                "hidden": False,
             },
         )
 
@@ -65,6 +66,7 @@ class TestNodeIO(unittest.TestCase):
                 "full_id": None,
                 "default": NoValue,
                 "required": True,
+                "hidden": False,
             },
         )
 
