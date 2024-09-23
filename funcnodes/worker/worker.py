@@ -1144,6 +1144,7 @@ class Worker(ABC):
 
         return ans
 
+    @requests_save
     @exposed_method()
     def update_io_options(
         self,
@@ -1154,6 +1155,7 @@ class Worker(ABC):
     ):
         node = self.get_node(nid)
         io = node.get_input_or_output(ioid)
+
         if name is not None:
             if len(name) == 0:
                 name = io.uuid
