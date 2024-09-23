@@ -76,7 +76,7 @@ def start_new_worker(args: argparse.Namespace):
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
     fn.FUNCNODES_LOGGER.info(f"Starting new worker of type {args.workertype}")
 
-    worker = worker_class(uuid=args.uuid, name=args.name)
+    worker = worker_class(uuid=args.uuid, name=args.name, debug=args.debug)
     setproctitle("worker " + worker.uuid())
     worker.run_forever()
 
@@ -132,7 +132,7 @@ def start_existing_worker(args: argparse.Namespace):
         os.execv(cfg["python_path"], ["-m", "funcnodes"] + sys.argv[1:])
 
     fn.FUNCNODES_LOGGER.info(f"Starting existing worker of type {args.workertype}")
-    worker = worker_class(uuid=cfg["uuid"])
+    worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
     setproctitle("worker " + worker.uuid())
     worker.run_forever()
@@ -182,7 +182,10 @@ def start_worker_manager(args: argparse.Namespace):
       None
     """
     setproctitle("worker_manager")
-    fn.worker.worker_manager.start_worker_manager(host=args.host, port=args.port)
+
+    fn.worker.worker_manager.start_worker_manager(
+        host=args.host, port=args.port, debug=args.debug
+    )
 
 
 def task_modules(args: argparse.Namespace):
@@ -273,6 +276,10 @@ def main():
     parser_worker.add_argument(
         "--name", default=None, required=False, help="The name of the worker to start"
     )
+
+    parser_worker.add_argument(
+        "--debug", action="store_true", help="Run the worker in debug mode"
+    )
     # Subparser for the 'startworkermanager' task
     startworkermanagerparser = subparsers.add_parser(
         "startworkermanager", help="Start the worker manager"
@@ -289,6 +296,10 @@ def main():
         default=None,
         help="The port to run the worker manager on",
         type=int,
+    )
+
+    startworkermanagerparser.add_argument(
+        "--debug", action="store_true", help="Run the worker manager in debug mode"
     )
 
     # Global argument applicable to all subparsers
