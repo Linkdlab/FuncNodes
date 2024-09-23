@@ -1140,6 +1140,27 @@ class Worker(ABC):
 
         return ans
 
+    @exposed_method()
+    def update_io_options(
+        self,
+        nid: str,
+        ioid: str,
+        name: Optional[str] = None,
+        hidden: Optional[bool] = None,
+    ):
+        node = self.get_node(nid)
+        io = node.get_input_or_output(ioid)
+        if name is not None:
+            if len(name) == 0:
+                name = io.uuid
+            io.name = name
+
+        if hidden is not None:
+            if len(io.connections) > 0:
+                hidden = False
+            io.hidden = hidden
+        return io
+
     @requests_save
     @exposed_method()
     def update_node_view(self, nid: str, data: NodeViewState):
