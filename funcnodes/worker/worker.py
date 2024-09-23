@@ -559,10 +559,12 @@ class Worker(ABC):
         required_heatbeat=None,
         uuid: str | None = None,
         name: str | None = None,
+        debug: bool = False,
     ) -> None:
         if default_nodes is None:
             default_nodes = []
 
+        self._debug = debug
         self._shelves_dependencies: List[ShelfDict] = []
         self._worker_dependencies: List[WorkerDict] = []
         self.loop_manager = LoopManager(self)
@@ -606,6 +608,8 @@ class Worker(ABC):
         self.data_path = self._data_path
         funcnodes.logging.set_logging_dir(self.data_path)
         self.logger = funcnodes.get_logger(self._uuid, propagate=False)
+        if debug:
+            self.logger.setLevel("DEBUG")
         self.logger.addHandler(
             RotatingFileHandler(
                 os.path.join(self.data_path, "worker.log"),
@@ -1139,6 +1143,29 @@ class Worker(ABC):
             ans["name"] = node.name
 
         return ans
+
+    @requests_save
+    @exposed_method()
+    def update_io_options(
+        self,
+        nid: str,
+        ioid: str,
+        name: Optional[str] = None,
+        hidden: Optional[bool] = None,
+    ):
+        node = self.get_node(nid)
+        io = node.get_input_or_output(ioid)
+
+        if name is not None:
+            if len(name) == 0:
+                name = io.uuid
+            io.name = name
+
+        if hidden is not None:
+            if len(io.connections) > 0:
+                hidden = False
+            io.hidden = hidden
+        return io
 
     @requests_save
     @exposed_method()
