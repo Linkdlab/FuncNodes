@@ -6,6 +6,12 @@ authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 readme = "README.md"
 license = "MIT"
 
+[tool.poetry.urls]
+homepage  = "https://github.com/Linkdlab/funcnodes"
+source  = "https://github.com/Linkdlab/funcnodes"
+tracker  = "https://github.com/Linkdlab/funcnodes/issues"
+download = "https://pypi.org/project/funcnodes/#files"
+
 
 [tool.poetry.dependencies]
 python = ">=3.11"
