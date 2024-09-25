@@ -1,9 +1,17 @@
 [tool.poetry]
 name = "funcnodes"
-version = "0.4.10"
+version = "0.4.11"
 description = "funcnodes"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 readme = "README.md"
+license = "MIT"
+
+[tool.poetry.urls]
+homepage  = "https://github.com/Linkdlab/funcnodes"
+source  = "https://github.com/Linkdlab/funcnodes"
+tracker  = "https://github.com/Linkdlab/funcnodes/issues"
+download = "https://pypi.org/project/funcnodes/#files"
+
 
 [tool.poetry.dependencies]
 python = ">=3.11"
@@ -12,7 +20,7 @@ virtualenv = "*"
 
 setproctitle = ">=1"
 funcnodes-basic = ">=0.1.6"
-funcnodes-core = ">=0.1.12"
+funcnodes-core = ">=0.1.14"
 funcnodes-react-flow = ">=0.1.7"
 
 
@@ -21,6 +29,7 @@ pytest = "*"
 coverage = "*"
 pre-commit = "*"
 vulture = "*"
+funcnodes-module = "*"
 
 [build-system]
 requires = ["poetry-core"]
