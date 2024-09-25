@@ -28,7 +28,6 @@ from funcnodes.worker.external_worker import FuncNodesExternalWorker
 from funcnodes import (
     NodeSpace,
     Shelf,
-    FullNodeSpaceJSON,
     NodeSpaceJSON,
     Node,
     NodeJSON,
@@ -38,11 +37,13 @@ from funcnodes import (
     NodeOutput,
     NodeInput,
     NoValue,
+    FullLibJSON,
 )
 from funcnodes_core.utils import saving
 from funcnodes_core.lib import find_shelf, ShelfDict
 from exposedfunctionality import exposed_method, get_exposed_methods
 from typing_extensions import deprecated
+from funcnodes_core import AVAILABLE_MODULES
 
 try:
     from funcnodes_react_flow import (
@@ -88,7 +89,7 @@ class ProgressState(TypedDict):
 
 
 class FullState(TypedDict):
-    backend: FullNodeSpaceJSON
+    backend: NodeSpace
     view: ViewState
     worker: dict[str, list[str]]
     progress_state: ProgressState
@@ -234,7 +235,7 @@ class LocalWorkerLookupLoop(CustomLoop):
             "No worker with id " + worker_id
         )
 
-    def stop_local_worker_by_id(self, worker_id: str, instance_id: str):
+    async def stop_local_worker_by_id(self, worker_id: str, instance_id: str):
         if worker_id in FuncNodesExternalWorker.RUNNING_WORKERS:
             if instance_id in FuncNodesExternalWorker.RUNNING_WORKERS[worker_id]:
                 worker_instance = FuncNodesExternalWorker.RUNNING_WORKERS[worker_id][
@@ -243,7 +244,7 @@ class LocalWorkerLookupLoop(CustomLoop):
                 self._client.nodespace.lib.remove_nodeclasses(
                     worker_instance.get_all_nodeclasses()
                 )
-                worker_instance.stop()
+                await worker_instance.stop()
                 self._client.loop_manager.remove_loop(worker_instance)
                 return True
             else:
@@ -544,7 +545,7 @@ class WorkerJson(TypedDict):
     env_path: str
     python_path: str
 
-    shelves_dependencies: List[ShelfDict]
+    shelves_dependencies: Dict[str, ShelfDict]
     worker_dependencies: List[WorkerDict]
 
 
@@ -565,7 +566,7 @@ class Worker(ABC):
             default_nodes = []
 
         self._debug = debug
-        self._shelves_dependencies: List[ShelfDict] = []
+        self._shelves_dependencies: Dict[str, ShelfDict] = {}
         self._worker_dependencies: List[WorkerDict] = []
         self.loop_manager = LoopManager(self)
         self.nodespace = NodeSpace()
@@ -698,11 +699,18 @@ class Worker(ABC):
                     self.logger.exception(e)
 
         if "shelves_dependencies" in c:
-            for dep in c["shelves_dependencies"]:
-                try:
-                    self.add_shelf(dep, save=False)
-                except Exception as e:
-                    self.logger.exception(e)
+            if isinstance(c["shelves_dependencies"], dict):
+                for k, v in c["shelves_dependencies"].items():
+                    try:
+                        self.add_shelf(v, save=False)
+                    except Exception as e:
+                        self.logger.exception(e)
+            elif isinstance(c["shelves_dependencies"], list):
+                for dep in c["shelves_dependencies"]:
+                    try:
+                        self.add_shelf(dep, save=False)
+                    except Exception as e:
+                        self.logger.exception(e)
 
     def generate_config(self) -> WorkerJson:
         oldc = self.config
@@ -712,14 +720,22 @@ class Worker(ABC):
         name = oldc.get("name") or self._name
         data_path = self.data_path
         env_path = os.path.abspath(os.path.join(self.data_path, "env"))
-        sds: List[ShelfDict] = []  # not using set to assure order
+        sds: Dict[str, ShelfDict] = (
+            self._shelves_dependencies.copy()
+        )  # not using set to assure order
 
-        for sd in oldc.get("shelves_dependencies", []):
-            if sd not in sds:
-                sds.append(sd)
-        for sd in self._shelves_dependencies:
-            if sd not in sds:
-                sds.append(sd)
+        old_shelve_dep = oldc.get("shelves_dependencies", {})
+        if isinstance(old_shelve_dep, dict):
+            for k, v in old_shelve_dep.items():
+                if k not in sds:
+                    sds[k] = v
+        elif isinstance(old_shelve_dep, list):
+            for v in old_shelve_dep:
+                if not isinstance(v, dict):
+                    continue
+                if "module" not in v:
+                    continue
+                sds[v["module"]] = v
 
         worker_dependencies: List[WorkerDict] = []
 
@@ -860,7 +876,7 @@ class Worker(ABC):
         return data
 
     @exposed_method()
-    def get_library(self) -> dict:
+    def get_library(self) -> FullLibJSON:
         return self.nodespace.lib.full_serialize()
 
     @exposed_method()
@@ -991,9 +1007,8 @@ class Worker(ABC):
 
     # region library
 
-    def add_shelves_dependency(self, src: str | ShelfDict):
-        if src not in self._shelves_dependencies:
-            self._shelves_dependencies.append(src)
+    def add_shelves_dependency(self, src: ShelfDict):
+        self._shelves_dependencies[src["module"]] = src
 
     async def set_progress_state(
         self, message: str, status: str, progress: float, blocking: bool
@@ -1013,6 +1028,7 @@ class Worker(ABC):
         self.set_progress_state_sync(
             message="Adding shelf", status="info", progress=0.0, blocking=True
         )
+        self.logger.info(f"Adding shelf {src}")
         try:
             shelfdata = find_shelf(src=src)
             if shelfdata is None:
@@ -1073,6 +1089,24 @@ class Worker(ABC):
             pass
         return True
 
+    @exposed_method()
+    def get_available_modules(self):
+        ans = {
+            "installed": [],
+            "active": [],
+        }
+        for modname, moddata in AVAILABLE_MODULES.items():
+            data = {
+                "name": modname,
+                "description": moddata.get("description", "No description available"),
+            }
+            if self._shelves_dependencies.get(modname) is not None:
+                ans["active"].append(data)
+            else:
+                ans["installed"].append(data)
+
+        return ans
+
     # endregion library
 
     # region nodes
@@ -1091,7 +1125,7 @@ class Worker(ABC):
 
     @requests_save
     @exposed_method()
-    def remove_node(self, id: str) -> str:
+    def remove_node(self, id: str) -> Union[str, None]:
         return self.nodespace.remove_node_by_id(id)
 
     @exposed_method()
@@ -1114,7 +1148,7 @@ class Worker(ABC):
         return True
 
     @exposed_method()
-    def get_node_state(self, nid: str) -> NodeJSON:
+    def get_node_state(self, nid: str) -> FullNodeJSON:
         node = self.get_node(nid)
         return node._repr_json_()
 

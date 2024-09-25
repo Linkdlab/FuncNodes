@@ -134,13 +134,13 @@ files = [
 
 [[package]]
 name = "exposedfunctionality"
-version = "0.3.10"
+version = "0.3.14"
 description = "tool to expose functionalities to multiple tools"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 files = [
-    {file = "exposedfunctionality-0.3.10-py3-none-any.whl", hash = "sha256:b59f4e22333f2a7b24990301ee9c60c771e751c2f47277239c9f48250bc572e4"},
-    {file = "exposedfunctionality-0.3.10.tar.gz", hash = "sha256:5b1df077553cbcc30d6d7164d30ecd5738e8cd6f57912b483b5b73ad49ddb08d"},
+    {file = "exposedfunctionality-0.3.14-py3-none-any.whl", hash = "sha256:7d6a8b90505b965f4e2d34a39d156fcb0ea4ce79fa4a03d11c50becc9eb77db4"},
+    {file = "exposedfunctionality-0.3.14.tar.gz", hash = "sha256:ab327e8aeab9eb0d27f98f71564f04b9bc56ec1819469497b517b92ee900b364"},
 ]
 
 [package.dependencies]
@@ -179,20 +179,34 @@ funcnodes-core = "*"
 
 [[package]]
 name = "funcnodes-core"
-version = "0.1.12"
+version = "0.1.15"
 description = "core package for funcnodes"
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "funcnodes_core-0.1.12-py3-none-any.whl", hash = "sha256:b8eed3c57e93c7451a2efc0b28a8d6d6bd42cb84c79254e05fe97c7fe9c688b0"},
-    {file = "funcnodes_core-0.1.12.tar.gz", hash = "sha256:af8c77225548e5d48f0542db13fe394380b5a3a0423b72215fba61a0f388f36b"},
+    {file = "funcnodes_core-0.1.15-py3-none-any.whl", hash = "sha256:bac0f43647adb9e5dbdaea3ab7317a4a83498a74669340a269eee4acdfc9d975"},
+    {file = "funcnodes_core-0.1.15.tar.gz", hash = "sha256:9489f0161d3e90b6179e6534b50f2c49c7f61d021f50741703ffceeaf2096308"},
 ]
 
 [package.dependencies]
 dill = "*"
-exposedfunctionality = ">=0.3.10"
+exposedfunctionality = ">=0.3.11"
 python-dotenv = "*"
 setuptools = "*"
+
+[[package]]
+name = "funcnodes-module"
+version = "0.1.13"
+description = ""
+optional = false
+python-versions = ">=3.11"
+files = [
+    {file = "funcnodes_module-0.1.13-py3-none-any.whl", hash = "sha256:880d62b9cdd2eaaed01c542bd1c4d5ed0af7e3a09ce6c459aab4189e0f10f6cc"},
+    {file = "funcnodes_module-0.1.13.tar.gz", hash = "sha256:f9317fdd8b4c033a1559152269d5cdcfe3b0c16e9884ae057fbdea230d827a97"},
+]
+
+[package.dependencies]
+funcnodes = "*"
 
 [[package]]
 name = "funcnodes-react-flow"
@@ -660,4 +674,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11"
-content-hash = "fcd8d210b79853627cb52fa407a4ecde087a32c8bf7791086b78b9899d457a54"
+content-hash = "6a911d7e9941ebec36a060120fefcbe82e93826d69006d3f814615744f30ed9d"
