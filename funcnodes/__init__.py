@@ -103,6 +103,6 @@ __all__ = [
     "NodeTriggerError",
 ]
 
-__version__ = "0.4.11"
+__version__ = "0.4.12"
 
 DEBUG = True
