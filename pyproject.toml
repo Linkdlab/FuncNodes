@@ -22,6 +22,7 @@ setproctitle = ">=1"
 funcnodes-basic = ">=0.1.6"
 funcnodes-core = ">=0.1.14"
 funcnodes-react-flow = ">=0.1.7"
+requests = "^2.32.3"
 
 
 [tool.poetry.group.dev.dependencies]
