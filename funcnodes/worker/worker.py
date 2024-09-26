@@ -43,7 +43,7 @@ from funcnodes_core.utils import saving
 from funcnodes_core.lib import find_shelf, ShelfDict
 from exposedfunctionality import exposed_method, get_exposed_methods
 from typing_extensions import deprecated
-from funcnodes_core import AVAILABLE_MODULES
+from ..utils import AVAILABLE_REPOS, reload_base
 
 try:
     from funcnodes_react_flow import (
@@ -1051,6 +1051,9 @@ class Worker(ABC):
         "Use add_shelf instead",
     )
     def add_shelf_by_module(self, module: str):
+        if module in AVAILABLE_REPOS:
+            if not AVAILABLE_REPOS[module].get("installed", False):
+                module = "pip://" + module
         return self.add_shelf(module)
 
     def add_worker_dependency(self, src: WorkerDict):
@@ -1091,11 +1094,13 @@ class Worker(ABC):
 
     @exposed_method()
     def get_available_modules(self):
+        reload_base()
         ans = {
             "installed": [],
             "active": [],
+            "available": [],
         }
-        for modname, moddata in AVAILABLE_MODULES.items():
+        for modname, moddata in AVAILABLE_REPOS.items():
             data = {
                 "name": modname,
                 "description": moddata.get("description", "No description available"),
@@ -1103,7 +1108,10 @@ class Worker(ABC):
             if self._shelves_dependencies.get(modname) is not None:
                 ans["active"].append(data)
             else:
-                ans["installed"].append(data)
+                if moddata.get("installed", False):
+                    ans["installed"].append(data)
+                else:
+                    ans["available"].append(data)
 
         return ans
 
