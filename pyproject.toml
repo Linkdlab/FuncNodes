@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "funcnodes"
-version = "0.4.12"
+version = "0.4.13"
 description = "funcnodes"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 readme = "README.md"
@@ -20,8 +20,8 @@ virtualenv = "*"
 
 setproctitle = ">=1"
 funcnodes-basic = ">=0.1.6"
-funcnodes-core = ">=0.1.14"
-funcnodes-react-flow = ">=0.1.7"
+funcnodes-core = ">=0.1.17"
+funcnodes-react-flow = ">=0.1.12"
 requests = "*"
 
 
