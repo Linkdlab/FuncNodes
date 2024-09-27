@@ -561,6 +561,7 @@ class Worker(ABC):
         uuid: str | None = None,
         name: str | None = None,
         debug: bool = False,
+        **kwargs,  # catch all additional arguments for future compatibility
     ) -> None:
         if default_nodes is None:
             default_nodes = []
@@ -1010,6 +1011,10 @@ class Worker(ABC):
     def add_shelves_dependency(self, src: ShelfDict):
         self._shelves_dependencies[src["module"]] = src
 
+    def remove_shelves_dependency(self, src: ShelfDict):
+        if src["module"] in self._shelves_dependencies:
+            del self._shelves_dependencies[src["module"]]
+
     async def set_progress_state(
         self, message: str, status: str, progress: float, blocking: bool
     ):
@@ -1051,10 +1056,24 @@ class Worker(ABC):
         "Use add_shelf instead",
     )
     def add_shelf_by_module(self, module: str):
-        if module in AVAILABLE_REPOS:
-            if not AVAILABLE_REPOS[module].get("installed", False):
-                module = "pip://" + module
         return self.add_shelf(module)
+
+    @exposed_method()
+    def remove_shelf(self, src: Union[str, ShelfDict], save: bool = True):
+        try:
+            shelfdata = find_shelf(src=src)
+            if shelfdata is None:
+                return {"error": f"Shelf in {src} not found"}
+            shelf, shelfdata = shelfdata
+            if shelf is None:
+                raise ValueError(f"Shelf in {src} not found")
+
+            self.remove_shelves_dependency(shelfdata)
+            self.nodespace.remove_shelf(shelf)
+            if save:
+                self.request_save()
+        finally:
+            pass
 
     def add_worker_dependency(self, src: WorkerDict):
         if src not in self._worker_dependencies:
@@ -1104,8 +1123,13 @@ class Worker(ABC):
             data = {
                 "name": modname,
                 "description": moddata.get("description", "No description available"),
+                "version": moddata.get("version", "latest"),
+                "homepage": moddata.get("homepage", ""),
+                "source": moddata.get("source", ""),
             }
-            if self._shelves_dependencies.get(modname) is not None:
+            if (
+                self._shelves_dependencies.get(modname.replace("-", "_")) is not None
+            ):  # replace - with _ to avoid issues with module names
                 ans["active"].append(data)
             else:
                 if moddata.get("installed", False):

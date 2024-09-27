@@ -25,6 +25,7 @@ def reload_base():
         repo["installed"] = False
 
     for modulename, modueldata in AVAILABLE_MODULES.items():
+        modulename = modulename.replace("_", "-")  # replace _ with - for pypi
         if modulename in AVAILABLE_REPOS:
             AVAILABLE_REPOS[modulename]["installed"] = True
 
