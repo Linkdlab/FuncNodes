@@ -25,7 +25,7 @@ Funcnodes is a flexible and modular framework designed for building and managing
 
 ### Steps
 
-1. **Clone the repository:**
+1. **Install the package:**
 
    ```bash
    pip install funcnodes
