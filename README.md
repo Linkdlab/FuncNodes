@@ -1,4 +1,8 @@
-# Funcnodes Project README
+# Funcnodes
+
+<div align="center">
+<img src="assets/logos/funcnodes.png" width="200">
+</div>
 
 ## Project Overview
 
