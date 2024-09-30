@@ -267,11 +267,7 @@ Funcnodes provides a decorator `@NodeDecorator` that simplifies the creation of 
    ns.add_node_instance(addition_node)  # Add to the node space
    ```
 
-### Conclusion
-
-Both methods allow for flexibility and integration into the Funcnodes ecosystem, enabling you to create custom nodes that fit your specific data processing needs. Whether you choose to define a full class or use the decorator approach depends on your preference and the complexity of the node's functionality.
-
-3. **Adding nodes programmatically:**
+4. **Adding nodes programmatically:**
 
    ```python
    from funcnodes import NodeSpace, get_nodeclass
@@ -287,7 +283,7 @@ Both methods allow for flexibility and integration into the Funcnodes ecosystem,
    ns.add_node_instance(add_node)
    ```
 
-4. **Connecting nodes:**
+5. **Connecting nodes:**
    ```python
    # Assuming add_node and another node (output_node) are already instantiated
    add_node.outputs['sum'].connect(output_node.inputs['input'])
@@ -315,14 +311,7 @@ pytest tests/
 
 Ensure you have `pytest` installed, or install it using `pip install pytest`.
 
-## Architecture
-
-Funcnodes uses a modular architecture with the following key components:
-
-- **Node:** Basic unit of computation.
-- **NodeSpace:** Container managing a collection of nodes.
-- **Worker:** Handles the execution of node spaces.
-- **Frontend:** Web interface for managing nodes and node spaces interactively.
+For more detailed documentation, visit the [official Funcnodes documentation](#).
 
 ## Contributing Guidelines
 
@@ -331,17 +320,3 @@ Contributions are welcome! Please refer to `CONTRIBUTING.md` for detailed instru
 ## Licensing Information
 
 This project is licensed under the MIT License - see the `LICENSE` file for details.
-
-## Credits and Acknowledgements
-
-- **[Your Name]**: Project lead and main developer.
-- **[Contributor Names]**: Additional contributors who helped with various features.
-- **Open-source libraries:** List any third-party libraries or tools used.
-
-## Additional Sections
-
-- **Deployment Guide:** For instructions on deploying Funcnodes in a production environment.
-- **FAQ:** Common questions and troubleshooting tips related to Funcnodes.
-- **Troubleshooting:** Specific troubleshooting steps for common issues.
-
-For more detailed documentation, visit the [official Funcnodes documentation](#).
