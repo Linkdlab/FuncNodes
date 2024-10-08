@@ -150,17 +150,20 @@ class LoopManager:
     def running(self):
         return self._running
 
+    def _prerun(self):
+        self._running = True
+        loops2add = list(self._loops_to_add)
+        self._loops_to_add = []
+        for loop in loops2add:
+            self.add_loop(loop)
+
     def run_forever(self):
         try:
             running_loop = asyncio.get_running_loop()
         except RuntimeError:
             running_loop = None
         asyncio.set_event_loop(self._loop)
-        self._running = True
-        loops2add = list(self._loops_to_add)
-        self._loops_to_add = []
-        for loop in loops2add:
-            self.add_loop(loop)
+        self._prerun()
 
         async def _rf():
             while self.running:
@@ -179,9 +182,7 @@ class LoopManager:
                 asyncio.set_event_loop(running_loop)
 
     async def run_forever_async(self):
-        self._running = True
-        while self._loops_to_add:
-            self.add_loop(self._loops_to_add.pop(0))
+        self._prerun()
 
         while self.running:
             await asyncio.sleep(1)
