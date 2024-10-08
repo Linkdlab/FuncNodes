@@ -12,8 +12,10 @@ import time
 import asyncio
 import logging
 
-# import tempfile
+import tempfile
+
 # import gc
+
 # try:
 #     import objgraph
 # except ImportError:
@@ -131,51 +133,51 @@ class ExternalWorker1(FuncNodesExternalWorker):
         return self.triggercount
 
 
-# class TestExternalWorkerWithWorker(IsolatedAsyncioTestCase):
-#     async def asyncSetUp(self) -> None:
-#         self.tempdir = tempfile.TemporaryDirectory(prefix="funcnodes")
-#         self.retmoteworker = TestWorker(data_path=self.tempdir.name)
-#         self.runtask = asyncio.create_task(self.retmoteworker.run_forever_async())
-#         while not self.retmoteworker.loop_manager.running:
-#             await asyncio.sleep(0.1)
-#         return super().asyncSetUp()
+class TestExternalWorkerWithWorker(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory(prefix="funcnodes")
+        self.retmoteworker = TestWorker(data_path=self.tempdir.name)
+        self.runtask = asyncio.create_task(self.retmoteworker.run_forever_async())
+        while not self.retmoteworker.loop_manager.running:
+            await asyncio.sleep(1)
+        return super().asyncSetUp()
 
-#     def tearDown(self) -> None:
-#         self.retmoteworker.stop()
-#         self.runtask.cancel()
-#         print("cleanup")
-#         # Get the logger that might be holding the file and shut it down
+    def tearDown(self) -> None:
+        self.retmoteworker.stop()
+        self.runtask.cancel()
+        # Get the logger that might be holding the file and shut it down
 
-#         loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
-#         for logger in loggers:
-#             handlers = logger.handlers[:]
-#             for handler in handlers:
-#                 handler.close()
-#                 logger.removeHandler(handler)
+        loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+        for logger in loggers:
+            handlers = logger.handlers[:]
+            for handler in handlers:
+                handler.close()
+                logger.removeHandler(handler)
 
-#         self.tempdir.cleanup()
-#         return super().tearDown()
+        self.tempdir.cleanup()
+        return super().tearDown()
 
-#     async def test_external_worker_nodes(self):
-#         self.retmoteworker.add_local_worker(
-#             ExternalWorker1, "test_external_worker_nodes"
-#         )
-#         # nodeid = "testexternalworker_ExternalWorker1.test_external_worker_nodes.test"
-#         # nodeclass = self.retmoteworker.nodespace.lib.get_node_by_id(nodeid)
-#         # self.assertEqual(nodeclass.node_name, "Test")
-#         # node = self.retmoteworker.add_node(nodeid, name="TestNode")
-#         self.maxDiff = None
-#         # expected_node_ser = {
-#         #     "name": "TestNode",
-#         #     "id": node.uuid,
-#         #     "node_id": nodeid,
-#         #     "node_name": "Test",
-#         #     "io": {
-#         #         "a": {"is_input": True, "value": fn.NoValue},
-#         #         "out": {"is_input": False, "value": fn.NoValue},
-#         #     },
-#         # }
-#         # self.assertEqual(node.serialize(), expected_node_ser)
+    async def test_external_worker_nodes(self):
+        self.retmoteworker.add_local_worker(
+            ExternalWorker1, "test_external_worker_nodes"
+        )
+        nodeid = "testexternalworker_ExternalWorker1.test_external_worker_nodes.test"
+        nodeclass = self.retmoteworker.nodespace.lib.get_node_by_id(nodeid)
+        self.assertEqual(nodeclass.node_name, "Test")
+        node = self.retmoteworker.add_node(nodeid, name="TestNode")
+        self.maxDiff = None
+        expected_node_ser = {
+            "name": "TestNode",
+            "id": node.uuid,
+            "node_id": nodeid,
+            "node_name": "Test",
+            "io": {
+                "a": {"is_input": True, "value": fn.NoValue},
+                "out": {"is_input": False, "value": fn.NoValue},
+            },
+        }
+        self.assertEqual(node.serialize(), expected_node_ser)
+
 
 #     async def test_base_run(self):
 #         for _ in range(5):
