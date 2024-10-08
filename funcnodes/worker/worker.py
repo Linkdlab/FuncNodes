@@ -717,12 +717,23 @@ class Worker(ABC):
             "worker_" + self.uuid() + ".p",
         )
 
+    @property
+    def _config_file(self):
+        return os.path.join(
+            funcnodes.config.CONFIG_DIR,
+            "workers",
+            "worker_" + self.uuid() + ".json",
+        )
+
     def _write_process_file(self):
-        if not os.path.exists(self._process_file):
-            with open(self._process_file, "w+") as f:
+        pf = self._process_file
+        if not os.path.exists(os.path.dirname(pf)):
+            os.makedirs(os.path.dirname(pf), exist_ok=True)
+        if not os.path.exists(pf):
+            with open(pf, "w+") as f:
                 pass
         else:
-            with open(self._process_file, "r") as f:
+            with open(pf, "r") as f:
                 d = f.read()
             if d != "":
                 try:
@@ -737,11 +748,7 @@ class Worker(ABC):
         return self.load_or_generate_config()
 
     def load_config(self) -> WorkerJson | None:
-        cfile = os.path.join(
-            funcnodes.config.CONFIG_DIR,
-            "workers",
-            "worker_" + self.uuid() + ".json",
-        )
+        cfile = self._config_file
         oldc = None
         if os.path.exists(cfile):
             with open(
@@ -820,11 +827,9 @@ class Worker(ABC):
         else:
             c = opt_conf
         c["uuid"] = self.uuid()
-        cfile = os.path.join(
-            funcnodes.config.CONFIG_DIR,
-            "workers",
-            "worker_" + self.uuid() + ".json",
-        )
+        cfile = self._config_file
+        if not os.path.exists(os.path.dirname(cfile)):
+            os.makedirs(os.path.dirname(cfile), exist_ok=True)
         with open(
             cfile,
             "w+",
