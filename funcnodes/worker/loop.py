@@ -157,8 +157,10 @@ class LoopManager:
             running_loop = None
         asyncio.set_event_loop(self._loop)
         self._running = True
-        while self._loops_to_add:
-            self.add_loop(self._loops_to_add.pop(0))
+        loops2add = list(self._loops_to_add)
+        self._loops_to_add = []
+        for loop in loops2add:
+            self.add_loop(loop)
 
         async def _rf():
             while self.running:
