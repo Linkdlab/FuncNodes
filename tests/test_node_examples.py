@@ -3,7 +3,7 @@ Test examples
 """
 
 import unittest
-from funcnodes_core.utils import run_until_complete
+from funcnodes_core import run_until_complete
 from funcnodes_basic.math_nodes import (
     value_node,
     add_node,
@@ -14,12 +14,11 @@ from funcnodes_basic.math_nodes import (
     mul_node,
 )
 from funcnodes_basic.logic import IfNode, WhileNode
-from funcnodes_core.utils import get_deep_connected_nodeset
+from funcnodes_core import get_deep_connected_nodeset
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
     async def test_linear_add(self):
-
         N = 3
         preadd = add_node()
         preadd.inputs["a"].value = 1
@@ -38,7 +37,6 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(adds[-1].outputs["out"].value, N + 2)
 
     async def test_3np1(self):
-
         N = 27
         n = N
 
@@ -57,7 +55,12 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         greater_node_ins.inputs["a"].c(start.outputs["out"])
         greater_node_ins.inputs["b"].value = 1
 
-        while_node = WhileNode(reset_inputs_on_trigger=True)
+        while_node = WhileNode(
+            reset_inputs_on_trigger=True,
+            io_options={
+                "condition": {"does_trigger": False},
+            },
+        )
         while_node.inputs["condition"].c(greater_node_ins.outputs["out"])
         while_node.inputs["input"].c(start.outputs["out"])
 
@@ -69,7 +72,12 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         eq.inputs["a"].c(mod.outputs["out"])
         eq.inputs["b"].value = 0
 
-        if_node = IfNode(reset_inputs_on_trigger=True)
+        if_node = IfNode(
+            reset_inputs_on_trigger=True,
+            io_options={
+                "condition": {"does_trigger": False},
+            },
+        )
         if_node.inputs["condition"].c(eq.outputs["out"])
         if_node.inputs["input"].c(while_node.outputs["do"])
 
@@ -96,6 +104,8 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         def _add_step(src, result):
             if not nodeteps or nodeteps[-1] != result:
                 nodeteps.append(result)
+            if len(nodeteps) > len(steps):
+                raise ValueError(f"done too many steps: {nodeteps}")
 
         start.outputs["out"].on("after_set_value", _add_step)
 

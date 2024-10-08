@@ -876,7 +876,7 @@ class WorkerManager:
         new_worker = WSWorker(name=name)
         new_worker.ini_config()
         new_worker.stop()
-        c = new_worker.generate_config()
+        c = new_worker.write_config()
         if name:
             c["name"] = name
         if ref_cfg:
