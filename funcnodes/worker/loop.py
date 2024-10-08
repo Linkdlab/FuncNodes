@@ -151,11 +151,13 @@ class LoopManager:
         return self._running
 
     def _prerun(self):
+        self._worker.logger.info("Setup loop manager to run")
         self._running = True
         loops2add = list(self._loops_to_add)
         self._loops_to_add = []
         for loop in loops2add:
             self.add_loop(loop)
+        self._worker.logger.info("Starting loop manager")
 
     def run_forever(self):
         try:
