@@ -113,6 +113,4 @@ __all__ = [
     "emit_before",
 ]
 
-__version__ = "0.4.13"
-
-DEBUG = True
+__version__ = "0.4.14"
