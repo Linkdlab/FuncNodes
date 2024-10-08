@@ -138,8 +138,11 @@ class TestExternalWorkerWithWorker(IsolatedAsyncioTestCase):
         self.tempdir = tempfile.TemporaryDirectory(prefix="funcnodes")
         self.retmoteworker = TestWorker(data_path=self.tempdir.name)
         self.runtask = asyncio.create_task(self.retmoteworker.run_forever_async())
-        while not self.retmoteworker.loop_manager.running:
+        t = time.time()
+        while not self.retmoteworker.loop_manager.running and time.time() - t < 10:
             await asyncio.sleep(1)
+        if not self.retmoteworker.loop_manager.running:
+            raise Exception("Worker not running")
         return super().asyncSetUp()
 
     def tearDown(self) -> None:
