@@ -3,7 +3,7 @@ Test examples
 """
 
 import unittest
-from funcnodes_core.utils import run_until_complete
+from funcnodes_core import run_until_complete
 from funcnodes_basic.math_nodes import (
     value_node,
     add_node,
@@ -14,12 +14,11 @@ from funcnodes_basic.math_nodes import (
     mul_node,
 )
 from funcnodes_basic.logic import IfNode, WhileNode
-from funcnodes_core.utils import get_deep_connected_nodeset
+from funcnodes_core import get_deep_connected_nodeset
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
     async def test_linear_add(self):
-
         N = 3
         preadd = add_node()
         preadd.inputs["a"].value = 1
@@ -38,7 +37,6 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(adds[-1].outputs["out"].value, N + 2)
 
     async def test_3np1(self):
-
         N = 27
         n = N
 

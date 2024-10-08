@@ -113,5 +113,5 @@ class RemoteWorker(Worker):
             **sendkwargs,
         )
 
-    def generate_config(self) -> RemoteWorkerJson:
-        return super().generate_config()
+    def update_config(self, config: WorkerJson) -> RemoteWorkerJson:
+        return super().update_config(config)
