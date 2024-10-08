@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Dict, List
+from typing import Dict, List, TypedDict
 from funcnodes.worker.loop import CustomLoop
-from funcnodes import NodeClassMixin  # , instance_nodefunction
+from funcnodes import NodeClassMixin, JSONEncoder, Encdata, EventEmitterMixin
 from weakref import WeakValueDictionary
 
 
-class FuncNodesExternalWorker(NodeClassMixin, CustomLoop):
+class FuncNodesExternalWorker(NodeClassMixin, EventEmitterMixin, CustomLoop):
     """
     A class that represents an external worker with a loop and nodeable methods.
     """
@@ -44,7 +44,48 @@ class FuncNodesExternalWorker(NodeClassMixin, CustomLoop):
         """
         if cls.NODECLASSID not in FuncNodesExternalWorker.RUNNING_WORKERS:
             return []
-        return list(FuncNodesExternalWorker.RUNNING_WORKERS[cls.NODECLASSID].values())
+
+        res = []
+
+        for ins in FuncNodesExternalWorker.RUNNING_WORKERS[cls.NODECLASSID].values():
+            if ins.running:
+                res.append(ins)
+        return res
+
+    async def stop(self):
+        self.emit("stopping")
+        self.cleanup()
+        await super().stop()
+
+
+class FuncNodesExternalWorkerJson(TypedDict):
+    """
+    A class that represents a JSON object for FuncNodesExternalWorker.
+    """
+
+    uuid: str
+    nodeclassid: str
+    running: bool
+    name: str
+
+
+def encode_external_worker(obj, preview=False):  # noqa: F841
+    if isinstance(obj, FuncNodesExternalWorker):
+        return Encdata(
+            data=FuncNodesExternalWorkerJson(
+                uuid=obj.uuid,
+                nodeclassid=obj.NODECLASSID,
+                running=obj.running,
+                name=obj.name,
+            ),
+            handeled=True,
+            done=True,
+            continue_preview=False,
+        )
+    return Encdata(data=obj, handeled=False)
+
+
+JSONEncoder.add_encoder(encode_external_worker, [FuncNodesExternalWorker])
 
 
 __all__ = [

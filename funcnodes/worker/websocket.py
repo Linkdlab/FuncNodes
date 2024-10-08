@@ -264,19 +264,24 @@ class WSWorker(RemoteWorker):
         """
         super().stop()
 
-    def generate_config(self) -> WSWorkerJson:
+    def update_config(self, config: RemoteWorkerJson) -> WSWorkerJson:
         """
-        Generates a configuration dictionary for the WSWorker.
+        Updates a configuration dictionary for the WSWorker.
 
         Returns:
           WSWorkerJson: The configuration dictionary for the WSWorker.
 
         Examples:
-          >>> worker.generate_config()
+          >>> worker.update_config()
         """
+
         return WSWorkerJson(
-            **super().generate_config(),
-            host=self.ws_loop._host,
-            port=self.ws_loop._port,
-            ssl=self.ws_loop._use_ssl,
+            **{
+                **super().update_config(config),
+                **dict(
+                    host=self.ws_loop._host,
+                    port=self.ws_loop._port,
+                    ssl=self.ws_loop._use_ssl,
+                ),
+            }
         )
