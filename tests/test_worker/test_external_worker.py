@@ -3,7 +3,7 @@ from funcnodes import (
     FuncNodesExternalWorker,
     RemoteWorker,
     instance_nodefunction,
-    # flatten_shelf,
+    flatten_shelf,
 )
 from unittest.mock import MagicMock
 
@@ -14,12 +14,12 @@ import logging
 
 import tempfile
 
-# import gc
+import gc
 
-# try:
-#     import objgraph
-# except ImportError:
-#     objgraph = None
+try:
+    import objgraph
+except ImportError:
+    objgraph = None
 
 fn.config.IN_NODE_TEST = True
 fn.FUNCNODES_LOGGER.setLevel(logging.DEBUG)
@@ -185,218 +185,153 @@ class TestExternalWorkerWithWorker(IsolatedAsyncioTestCase):
         }
         self.assertEqual(node.serialize(), expected_node_ser)
 
+    async def test_base_run(self):
+        for _ in range(5):
+            await asyncio.sleep(0.3)
+            t = time.time()
+            self.assertLessEqual(t - self.retmoteworker.timerloop.last_run, 0.2)
 
-#     async def test_base_run(self):
-#         for _ in range(5):
-#             await asyncio.sleep(0.3)
-#             t = time.time()
-#             self.assertLessEqual(t - self.retmoteworker.timerloop.last_run, 0.2)
+    async def test_external_worker_run(self):
+        def get_ws_nodes():
+            nodes = []
+            for shelf in self.retmoteworker.nodespace.lib.shelves:
+                nodes.extend(flatten_shelf(shelf)[0])
+            return nodes
 
-#     async def test_external_worker_run(self):
-#         def get_ws_nodes():
-#             nodes = []
-#             for shelf in self.retmoteworker.nodespace.lib.shelves:
-#                 nodes.extend(flatten_shelf(shelf)[0])
-#             return nodes
+        def check_nodes_length(target=0):
+            nodes = get_ws_nodes()
 
-#         def check_nodes_length(target=0):
-#             nodes = get_ws_nodes()
+            if target == 0 and len(nodes) > 0 and objgraph:
+                objgraph.show_backrefs(
+                    nodes,
+                    max_depth=15,
+                    filename="backrefs_nodes.dot",
+                    highlight=lambda x: isinstance(x, fn.Node),
+                    shortnames=False,
+                )
 
-#             if target == 0 and len(nodes) > 0 and objgraph:
-#                 objgraph.show_backrefs(
-#                     nodes,
-#                     max_depth=15,
-#                     filename="backrefs_nodes.dot",
-#                     highlight=lambda x: isinstance(x, fn.Node),
-#                     shortnames=False,
-#                 )
+            self.assertEqual(len(nodes), target, nodes)
 
-#             self.assertEqual(len(nodes), target, nodes)
+            del nodes
+            gc.collect()
 
-#             del nodes
-#             gc.collect()
+        await asyncio.sleep(0.3)
+        t = time.time()
+        self.assertLessEqual(
+            t - self.retmoteworker.timerloop.last_run,
+            0.2,
+            (t, self.retmoteworker.timerloop.last_run),
+        )
+        print("adding worker")
+        check_nodes_length(0)
 
-#         await asyncio.sleep(0.3)
-#         t = time.time()
-#         self.assertLessEqual(
-#             t - self.retmoteworker.timerloop.last_run,
-#             0.2,
-#             (t, self.retmoteworker.timerloop.last_run),
-#         )
-#         print("adding worker")
-#         check_nodes_length(0)
+        w: ExternalWorker1 = self.retmoteworker.add_local_worker(
+            ExternalWorker1, "test_external_worker_run"
+        )
 
-#         w: ExternalWorker1 = self.retmoteworker.add_local_worker(
-#             ExternalWorker1, "test_external_worker_run"
-#         )
+        check_nodes_length(2)
 
-#         check_nodes_length(2)
+        self.assertIn(
+            "testexternalworker_ExternalWorker1",
+            FuncNodesExternalWorker.RUNNING_WORKERS,
+        )
+        self.assertIn(
+            "test_external_worker_run",
+            FuncNodesExternalWorker.RUNNING_WORKERS[
+                "testexternalworker_ExternalWorker1"
+            ],
+        )
 
-#         self.assertIn(
-#             "testexternalworker_ExternalWorker1",
-#             FuncNodesExternalWorker.RUNNING_WORKERS,
-#         )
-#         self.assertIn(
-#             "test_external_worker_run",
-#             FuncNodesExternalWorker.RUNNING_WORKERS[
-#                 "testexternalworker_ExternalWorker1"
-#             ],
-#         )
+        nodetest = self.retmoteworker.add_node(
+            "testexternalworker_ExternalWorker1.test_external_worker_run.test",
+        )
 
-#         nodetest = self.retmoteworker.add_node(
-#             "testexternalworker_ExternalWorker1.test_external_worker_run.test",
-#         )
+        node_getcount = self.retmoteworker.add_node(
+            "testexternalworker_ExternalWorker1.test_external_worker_run.get_count",
+        )
 
-#         node_getcount = self.retmoteworker.add_node(
-#             "testexternalworker_ExternalWorker1.test_external_worker_run.get_count",
-#         )
+        self.assertEqual(node_getcount.outputs["out"].value, fn.NoValue)
+        self.assertEqual(w.triggercount, 0)
 
-#         self.assertEqual(node_getcount.outputs["out"].value, fn.NoValue)
-#         self.assertEqual(w.triggercount, 0)
+        fn.FUNCNODES_LOGGER.debug("triggering node_getcount 1")
+        await node_getcount
 
-#         fn.FUNCNODES_LOGGER.debug("triggering node_getcount 1")
-#         await node_getcount
+        self.assertEqual(node_getcount.outputs["out"].value, 0)
+        self.assertEqual(w.triggercount, 0)
 
-#         self.assertEqual(node_getcount.outputs["out"].value, 0)
-#         self.assertEqual(w.triggercount, 0)
+        self.assertEqual(w.triggercount, 0)
+        fn.FUNCNODES_LOGGER.debug("triggering nodetest 1")
+        nodetest.inputs["a"].value = 1
+        await fn.run_until_complete(nodetest)
 
-#         self.assertEqual(w.triggercount, 0)
-#         fn.FUNCNODES_LOGGER.debug("triggering nodetest 1")
-#         nodetest.inputs["a"].value = 1
-#         await fn.run_until_complete(nodetest)
+        self.assertEqual(w.triggercount, 1)
+        self.assertEqual(nodetest.outputs["out"].value, 2)
+        fn.FUNCNODES_LOGGER.debug("triggering node_getcount 2")
+        await node_getcount
 
-#         self.assertEqual(w.triggercount, 1)
-#         self.assertEqual(nodetest.outputs["out"].value, 2)
-#         fn.FUNCNODES_LOGGER.debug("triggering node_getcount 2")
-#         await node_getcount
+        self.assertEqual(node_getcount.outputs["out"].value, 1)
 
-#         self.assertEqual(node_getcount.outputs["out"].value, 1)
+        self.assertEqual(
+            nodetest.status()["requests_trigger"] or nodetest.status()["in_trigger"],
+            False,
+        )
 
-#         self.assertEqual(
-#             nodetest.status()["requests_trigger"] or nodetest.status()["in_trigger"],
-#             False,
-#         )
+        w.increment_trigger()
+        self.assertEqual(
+            nodetest.status()["requests_trigger"] or nodetest.status()["in_trigger"],
+            True,
+        )
 
-#         w.increment_trigger()
-#         self.assertEqual(
-#             nodetest.status()["requests_trigger"] or nodetest.status()["in_trigger"],
-#             True,
-#         )
+        print("waiting")
+        t = time.time()
+        while w.running and time.time() - t < 10:
+            await asyncio.sleep(0.1)
+        t = time.time()
+        while not w.stopped and time.time() - t < 10:
+            print(w._stopped, w._running)
+            await asyncio.sleep(0.6)
+            await w.stop()
+        del w
+        del node_getcount
+        del nodetest
+        await asyncio.sleep(5)
 
-#         print("waiting")
-#         t = time.time()
-#         while w.running and time.time() - t < 10:
-#             await asyncio.sleep(0.1)
-#         t = time.time()
-#         while not w.stopped and time.time() - t < 10:
-#             print(w._stopped, w._running)
-#             await asyncio.sleep(0.6)
-#             await w.stop()
-#         del w
-#         del node_getcount
-#         del nodetest
-#         await asyncio.sleep(5)
+        # await asyncio.sleep(6)
+        t = time.time()
+        self.assertLessEqual(t - self.retmoteworker.timerloop.last_run, 1.0)
+        gc.collect()
+        if (
+            "testexternalworker_ExternalWorker1"
+            in FuncNodesExternalWorker.RUNNING_WORKERS
+        ):
+            if (
+                "test_external_worker_run"
+                in FuncNodesExternalWorker.RUNNING_WORKERS[
+                    "testexternalworker_ExternalWorker1"
+                ]
+            ):
+                if objgraph:
+                    objgraph.show_backrefs(
+                        [
+                            FuncNodesExternalWorker.RUNNING_WORKERS[
+                                "testexternalworker_ExternalWorker1"
+                            ]["test_external_worker_run"]
+                        ],
+                        max_depth=15,
+                        filename="backrefs_before.dot",
+                        highlight=lambda x: isinstance(x, ExternalWorker1),
+                        shortnames=False,
+                    )
 
-#         # await asyncio.sleep(6)
-#         t = time.time()
-#         self.assertLessEqual(t - self.retmoteworker.timerloop.last_run, 1.0)
-#         gc.collect()
-#         if (
-#             "testexternalworker_ExternalWorker1"
-#             in FuncNodesExternalWorker.RUNNING_WORKERS
-#         ):
-#             if (
-#                 "test_external_worker_run"
-#                 in FuncNodesExternalWorker.RUNNING_WORKERS[
-#                     "testexternalworker_ExternalWorker1"
-#                 ]
-#             ):
-#                 if objgraph:
-#                     objgraph.show_backrefs(
-#                         [
-#                             FuncNodesExternalWorker.RUNNING_WORKERS[
-#                                 "testexternalworker_ExternalWorker1"
-#                             ]["test_external_worker_run"]
-#                         ],
-#                         max_depth=15,
-#                         filename="backrefs_before.dot",
-#                         highlight=lambda x: isinstance(x, ExternalWorker1),
-#                         shortnames=False,
-#                     )
+            self.assertNotIn(
+                "test_external_worker_run",
+                FuncNodesExternalWorker.RUNNING_WORKERS[
+                    "testexternalworker_ExternalWorker1"
+                ],
+            )
 
-#             self.assertNotIn(
-#                 "test_external_worker_run",
-#                 FuncNodesExternalWorker.RUNNING_WORKERS[
-#                     "testexternalworker_ExternalWorker1"
-#                 ],
-#             )
+        check_nodes_length(0)
 
-#         check_nodes_length(0)
-
-#         # if (
-#         #     len(
-#         #         FuncNodesExternalWorker.RUNNING_WORKERS[
-#         #             "testexternalworker_ExternalWorker1"
-#         #         ]
-#         #     )
-#         #     > 0
-#         # ):
-#         #     print(
-#         #         "BBB\n",
-#         #         dict(
-#         #             FuncNodesExternalWorker.RUNNING_WORKERS[
-#         #                 "testexternalworker_ExternalWorker1"
-#         #             ]
-#         #         ),
-#         #     )
-#         #     uid = next(
-#         #         FuncNodesExternalWorker.RUNNING_WORKERS[
-#         #             "testexternalworker_ExternalWorker1"
-#         #         ].keys()
-#         #     )
-#         #     self.assertIsInstance(
-#         #         FuncNodesExternalWorker.RUNNING_WORKERS[
-#         #             "testexternalworker_ExternalWorker1"
-#         #         ][uid],
-#         #         ExternalWorker1,
-#         #     )
-#         #     self.assertFalse(
-#         #         FuncNodesExternalWorker.RUNNING_WORKERS[
-#         #             "testexternalworker_ExternalWorker1"
-#         #         ][uid]._running
-#         #     )
-
-#         #     referrers = gc.get_referrers(
-#         #         FuncNodesExternalWorker.RUNNING_WORKERS[
-#         #             "testexternalworker_ExternalWorker1"
-#         #         ][uid]
-#         #     )
-#         #     for ref in referrers:
-#         #         print("ref:", ref, gc.get_referrers(ref))
-
-#         #     import objgraph
-#         #     import inspect
-
-#         #     objgraph.show_backrefs(
-#         #         [
-#         #             FuncNodesExternalWorker.RUNNING_WORKERS[
-#         #                 "testexternalworker_ExternalWorker1"
-#         #             ][uid]
-#         #         ],
-#         #         max_depth=10,
-#         #         filename="backrefs_before.dot",
-#         #         highlight=lambda x: isinstance(x, ExternalWorker1),
-#         #         shortnames=False,
-#         #     )
-
-#         # self.assertEqual(
-#         #     len(
-#         #         FuncNodesExternalWorker.RUNNING_WORKERS[
-#         #             "testexternalworker_ExternalWorker1"
-#         #         ]
-#         #     ),
-#         #     0,
-#         # )
-#         await asyncio.sleep(0.5)
-#         t = time.time()
-#         self.assertLessEqual(t - self.retmoteworker.timerloop.last_run, 0.3)
+        await asyncio.sleep(0.5)
+        t = time.time()
+        self.assertLessEqual(t - self.retmoteworker.timerloop.last_run, 0.3)
