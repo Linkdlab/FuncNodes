@@ -271,10 +271,11 @@ class TestExternalWorkerWithWorker(IsolatedAsyncioTestCase):
         )
 
         print("waiting")
-        while w.running:
+        t = time.time()
+        while w.running and time.time() - t < 10:
             await asyncio.sleep(0.1)
-
-        while not w.stopped:
+        t = time.time()
+        while not w.stopped and time.time() - t < 10:
             print(w._stopped, w._running)
             await asyncio.sleep(0.6)
             await w.stop()
