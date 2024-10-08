@@ -41,8 +41,13 @@ from funcnodes_core import (
     decorator,
     setup,
     NodeTriggerError,
+    flatten_shelf,
+    EventEmitterMixin,
+    emit_after,
+    emit_before,
 )
 
+from funcnodes_core.io import NodeOutputOptions
 from .worker import (
     FuncNodesExternalWorker,
     RemoteWorker,
@@ -101,6 +106,11 @@ __all__ = [
     "decorator",
     "setup",
     "NodeTriggerError",
+    "NodeOutputOptions",
+    "flatten_shelf",
+    "EventEmitterMixin",
+    "emit_after",
+    "emit_before",
 ]
 
 __version__ = "0.4.13"
