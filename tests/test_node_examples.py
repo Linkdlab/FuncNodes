@@ -55,7 +55,12 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         greater_node_ins.inputs["a"].c(start.outputs["out"])
         greater_node_ins.inputs["b"].value = 1
 
-        while_node = WhileNode(reset_inputs_on_trigger=True)
+        while_node = WhileNode(
+            reset_inputs_on_trigger=True,
+            io_options={
+                "condition": {"does_trigger": False},
+            },
+        )
         while_node.inputs["condition"].c(greater_node_ins.outputs["out"])
         while_node.inputs["input"].c(start.outputs["out"])
 
@@ -67,7 +72,12 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         eq.inputs["a"].c(mod.outputs["out"])
         eq.inputs["b"].value = 0
 
-        if_node = IfNode(reset_inputs_on_trigger=True)
+        if_node = IfNode(
+            reset_inputs_on_trigger=True,
+            io_options={
+                "condition": {"does_trigger": False},
+            },
+        )
         if_node.inputs["condition"].c(eq.outputs["out"])
         if_node.inputs["input"].c(while_node.outputs["do"])
 
@@ -94,6 +104,8 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         def _add_step(src, result):
             if not nodeteps or nodeteps[-1] != result:
                 nodeteps.append(result)
+            if len(nodeteps) > len(steps):
+                raise ValueError(f"done too many steps: {nodeteps}")
 
         start.outputs["out"].on("after_set_value", _add_step)
 
