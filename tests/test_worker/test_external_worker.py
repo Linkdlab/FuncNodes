@@ -141,6 +141,9 @@ class TestExternalWorkerWithWorker(IsolatedAsyncioTestCase):
         self.runtask = self._loop.create_task(self.retmoteworker.run_forever_async())
         t = time.time()
         while not self.retmoteworker.loop_manager.running and time.time() - t < 10:
+            if self.runtask.done():
+                if self.runtask.exception():
+                    raise self.runtask.exception()
             await asyncio.sleep(1)
         if not self.retmoteworker.loop_manager.running:
             raise Exception("Worker not running")

@@ -1674,7 +1674,7 @@ class Worker(ABC):
         except FileNotFoundError:
             pass
 
-    def run_forever(self):
+    def _prerun(self):
         self._save_disabled = True
         self.logger.info("Starting worker forever")
         self.loop_manager.reset_loop()
@@ -1682,19 +1682,16 @@ class Worker(ABC):
         self.ini_config()
         self.initialize_nodespace()
         self._save_disabled = False
+
+    def run_forever(self):
+        self._prerun()
         try:
             self.loop_manager.run_forever()
         finally:
             self.stop()
 
     async def run_forever_async(self):
-        self._save_disabled = True
-        self.logger.info("Starting worker forever")
-        self.loop_manager.reset_loop()
-        reload_base(with_repos=False)
-        self.ini_config()
-        self.initialize_nodespace()
-        self._save_disabled = False
+        self._prerun()
         try:
             await self.loop_manager.run_forever_async()
         finally:
