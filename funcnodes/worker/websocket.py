@@ -279,8 +279,8 @@ class WSWorker(RemoteWorker):
             **{
                 **super().update_config(config),
                 **dict(
-                    host="",
-                    port=0,
+                    host="localhost",
+                    port=STARTPORT,
                     ssl=False,
                 ),
             }
