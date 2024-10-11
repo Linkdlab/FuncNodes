@@ -113,4 +113,4 @@ __all__ = [
     "emit_before",
 ]
 
-__version__ = "0.4.15"
+__version__ = "0.4.16"
