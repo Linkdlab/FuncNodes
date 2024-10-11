@@ -275,13 +275,19 @@ class WSWorker(RemoteWorker):
           >>> worker.update_config()
         """
 
-        return WSWorkerJson(
+        d = WSWorkerJson(
             **{
                 **super().update_config(config),
                 **dict(
-                    host=self.ws_loop._host,
-                    port=self.ws_loop._port,
-                    ssl=self.ws_loop._use_ssl,
+                    host="",
+                    port=0,
+                    ssl=False,
                 ),
             }
         )
+        if hasattr(self, "ws_loop"):
+            d["host"] = self.ws_loop._host
+            d["port"] = self.ws_loop._port
+            d["ssl"] = self.ws_loop._use_ssl
+
+        return d

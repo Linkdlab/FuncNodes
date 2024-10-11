@@ -622,7 +622,7 @@ class WorkerJson(TypedDict):
     env_path: str
     python_path: str
 
-    shelves_dependencies: Dict[str, ShelfDict]
+    # shelves_dependencies: Dict[str, ShelfDict]
     worker_dependencies: Dict[str, WorkerDict]
     package_dependencies: Dict[str, PackageDependency]
 
@@ -646,7 +646,7 @@ class Worker(ABC):
 
         self._debug = debug
         self._package_dependencies: Dict[str, PackageDependency] = {}
-        self._shelves_dependencies: Dict[str, ShelfDict] = {}
+        # self._shelves_dependencies: Dict[str, ShelfDict] = {}
         self._worker_dependencies: Dict[str, WorkerDict] = {}
         self.loop_manager = LoopManager(self)
         self.nodespace = NodeSpace()
@@ -783,7 +783,7 @@ class Worker(ABC):
                 name=name,
                 data_path=data_path,
                 env_path=env_path,
-                shelves_dependencies=self._shelves_dependencies.copy(),
+                # shelves_dependencies=self._shelves_dependencies.copy(),
                 python_path=python_path,
                 worker_dependencies=worker_dependencies,
                 package_dependencies=self._package_dependencies.copy(),
@@ -796,7 +796,7 @@ class Worker(ABC):
         conf["data_path"] = self.data_path
         conf["python_path"] = sys.executable
 
-        conf["shelves_dependencies"] = self._shelves_dependencies.copy()
+        # conf["shelves_dependencies"] = self._shelves_dependencies.copy()
         conf["package_dependencies"] = self._package_dependencies.copy()
 
         worker_dependencies = conf.get("worker_dependencies", {})
@@ -859,19 +859,45 @@ class Worker(ABC):
         #         except Exception as e:
         #             self.logger.exception(e)
 
-        # if "shelves_dependencies" in c:
-        #     if isinstance(c["shelves_dependencies"], dict):
-        #         for k, v in c["shelves_dependencies"].items():
-        #             try:
-        #                 self.add_shelf(v, save=False)
-        #             except Exception as e:
-        #                 self.logger.exception(e)
-        #     elif isinstance(c["shelves_dependencies"], list):
-        #         for dep in c["shelves_dependencies"]:
-        #             try:
-        #                 self.add_shelf(dep, save=False)
-        #             except Exception as e:
-        #                 self.logger.exception(e)
+        # TODO: remove in future version
+        def _shelves_dependencies_to_package(shelfdep: ShelfDict) -> PackageDependency:
+            d = BasePackageDependency(
+                package=(
+                    shelfdep["package"]
+                    if "package" in shelfdep
+                    else shelfdep["module"].replace("_", "-")
+                )
+            )
+
+            if "version" in shelfdep:
+                d = PipPackageDependency(
+                    package=d["package"], version=shelfdep["version"]
+                )
+
+            if "path" in shelfdep:
+                d = LocalPackageDependency(package=d["package"], path=shelfdep["path"])
+            else:
+                d = PipPackageDependency(
+                    package=d["package"], version=shelfdep.get("version")
+                )
+
+            return d
+
+        if "shelves_dependencies" in c:
+            if isinstance(c["shelves_dependencies"], dict):
+                for k, v in c["shelves_dependencies"].items():
+                    try:
+                        pkg = _shelves_dependencies_to_package(v)
+                        self.add_package_dependency(pkg["package"], pkg, save=False)
+                    except Exception as e:
+                        self.logger.exception(e)
+            elif isinstance(c["shelves_dependencies"], list):
+                for dep in c["shelves_dependencies"]:
+                    try:
+                        pkg = _shelves_dependencies_to_package(dep)
+                        self.add_package_dependency(pkg["package"], pkg, save=False)
+                    except Exception as e:
+                        self.logger.exception(e)
 
     # endregion config
     # region properties
@@ -1184,12 +1210,12 @@ class Worker(ABC):
 
     # region library
 
-    def add_shelves_dependency(self, src: ShelfDict):
-        self._shelves_dependencies[src["module"]] = src
+    # def add_shelves_dependency(self, src: ShelfDict):
+    #     self._shelves_dependencies[src["module"]] = src
 
-    def remove_shelves_dependency(self, src: ShelfDict):
-        if src["module"] in self._shelves_dependencies:
-            del self._shelves_dependencies[src["module"]]
+    # def remove_shelves_dependency(self, src: ShelfDict):
+    #     if src["module"] in self._shelves_dependencies:
+    #         del self._shelves_dependencies[src["module"]]
 
     async def set_progress_state(
         self, message: str, status: str, progress: float, blocking: bool
@@ -1412,7 +1438,7 @@ class Worker(ABC):
             )
             self.loop_manager.async_call(self.worker_event("lib_update"))
 
-    # @exposed_method()
+    # @worexposed_method()
     # def add_worker_package(self, src: Union[str, WorkerDict], save=True):
     #     self.set_progress_state_sync(
     #         message="Adding worker", status="info", progress=0.0, blocking=True
@@ -1453,8 +1479,8 @@ class Worker(ABC):
                 "source": moddata.source or "",
             }
             if (
-                self._shelves_dependencies.get(modname.replace("-", "_")) is not None
-                or self._worker_dependencies.get(modname.replace("-", "_")) is not None
+                # self._shelves_dependencies.get(modname.replace("-", "_")) is not None or
+                self._worker_dependencies.get(modname.replace("-", "_")) is not None
                 or self._package_dependencies.get(modname) is not None
             ):  # replace - with _ to avoid issues with module names
                 ans["active"].append(data)
