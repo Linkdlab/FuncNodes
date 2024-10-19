@@ -37,8 +37,6 @@ from funcnodes import (
     JSONEncoder,
     JSONDecoder,
     NodeClassNotFoundError,
-    NodeOutput,
-    NodeInput,
     FullLibJSON,
 )
 from funcnodes_core.utils import saving
@@ -1665,10 +1663,7 @@ class Worker(ABC):
         tgt = self.get_node(trg_nid)
         srcio = src.get_input_or_output(src_ioid)
         tgtio = tgt.get_input_or_output(trg_ioid)
-        if isinstance(srcio, NodeOutput) and isinstance(tgtio, NodeInput):
-            return srcio.connect(tgtio, replace=replace)
-        else:
-            return tgtio.connect(srcio, replace=replace)
+        return srcio.connect(tgtio, replace=replace)
 
     @requests_save
     @exposed_method()
