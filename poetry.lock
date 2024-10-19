@@ -295,13 +295,13 @@ funcnodes-core = ">=0.1.24"
 
 [[package]]
 name = "funcnodes-core"
-version = "0.1.25"
+version = "0.1.26"
 description = "core package for funcnodes"
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "funcnodes_core-0.1.25-py3-none-any.whl", hash = "sha256:324f2711817bab3c5ee17a8e184da462d57d3601fc3c5455765fd300753cbb82"},
-    {file = "funcnodes_core-0.1.25.tar.gz", hash = "sha256:13dcad5be1fe7eca25a667b5f3f6aa65188329c91909ee59aec5b58a64915e2e"},
+    {file = "funcnodes_core-0.1.26-py3-none-any.whl", hash = "sha256:99aee13f8db22e04bc1045331b88b2676dfe8e80d30752bbca982786d47a98ca"},
+    {file = "funcnodes_core-0.1.26.tar.gz", hash = "sha256:3a033a9491e09aa430f71bacb13b723026fb3de6ee6e1e8d23875a77b6f33190"},
 ]
 
 [package.dependencies]
@@ -312,13 +312,13 @@ setuptools = "*"
 
 [[package]]
 name = "funcnodes-react-flow"
-version = "0.1.13"
+version = "0.1.14"
 description = "funcnodes frontend for react flow"
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "funcnodes_react_flow-0.1.13-py3-none-any.whl", hash = "sha256:ecb970aa7918947a292fcbfd9884afaefd288aaebbfd309548acf7752609dfed"},
-    {file = "funcnodes_react_flow-0.1.13.tar.gz", hash = "sha256:844ca7f0d21cbdd2149a2e518033d547a3ebd3d8ff01275b716275935fac3607"},
+    {file = "funcnodes_react_flow-0.1.14-py3-none-any.whl", hash = "sha256:d30797a802f899243d8ed79484cccdb74d6a864e8ca522a7a41120e51d52ba7f"},
+    {file = "funcnodes_react_flow-0.1.14.tar.gz", hash = "sha256:2c846399fb52999b60acf18af18916cd2d597f78398a952c027429262612c9fc"},
 ]
 
 [package.dependencies]
@@ -828,4 +828,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11"
-content-hash = "82a205a6a52294af81d74415ac9f60892cd22214ff3b7501b49433ab7d99e410"
+content-hash = "1f00b6fa45f44c3d4e1e77bdfe0f39c3276637a3f96c22585fa681ff0ec6fa2f"
