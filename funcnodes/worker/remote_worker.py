@@ -59,6 +59,8 @@ class RemoteWorker(Worker):
             "before_connect",
             "before_trigger",
             "after_trigger",
+            "before_unforward",
+            "before_forward",
         }:
             return
         if event == "node_trigger_error":
