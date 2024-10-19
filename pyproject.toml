@@ -20,8 +20,8 @@ virtualenv = "*"
 
 setproctitle = ">=1"
 funcnodes-basic = ">=0.1.6"
-funcnodes-core = ">=0.1.25"
-funcnodes-react-flow = ">=0.1.13"
+funcnodes-core = ">=0.1.26"
+funcnodes-react-flow = ">=0.1.14"
 requests = "*"
 
 
