@@ -1710,6 +1710,7 @@ class Worker(ABC):
         self._save_disabled = False
 
     def run_forever(self):
+        funcnodes.setup()
         self._prerun()
         try:
             self.loop_manager.run_forever()
