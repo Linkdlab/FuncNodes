@@ -1,4 +1,3 @@
-import os
 from funcnodes_core import (
     NodeInput,
     NodeOutput,
@@ -56,8 +55,6 @@ from .worker import (
     assert_worker_manager_running,
 )
 
-if not os.environ.get("FUNCNODES_SKIP_SETUP"):
-    setup()
 
 __all__ = [
     "FuncNodesExternalWorker",
@@ -113,4 +110,4 @@ __all__ = [
     "emit_before",
 ]
 
-__version__ = "0.4.19"
+__version__ = "0.4.20"
