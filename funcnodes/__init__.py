@@ -31,6 +31,7 @@ from funcnodes_core import (
     NoValue,
     DataEnum,
     add_type,
+    controlled_wrapper,
     types,
     NodeIOSerialization,
     lib,
@@ -44,6 +45,7 @@ from funcnodes_core import (
     EventEmitterMixin,
     emit_after,
     emit_before,
+    signaturewrapper,
 )
 
 from funcnodes_core.io import NodeOutputOptions
@@ -94,6 +96,7 @@ __all__ = [
     "NoValue",
     "DataEnum",
     "add_type",
+    "controlled_wrapper",
     "types",
     "NodeIOSerialization",
     "lib",
@@ -108,6 +111,7 @@ __all__ = [
     "EventEmitterMixin",
     "emit_after",
     "emit_before",
+    "signaturewrapper",
 ]
 
-__version__ = "0.4.20"
+__version__ = "0.4.21"
