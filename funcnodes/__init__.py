@@ -45,6 +45,7 @@ from funcnodes_core import (
     EventEmitterMixin,
     emit_after,
     emit_before,
+    signaturewrapper,
 )
 
 from funcnodes_core.io import NodeOutputOptions
@@ -110,6 +111,7 @@ __all__ = [
     "EventEmitterMixin",
     "emit_after",
     "emit_before",
+    "signaturewrapper",
 ]
 
 __version__ = "0.4.21"
