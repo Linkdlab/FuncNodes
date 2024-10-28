@@ -5,6 +5,7 @@ import argparse
 from pprint import pprint
 import sys
 import os
+import venvmngr
 
 try:
     from setproctitle import setproctitle
@@ -76,6 +77,25 @@ def start_new_worker(args: argparse.Namespace):
     """
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
     fn.FUNCNODES_LOGGER.info(f"Starting new worker of type {args.workertype}")
+
+    mng = fn.worker.worker_manager.WorkerManager()
+    workerdir = os.path.join(mng.worker_dir, "worker_" + str(args.uuid))
+    if not os.path.exists(workerdir):
+        os.makedirs(workerdir)
+    env_path = os.path.join(workerdir, ".venv")
+    env, new = venvmngr.get_or_create_virtual_env(env_path)
+    env.install_package("funcnodes")
+    env.install_package("venvmngr")
+
+    if env.python_exe != sys.executable:
+        nargs = ["worker", "new"]
+        if args.uuid:
+            nargs += ["--uuid", args.uuid]
+        if args.name:
+            nargs += ["--name", args.name]
+        if args.debug:
+            nargs += ["--debug"]
+        return env.run_module("funcnodes", args=nargs)
 
     worker = worker_class(uuid=args.uuid, name=args.name, debug=args.debug)
     setproctitle("worker " + worker.uuid())
