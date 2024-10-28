@@ -33,6 +33,7 @@ def task_run_server(args: argparse.Namespace):
         worker_manager_host=args.worker_manager_host,
         worker_manager_port=args.worker_manager_port,
         worker_manager_ssl=args.worker_manager_ssl,
+        start_worker_manager=args.no_manager,
     )
 
 
@@ -234,6 +235,11 @@ def main():
         "--no-browser",
         action="store_false",
         help="Open the browser after starting the server",
+    )
+    parser_runserver.add_argument(
+        "--no-manager",
+        action="store_false",
+        help="Do not start the worker manager",
     )
 
     parser_runserver.add_argument(
