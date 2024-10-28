@@ -257,6 +257,10 @@ class WorkerManager:
         if debug:
             fn.FUNCNODES_LOGGER.setLevel("DEBUG")
 
+    @property
+    def worker_dir(self):
+        return self._worker_dir
+
     async def run_forever(self):
         """
         Runs the WorkerManager forever.
@@ -476,9 +480,9 @@ class WorkerManager:
         """
         active_uuids = set([w["uuid"] for w in self._active_workers])
         active_files = set()
-        for f in os.listdir(self._worker_dir):
+        for f in os.listdir(self.worker_dir):
             if f.startswith("worker_") and f.endswith(".p"):
-                if not os.path.exists(os.path.join(self._worker_dir, f[:-2] + ".json")):
+                if not os.path.exists(os.path.join(self.worker_dir, f[:-2] + ".json")):
                     continue
                 active_files.add(f.split("_")[1].split(".")[0])
 
@@ -490,7 +494,7 @@ class WorkerManager:
         inactive_files = set(
             [
                 f.split("_")[1].split(".")[0]
-                for f in os.listdir(self._worker_dir)
+                for f in os.listdir(self.worker_dir)
                 if f.startswith("worker_") and f.endswith(".json")
             ]
         )
@@ -511,17 +515,17 @@ class WorkerManager:
           >>> get_all_workercfg()
         """
         workerconfigs: List[WorkerJson] = []
-        for f in os.listdir(self._worker_dir):
+        for f in os.listdir(self.worker_dir):
             if f.startswith("worker_") and f.endswith(".json"):
                 with open(
-                    os.path.join(self._worker_dir, f), "r", encoding="utf-8"
+                    os.path.join(self.worker_dir, f), "r", encoding="utf-8"
                 ) as file:
                     try:
                         workerconfig: WorkerJson = json.load(file)
                     except json.JSONDecodeError:
                         continue
                 if workerconfig["type"] == "TestWorker":
-                    os.remove(os.path.join(self._worker_dir, f))
+                    os.remove(os.path.join(self.worker_dir, f))
                     continue
                 workerconfigs.append(workerconfig)
 
@@ -546,7 +550,7 @@ class WorkerManager:
         workerconfigs = {}
         for workerconfig in self.get_all_workercfg():
             workerconfigs[workerconfig["uuid"]] = workerconfig
-            pfile = os.path.join(self._worker_dir, f"worker_{workerconfig['uuid']}.p")
+            pfile = os.path.join(self.worker_dir, f"worker_{workerconfig['uuid']}.p")
             if os.path.exists(pfile):
                 for wc in self._inactive_workers:
                     if wc["uuid"] == workerconfig["uuid"]:
@@ -577,7 +581,7 @@ class WorkerManager:
                 inactive_worker_ids.append(res[0])
 
         for iid in inactive_worker_ids:
-            pfile = os.path.join(self._worker_dir, f"worker_{iid}.p")
+            pfile = os.path.join(self.worker_dir, f"worker_{iid}.p")
             if os.path.exists(pfile):
                 try:
                     os.remove(pfile)
@@ -778,7 +782,7 @@ class WorkerManager:
                 )
 
             workerconfigfile = os.path.join(
-                self._worker_dir, f"worker_{active_worker['uuid']}.json"
+                self.worker_dir, f"worker_{active_worker['uuid']}.json"
             )
             await self.set_progress_state(
                 message="Activating worker.",
