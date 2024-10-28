@@ -154,11 +154,24 @@ def start_worker(workerconfig: WorkerJson, debug=False):
         import subprocess_monitor
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(
-            subprocess_monitor.send_spawn_request(
-                args[0], args[1:], env={}, port=os.environ["SUBPROCESS_MONITOR_PORT"]
+        if not loop.is_running():
+            loop.run_until_complete(
+                subprocess_monitor.send_spawn_request(
+                    args[0],
+                    args[1:],
+                    env={},
+                    port=os.environ["SUBPROCESS_MONITOR_PORT"],
+                )
             )
-        )
+        else:
+            loop.create_task(
+                subprocess_monitor.send_spawn_request(
+                    args[0],
+                    args[1:],
+                    env={},
+                    port=os.environ["SUBPROCESS_MONITOR_PORT"],
+                )
+            )
     else:
         run_in_new_process(
             *args,
