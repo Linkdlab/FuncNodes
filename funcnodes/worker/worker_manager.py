@@ -153,7 +153,8 @@ def start_worker(workerconfig: WorkerJson, debug=False):
     if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
         import subprocess_monitor
 
-        asyncio.run(
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(
             subprocess_monitor.send_spawn_request(
                 args[0], args[1:], env={}, port=os.environ["SUBPROCESS_MONITOR_PORT"]
             )
