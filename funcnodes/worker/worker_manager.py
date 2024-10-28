@@ -150,9 +150,18 @@ def start_worker(workerconfig: WorkerJson, debug=False):
     if debug:
         args.append("--debug")
 
-    run_in_new_process(
-        *args,
-    )
+    if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
+        import subprocess_monitor
+
+        asyncio.run(
+            subprocess_monitor.send_spawn_request(
+                args[0], args[1:], env={}, port=os.environ["SUBPROCESS_MONITOR_PORT"]
+            )
+        )
+    else:
+        run_in_new_process(
+            *args,
+        )
 
 
 #
@@ -930,6 +939,7 @@ def start_worker_manager(
 
 async def assert_worker_manager_running(
     retry_interval=1.0,
+    termination_wait=10.0,
     max_retries=5,
     host: Optional[str] = None,
     port: Optional[int] = None,
@@ -946,6 +956,8 @@ async def assert_worker_manager_running(
         port = fn.config.CONFIG["worker_manager"]["port"]
     if ssl is None:
         ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
+
+    p = None
     for i in range(max_retries):
         try:
             print(
@@ -961,8 +973,22 @@ async def assert_worker_manager_running(
                     break
         except ConnectionRefusedError:
             print("Worker manager not running. Starting new worker manager.")
+
+            if p is not None:
+                # terminate previous worker manager
+                p.terminate()
+
+                # wait max 5 seconds for termination
+                for j in range(int(termination_wait * 10) + 1):
+                    if p.poll() is not None:
+                        break
+                    await asyncio.sleep(0.1)
+
+                if p.poll() is None:
+                    p.kill()
+
             # start worker manager in a new process
-            run_in_new_process(
+            p = run_in_new_process(
                 sys.executable,
                 "-m",
                 "funcnodes",
