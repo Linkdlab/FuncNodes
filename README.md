@@ -150,7 +150,7 @@ While this package mainly serves as the backend logic it also comes with a initi
    ```
 
 2. **Accessing the web interface:**
-   Open `http://localhost:8000` in a web browser to access the web interface where you can visually manage and connect nodes.
+   Open `http://127.0.0.1:8000` in a web browser to access the web interface where you can visually manage and connect nodes.
 
 When calling the runserver comand, a simple server is run up, which provides the basic web interface.
 
