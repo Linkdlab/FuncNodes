@@ -57,6 +57,10 @@ from .worker import (
     assert_worker_manager_running,
 )
 
+from .patches import apply_patches
+
+apply_patches()
+
 
 __all__ = [
     "FuncNodesExternalWorker",
