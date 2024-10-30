@@ -57,7 +57,7 @@ class WSLoop(CustomLoop):
     def __init__(
         self,
         worker: WSWorker,
-        host: str = "localhost",
+        host: str = "127.0.0.1",
         port: int = STARTPORT,
         delay=5,
         *args,
@@ -186,7 +186,7 @@ class WSWorker(RemoteWorker):
           If host or port are not provided, they will be retrieved from the config dictionary if available.
 
         Examples:
-          >>> worker = WSWorker(host='localhost', port=9382)
+          >>> worker = WSWorker(host='127.0.0.1', port=9382)
           >>> worker = WSWorker()
         """
         super().__init__(**kwargs)
@@ -195,7 +195,7 @@ class WSWorker(RemoteWorker):
             c = {}
 
         if host is None:
-            host = c.get("host", "localhost")
+            host = c.get("host", "127.0.0.1")
         if port is None:
             port = c.get("port", STARTPORT)
         self.ws_loop = WSLoop(host=host, port=port, worker=self)
@@ -279,7 +279,7 @@ class WSWorker(RemoteWorker):
             **{
                 **super().update_config(config),
                 **dict(
-                    host="localhost",
+                    host="127.0.0.1",
                     port=STARTPORT,
                     ssl=False,
                 ),

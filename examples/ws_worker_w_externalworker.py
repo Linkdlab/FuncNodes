@@ -214,7 +214,7 @@ class WebcamWorker(FuncNodesExternalWorker):
 
 
 def main():
-    worker = WSWorker(data_path="data", host="localhost", port=9382)
+    worker = WSWorker(data_path="data", host="127.0.0.1", port=9382)
     worker.add_local_worker(WebcamWorker, "myworker")
     worker.add_local_worker(WebcamWorker, "myworker2")
     worker.add_shelf_by_module(module="funcnodes.basic_nodes.math")
