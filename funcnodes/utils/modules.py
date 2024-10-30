@@ -5,7 +5,7 @@ import sys
 import pkg_resources
 import requests
 from typing import Optional, Dict
-from funcnodes_core import AVAILABLE_MODULES, setup
+from funcnodes_core import AVAILABLE_MODULES, setup, FUNCNODES_LOGGER
 from funcnodes_core._setup import setup_module
 from funcnodes_core.utils.plugins import InstalledModule
 from dataclasses import dataclass
@@ -51,7 +51,7 @@ def load_repo_csv():
             AVAILABLE_REPOS[line["package_name"]] = data
 
         except Exception as e:
-            print(e)
+            FUNCNODES_LOGGER.exception(e)
 
 
 def install_package(package_name, version=None, upgrade=False):

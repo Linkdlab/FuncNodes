@@ -57,6 +57,10 @@ from .worker import (
     assert_worker_manager_running,
 )
 
+from .patches import apply_patches
+
+apply_patches()
+
 
 __all__ = [
     "FuncNodesExternalWorker",
@@ -114,4 +118,4 @@ __all__ = [
     "signaturewrapper",
 ]
 
-__version__ = "0.4.26"
+__version__ = "0.4.27"

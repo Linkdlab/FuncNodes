@@ -727,17 +727,20 @@ class Worker(ABC):
         pf = self._process_file
         if not os.path.exists(os.path.dirname(pf)):
             os.makedirs(os.path.dirname(pf), exist_ok=True)
-        if not os.path.exists(pf):
-            with open(pf, "w+") as f:
-                pass
-        else:
+        if os.path.exists(pf):
             with open(pf, "r") as f:
                 d = f.read()
             if d != "":
                 try:
-                    self.loop_manager.async_call(self.run_cmd(json.loads(d)))
+                    cmd = json.loads(d)
+                    if not isinstance(
+                        cmd, int
+                    ):  # highly probable that data is an int (pid)
+                        self.loop_manager.async_call(self.run_cmd(cmd))
                 except Exception:
                     pass
+        with open(pf, "w+") as f:
+            f.write(str(os.getpid()))
 
     # region config
 
