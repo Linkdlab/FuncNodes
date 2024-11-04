@@ -442,177 +442,6 @@ def module_to_worker(mod) -> List[Type[FuncNodesExternalWorker]]:
     return classes
 
 
-# def find_worker_from_path(
-#     path: Union[str, PathWorkerDict],
-# ) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
-#     if isinstance(path, str):
-#         path = path.replace("\\", os.sep).replace("/", os.sep)
-#         path = path.strip(os.sep)
-
-#         data = PathWorkerDict(
-#             path=os.path.dirname(os.path.abspath(path)),
-#             module=os.path.basename(path),
-#             worker_classes=[],
-#         )
-#     else:
-#         data = path
-
-#     if not os.path.exists(data["path"]):
-#         raise FileNotFoundError(f"file {data['path']} not found")
-
-#     if data["path"] not in sys.path:
-#         sys.path.insert(0, data["path"])
-
-#     # install requirements
-#     if "pyproject.toml" in os.listdir(data["path"]):
-#         funcnodes.FUNCNODES_LOGGER.debug(
-#             f"pyproject.toml found in {data['path']}, generating requirements.txt"
-#         )
-#         # install poetry requirements
-#         # save current path
-#         cwd = os.getcwd()
-#         # cd into the module path
-#         os.chdir(data["path"])
-#         # install via poetry
-#         os.system("poetry update --no-interaction")
-#         os.system(
-#             "poetry export --without-hashes -f requirements.txt --output requirements.txt"
-#         )
-#         # cd back
-#         os.chdir(cwd)
-#     if "requirements.txt" in os.listdir(data["path"]):
-#         funcnodes.FUNCNODES_LOGGER.debug(
-#             f"requirements.txt found in {data['path']}, installing requirements"
-#         )
-#         # install pip requirements
-#         os.system(
-#             f"{sys.executable} -m pip install -r {os.path.join(data['path'],'requirements.txt')}"
-#         )
-
-#     ndata = find_worker_from_module(data)
-#     if ndata is not None:
-#         return ndata[0], PackageWorkerDict(**{**data, **ndata[1]})
-
-
-# def find_worker_from_module(
-#     mod: Union[str, BaseWorkerDict],
-# ) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
-#     try:
-#         strmod: str
-#         if isinstance(mod, dict):
-#             dat = mod
-#             strmod = mod["module"]
-#         else:
-#             strmod = mod
-#             dat = BaseWorkerDict(module=strmod, worker_classes=[])
-
-#         # submodules = strmod.split(".")
-
-#         module = importlib.import_module(strmod)
-
-#         # for submod in submodules[1:]:
-#         #     mod = getattr(mod, submod)
-#         workercls = module_to_worker(module)
-#         dat["worker_classes"] = []
-#         for worker_class in workercls:
-#             dat["worker_classes"].append(
-#                 {
-#                     "module": strmod,
-#                     "class_name": worker_class.__name__,
-#                     "name": getattr(worker_class, "NAME", worker_class.__name__),
-#                     "_classref": worker_class,
-#                 }
-#             )
-
-#         return workercls, dat
-
-#     except (ModuleNotFoundError, KeyError) as e:
-#         funcnodes.FUNCNODES_LOGGER.exception(e)
-#         return None
-
-
-# def find_worker_from_package(
-#     pgk: Union[str, PackageWorkerDict],
-# ) -> Union[Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict], None]:
-#     if isinstance(pgk, str):
-#         # remove possible version specifier
-#         stripped_src = pgk.split("=", 1)[0]
-#         stripped_src = pgk.split(">", 1)[0]
-#         stripped_src = pgk.split("<", 1)[0]
-#         stripped_src = pgk.split("~", 1)[0]
-#         stripped_src = pgk.split("!", 1)[0]
-#         stripped_src = pgk.split("@", 1)[0]
-#         data = {}
-#         data["package"] = stripped_src
-#         if "/" in pgk:
-#             data["module"] = pgk.rsplit("/", 1)[-1]
-#             basesrc = pgk.rsplit("/", 1)[0]
-#         else:
-#             data["module"] = data["package"]
-#             basesrc = pgk
-#         data["version"] = basesrc.replace(data["package"], "")
-
-#         data = PackageWorkerDict(
-#             package=data["package"],
-#             module=data["module"],
-#             version=data["version"],
-#             worker_classes=[],
-#         )
-#         try:
-#             os.system(
-#                 f"{sys.executable} -m pip install {data['package']}{data['version']} --upgrade -q"
-#             )
-#         except Exception as e:
-#             funcnodes.FUNCNODES_LOGGER.exception(e)
-#             return None
-#     else:
-#         data = pgk
-
-#     ndata = find_worker_from_module(data)
-#     if ndata is not None:
-#         return ndata[0], PackageWorkerDict(**{**data, **ndata[1]})
-
-
-# def find_worker(
-#     src: Union[WorkerDict, str],
-# ) -> Tuple[List[Type[FuncNodesExternalWorker]], WorkerDict] | None:
-#     if isinstance(src, dict):
-#         if "path" in src:
-#             dat = find_worker_from_path(src)
-
-#             if dat is not None:
-#                 return dat
-
-#         if "package" in src:
-#             dat = find_worker_from_package(src)
-#             if dat is not None:
-#                 return dat
-
-#         if "module" in src:
-#             dat = find_worker_from_module(src)
-
-#             if dat is not None:
-#                 return dat
-
-#         return None
-
-#     # check if identifier is a python module e.g. "funcnodes.lib"
-#     funcnodes.FUNCNODES_LOGGER.debug(f"trying to import {src}")
-
-#     if src.startswith("pip://"):
-#         src = src[6:]
-#         return find_worker_from_package(src)
-
-#     # check if file path:
-#     if src.startswith("file://"):
-#         # unifiy path between windows and linux
-#         src = src[7:]
-#         return find_worker_from_path(src)
-
-#     # try to get via pip
-#     return find_worker_from_module(src)
-
-
 class WorkerJson(TypedDict):
     type: str
     uuid: str
@@ -620,6 +449,7 @@ class WorkerJson(TypedDict):
     data_path: str
     env_path: str
     python_path: str
+    pid: Optional[int]
 
     # shelves_dependencies: Dict[str, ShelfDict]
     worker_dependencies: Dict[str, WorkerDict]
@@ -789,6 +619,7 @@ class Worker(ABC):
                 python_path=python_path,
                 worker_dependencies=worker_dependencies,
                 package_dependencies=self._package_dependencies.copy(),
+                pid=os.getpid(),
             )
         )
 
@@ -797,6 +628,7 @@ class Worker(ABC):
         conf["name"] = self.name()
         conf["data_path"] = self.data_path
         conf["python_path"] = sys.executable
+        conf["pid"] = os.getpid()
 
         # conf["shelves_dependencies"] = self._shelves_dependencies.copy()
         conf["package_dependencies"] = self._package_dependencies.copy()
@@ -829,6 +661,7 @@ class Worker(ABC):
         else:
             c = opt_conf
         c["uuid"] = self.uuid()
+        c["pid"] = os.getpid()
         cfile = self._config_file
         if not os.path.exists(os.path.dirname(cfile)):
             os.makedirs(os.path.dirname(cfile), exist_ok=True)
