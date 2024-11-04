@@ -43,6 +43,7 @@ from funcnodes_core.utils import saving
 from funcnodes_core.lib import find_shelf, ShelfDict
 from exposedfunctionality import exposed_method, get_exposed_methods
 from typing_extensions import deprecated
+import subprocess_monitor
 import threading
 from weakref import WeakSet
 from ..utils import AVAILABLE_REPOS, reload_base, install_repo, try_import_module
@@ -1704,6 +1705,7 @@ class Worker(ABC):
             pass
 
     def _prerun(self):
+        funcnodes.setup()
         self._save_disabled = True
         self.logger.info("Starting worker forever")
         self.loop_manager.reset_loop()
@@ -1712,8 +1714,13 @@ class Worker(ABC):
         self.initialize_nodespace()
         self._save_disabled = False
 
+        if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
+            if not os.environ.get("SUBPROCESS_MONITOR_KEEP_RUNNING"):
+                subprocess_monitor.call_on_manager_death(
+                    self.stop,
+                )
+
     def run_forever(self):
-        funcnodes.setup()
         self._prerun()
         try:
             self.loop_manager.run_forever()

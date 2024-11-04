@@ -11,6 +11,7 @@ from funcnodes.worker.websocket import WSWorker
 import threading
 
 from funcnodes.worker.worker import WorkerJson, WorkerState
+import subprocess_monitor
 
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 
@@ -151,8 +152,6 @@ def start_worker(workerconfig: WorkerJson, debug=False):
         args.append("--debug")
 
     if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
-        import subprocess_monitor
-
         loop = asyncio.get_event_loop()
         if not loop.is_running():
             loop.run_until_complete(
@@ -160,7 +159,7 @@ def start_worker(workerconfig: WorkerJson, debug=False):
                     args[0],
                     args[1:],
                     env={},
-                    port=os.environ["SUBPROCESS_MONITOR_PORT"],
+                    port=int(os.environ["SUBPROCESS_MONITOR_PORT"]),
                 )
             )
         else:
@@ -169,7 +168,7 @@ def start_worker(workerconfig: WorkerJson, debug=False):
                     args[0],
                     args[1:],
                     env={},
-                    port=os.environ["SUBPROCESS_MONITOR_PORT"],
+                    port=int(os.environ["SUBPROCESS_MONITOR_PORT"]),
                 )
             )
     else:
@@ -263,6 +262,7 @@ class WorkerManager:
         self._worker_dir = os.path.join(fn.config.CONFIG_DIR, "workers")
         if not os.path.exists(self._worker_dir):
             os.makedirs(self._worker_dir)
+        self._isrunninglock = threading.Lock()
         self._is_running = False
         self._connections: List[websockets.WebSocketServerProtocol] = []
         self._active_workers: List[WorkerJson] = []
@@ -292,8 +292,18 @@ class WorkerManager:
             fn.config.CONFIG["worker_manager"]["host"],
             fn.config.CONFIG["worker_manager"]["port"],
         )
-        self._is_running = True
+        with self._isrunninglock:
+            self._is_running = True
         l_rl = 0
+
+        def _stop():
+            with self._isrunninglock:
+                self._is_running = False
+
+        if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
+            if not os.environ.get("SUBPROCESS_MONITOR_KEEP_RUNNING"):
+                subprocess_monitor.call_on_manager_death(_stop)
+
         while self._is_running:
             await asyncio.sleep(0.5)
             for conn in self._connections:
@@ -307,6 +317,8 @@ class WorkerManager:
             if t - l_rl > 20 or self.worker_changed():
                 await self.reload_workers()
                 l_rl = t
+
+        await self.stop()
 
     async def _handle_connection(
         self, websocket: websockets.WebSocketServerProtocol, path
@@ -466,7 +478,8 @@ class WorkerManager:
         if self.ws_server is not None:
             self.ws_server.close()
             await self.ws_server.wait_closed()
-        self._is_running = False
+        with self._isrunninglock:
+            self._is_running = False
 
     async def check_shutdown(self):
         """
