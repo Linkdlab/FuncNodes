@@ -554,6 +554,16 @@ class WorkerManager:
                 if workerconfig["type"] == "TestWorker":
                     os.remove(os.path.join(self.worker_dir, f))
                     continue
+
+                pfile = os.path.join(
+                    self.worker_dir, f"worker_{workerconfig['uuid']}.p"
+                )
+                if os.path.exists(pfile):
+                    try:
+                        with open(pfile, "rb") as file:
+                            workerconfig["pid"] = int(file.read())
+                    except Exception:
+                        pass
                 workerconfigs.append(workerconfig)
 
         return workerconfigs
@@ -922,7 +932,7 @@ class WorkerManager:
         if ref_cfg:
             c["python_path"] = ref_cfg["python_path"]
             if copyLib:
-                c["shelves_dependencies"] = ref_cfg["shelves_dependencies"]
+                c["package_dependencies"] = ref_cfg["package_dependencies"]
             if copyNS:
                 nsfile = os.path.join(ref_cfg["data_path"], "nodespace.json")
                 if os.path.exists(nsfile):
