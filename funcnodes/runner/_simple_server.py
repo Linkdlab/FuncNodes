@@ -55,7 +55,8 @@ class BaseServer:
 
         if worker_manager_ssl is None:
             worker_manager_ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
-            self.start_worker_manager = start_worker_manager
+
+        self.start_worker_manager = start_worker_manager
         self.worker_manager_ssl = worker_manager_ssl
         self.worker_manager_host = worker_manager_host
         self.worker_manager_port = worker_manager_port
