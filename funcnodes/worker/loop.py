@@ -5,7 +5,6 @@ from typing import List, Optional
 import logging
 from funcnodes_core import NodeSpace
 import time
-import os
 
 MIN_DELAY = 0.1
 MIN_DEF = 0.1
@@ -171,14 +170,6 @@ class LoopManager:
         async def _rf():
             while self.running:
                 await asyncio.sleep(1)
-
-        if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
-            import subprocess_monitor
-
-            if not os.environ.get("SUBPROCESS_MONITOR_KEEP_RUNNING"):
-                subprocess_monitor.call_on_manager_death(
-                    self.stop,
-                )
 
         try:
             self._loop.run_until_complete(_rf())
