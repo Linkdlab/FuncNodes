@@ -5,7 +5,7 @@ import argparse
 from pprint import pprint
 import sys
 import os
-import venvmngr
+import time
 
 try:
     from setproctitle import setproctitle
@@ -75,31 +75,24 @@ def start_new_worker(args: argparse.Namespace):
       >>> start_new_worker(args)
       None
     """
-    worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
+
     fn.FUNCNODES_LOGGER.info(f"Starting new worker of type {args.workertype}")
 
     mng = fn.worker.worker_manager.WorkerManager()
-    workerdir = os.path.join(mng.worker_dir, "worker_" + str(args.uuid))
-    if not os.path.exists(workerdir):
-        os.makedirs(workerdir)
-    env_path = os.path.join(workerdir, ".venv")
-    env, new = venvmngr.get_or_create_virtual_env(env_path)
-    env.install_package("funcnodes")
-    env.install_package("venvmngr")
 
-    if env.python_exe != sys.executable:
-        nargs = ["worker", "new"]
-        if args.uuid:
-            nargs += ["--uuid", args.uuid]
-        if args.name:
-            nargs += ["--name", args.name]
-        if args.debug:
-            nargs += ["--debug"]
-        return env.run_module("funcnodes", args=nargs)
+    new_worker_routine = mng.new_worker(
+        name=args.name,
+        uuid=args.uuid,
+        workertype=args.workertype,
+    )
+    import asyncio
 
-    worker = worker_class(uuid=args.uuid, name=args.name, debug=args.debug)
-    setproctitle("worker " + worker.uuid())
-    worker.run_forever()
+    new_worker = asyncio.run(new_worker_routine)
+
+    args.uuid = new_worker.uuid()
+    args.name = new_worker.name()
+
+    return start_existing_worker(args)
 
 
 def start_existing_worker(args: argparse.Namespace):
@@ -119,8 +112,49 @@ def start_existing_worker(args: argparse.Namespace):
       >>> start_existing_worker(args)
       None
     """
-    worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
 
+    cfg = _worker_conf_from_args(args)
+
+    if cfg["python_path"] != sys.executable:
+        # run the worker with the same python executable
+        if not os.path.exists(cfg["python_path"]):
+            raise Exception(f"Python executable not found: {cfg['python_path']}")
+        return os.execv(
+            cfg["python_path"],
+            [
+                "-m",
+                "funcnodes",
+                "worker",
+                "start",
+                "--uuid",
+                args.uuid,
+                "--workertype",
+                args.workertype,
+            ],
+        )
+
+    worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
+    fn.FUNCNODES_LOGGER.info(f"Starting existing worker of type {args.workertype}")
+    worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
+
+    setproctitle("worker " + worker.uuid())
+    worker.run_forever()
+
+
+def _worker_conf_from_args(args: argparse.Namespace):
+    """
+    Returns the worker configuration from the arguments.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      dict: The worker configuration.
+
+    Examples:
+      >>> _worker_conf_from_args(args)
+      {}
+    """
     if args.uuid is None:
         if args.name is None:
             raise Exception("uuid or name is required to start an existing worker")
@@ -142,21 +176,67 @@ def start_existing_worker(args: argparse.Namespace):
                 if cf.get("name") == args.name:
                     cfg = cf
                     break
+        else:
+            if cfg.get("name") != args.name:
+                raise Exception(
+                    "Worker found with the given uuid but with a different name"
+                )
 
     if cfg is None:
         raise Exception("No worker found with the given uuid or name")
 
-    if cfg["python_path"] != sys.executable:
-        # run the worker with the same python executable
-        if not os.path.exists(cfg["python_path"]):
-            raise Exception(f"Python executable not found: {cfg['python_path']}")
-        os.execv(cfg["python_path"], ["-m", "funcnodes"] + sys.argv[1:])
+    return cfg
 
-    fn.FUNCNODES_LOGGER.info(f"Starting existing worker of type {args.workertype}")
-    worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
-    setproctitle("worker " + worker.uuid())
-    worker.run_forever()
+def listen_worker(args: argparse.Namespace):
+    """
+    Listens to a running worker.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Raises:
+      Exception: If no worker is found with the given uuid or name.
+
+    Examples:
+      >>> start_existing_worker(args)
+      None
+    """
+
+    cfg = _worker_conf_from_args(args)
+    log_file_path = os.path.join(cfg["data_path"], "worker.log")
+    # log file path
+    while True:
+        if os.path.exists(log_file_path):
+            current_size = os.path.getsize(log_file_path)
+            with open(log_file_path, "r") as log_file:
+                # Read the entire file initially
+                for line in log_file:
+                    print(line, end="")  # Print each line from the existing content
+
+                # Move to the end of the file to begin tailing new content
+                while True:
+                    line = log_file.readline()
+                    if line:
+                        print(line, end="")  # Print any new line added to the file
+                    else:
+                        time.sleep(
+                            0.5
+                        )  # Avoid high CPU usage when there's no new content
+
+                        if not os.path.exists(  # Check if the file has been removed
+                            log_file_path
+                        ):
+                            break
+                        new_size = os.path.getsize(log_file_path)
+                        if new_size < current_size:  # log file has been rotated
+                            break
+                        current_size = new_size
+
+        time.sleep(5)  # Avoid high CPU usage when there's no new content
 
 
 def task_worker(args: argparse.Namespace):
@@ -184,6 +264,10 @@ def task_worker(args: argparse.Namespace):
         return start_new_worker(args)
     elif workertask == "list":
         return list_workers(args)
+    elif workertask == "listen":
+        return listen_worker(args)
+    elif workertask == "activate":
+        return activate_worker_env(args)
     else:
         raise Exception(f"Unknown workertask: {workertask}")
 
@@ -206,6 +290,48 @@ def start_worker_manager(args: argparse.Namespace):
 
     fn.worker.worker_manager.start_worker_manager(
         host=args.host, port=args.port, debug=args.debug
+    )
+
+
+def activate_worker_env(args: argparse.Namespace):
+    """
+    Activates the funcnodes environment.
+
+    Returns:
+      None
+
+    Examples:
+      >>> activate_fn_env()
+      None
+    """
+    import subprocess
+
+    cfg = _worker_conf_from_args(args)
+
+    venv = cfg["env_path"]
+
+    if not os.path.exists(venv):
+        raise Exception(f"Environment not found: {venv}")
+
+    # Construct the command to open a new shell with the environment activated
+    if sys.platform == "win32":
+        # For Windows
+        venv_activate_script = os.path.join(venv, "Scripts", "activate.bat")
+        shell_command = [
+            venv_activate_script,
+            "&&",
+            "cmd /k",
+        ]
+    else:
+        # For Unix-based systems (Linux, macOS)
+        venv_activate_script = os.path.join(venv, "bin", "activate")
+        shell_command = f"source {venv_activate_script} && exec $SHELL"
+
+    # Run the shell command
+    subprocess.run(
+        shell_command,
+        shell=True,
+        executable="/bin/bash" if sys.platform != "win32" else None,
     )
 
 
