@@ -1538,11 +1538,10 @@ class Worker(ABC):
             pass
 
     def _prerun(self):
-        funcnodes.setup()
+        reload_base(with_repos=False)
         self._save_disabled = True
         self.logger.info("Starting worker forever")
         self.loop_manager.reset_loop()
-        reload_base(with_repos=False)
         self.ini_config()
         self.initialize_nodespace()
         self._save_disabled = False

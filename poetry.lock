@@ -404,13 +404,13 @@ files = [
 
 [[package]]
 name = "exposedfunctionality"
-version = "0.3.17"
+version = "0.3.18"
 description = "tool to expose functionalities to multiple tools"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "exposedfunctionality-0.3.17-py3-none-any.whl", hash = "sha256:43fa34c6d1264b87d4ba0cd7404a0568a808dbc7eac535275302b2b9468a703d"},
-    {file = "exposedfunctionality-0.3.17.tar.gz", hash = "sha256:6b648988551b4480d0741d7b0f22dc62cbe65d253f74d2b7b9057de949d751f3"},
+    {file = "exposedfunctionality-0.3.18-py3-none-any.whl", hash = "sha256:e5937ed39c8ce4f97d650819455d7e657a7e345b4d18970ed092bb42d59c598f"},
+    {file = "exposedfunctionality-0.3.18.tar.gz", hash = "sha256:3e75b2050482e5e43400b8f36a8b6d1487719ecd28247e55769c3015399ba2c2"},
 ]
 
 [package.dependencies]
