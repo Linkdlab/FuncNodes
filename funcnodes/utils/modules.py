@@ -183,6 +183,3 @@ def reload_base(with_repos=True):
                 summary=moduledata.description,
                 moduledata=moduledata,
             )
-
-
-reload_base(with_repos=False)
