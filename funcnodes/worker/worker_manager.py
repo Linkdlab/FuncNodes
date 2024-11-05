@@ -6,12 +6,12 @@ import websockets
 import asyncio
 import subprocess
 import sys
-from typing import List, Optional
-from funcnodes.worker.websocket import WSWorker
+from typing import List, Optional, Type
 import threading
 
 from funcnodes.worker.worker import WorkerJson, WorkerState
 import subprocess_monitor
+import venvmngr
 
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 
@@ -900,6 +900,8 @@ class WorkerManager:
         reference: str = None,
         copyLib: bool = False,
         copyNS: bool = False,
+        uuid: str = None,
+        workertype: str = "WSWorker",
     ):
         """
         Creates a new worker.
@@ -917,20 +919,31 @@ class WorkerManager:
           >>> await new_worker("MyWorker", "1234", True, False)
           None
         """
+        worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
+
+        new_worker = worker_class(name=name, uuid=uuid)
+        new_worker.ini_config()
+        new_worker.stop()
+        c = new_worker.write_config()
+        if name:
+            c["name"] = name
+
+        # craete env
+        workerenv, new = venvmngr.get_or_create_virtual_env(
+            os.path.join(new_worker.data_path, "env")
+        )
+        workerenv.install_package("funcnodes", upgrade=True)
+        c["python_path"] = workerenv.python_exe
+        c["env_path"] = workerenv.env_path
+
         ref_cfg = None
         if reference:
             for cfg in self.get_all_workercfg():
                 if cfg["uuid"] == reference:
                     ref_cfg = cfg
                     break
-        new_worker = WSWorker(name=name)
-        new_worker.ini_config()
-        new_worker.stop()
-        c = new_worker.write_config()
-        if name:
-            c["name"] = name
+
         if ref_cfg:
-            c["python_path"] = ref_cfg["python_path"]
             if copyLib:
                 c["package_dependencies"] = ref_cfg["package_dependencies"]
             if copyNS:
@@ -945,6 +958,7 @@ class WorkerManager:
                     json.dump(nsd, file, indent=4)
         new_worker.write_config(c)
         await self.reload_workers()
+        return new_worker
 
     # def start_worker(workerconfig):
     #     subprocess.Popen(
