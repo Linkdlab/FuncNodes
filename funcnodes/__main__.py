@@ -112,32 +112,8 @@ def start_existing_worker(args: argparse.Namespace):
       >>> start_existing_worker(args)
       None
     """
-    worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
 
-    if args.uuid is None:
-        if args.name is None:
-            raise Exception("uuid or name is required to start an existing worker")
-
-    mng = fn.worker.worker_manager.WorkerManager()
-    cfg = None
-    if args.uuid:
-        for cf in mng.get_all_workercfg():
-            if cf["uuid"] == args.uuid:
-                cfg = cf
-                break
-
-        if cfg is None:
-            raise Exception("No worker found with the given uuid")
-
-    if args.name:
-        if cfg is None:
-            for cf in mng.get_all_workercfg():
-                if cf.get("name") == args.name:
-                    cfg = cf
-                    break
-
-    if cfg is None:
-        raise Exception("No worker found with the given uuid or name")
+    cfg = _worker_conf_from_args(args)
 
     if cfg["python_path"] != sys.executable:
         # run the worker with the same python executable
@@ -145,9 +121,19 @@ def start_existing_worker(args: argparse.Namespace):
             raise Exception(f"Python executable not found: {cfg['python_path']}")
         return os.execv(
             cfg["python_path"],
-            ["-m", "funcnodes", "worker", "start", "--uuid", args.uuid],
+            [
+                "-m",
+                "funcnodes",
+                "worker",
+                "start",
+                "--uuid",
+                args.uuid,
+                "--workertype",
+                args.workertype,
+            ],
         )
 
+    worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
     fn.FUNCNODES_LOGGER.info(f"Starting existing worker of type {args.workertype}")
     worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
@@ -155,22 +141,19 @@ def start_existing_worker(args: argparse.Namespace):
     worker.run_forever()
 
 
-def listen_worker(args: argparse.Namespace):
+def _worker_conf_from_args(args: argparse.Namespace):
     """
-    Listens to a running worker.
+    Returns the worker configuration from the arguments.
 
     Args:
       args (argparse.Namespace): The arguments passed to the function.
 
     Returns:
-      None
-
-    Raises:
-      Exception: If no worker is found with the given uuid or name.
+      dict: The worker configuration.
 
     Examples:
-      >>> start_existing_worker(args)
-      None
+      >>> _worker_conf_from_args(args)
+      {}
     """
     if args.uuid is None:
         if args.name is None:
@@ -202,9 +185,29 @@ def listen_worker(args: argparse.Namespace):
     if cfg is None:
         raise Exception("No worker found with the given uuid or name")
 
-    log_file_path = os.path.join(
-        mng.worker_dir, "worker_" + str(cfg["uuid"]), "worker.log"
-    )
+    return cfg
+
+
+def listen_worker(args: argparse.Namespace):
+    """
+    Listens to a running worker.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Raises:
+      Exception: If no worker is found with the given uuid or name.
+
+    Examples:
+      >>> start_existing_worker(args)
+      None
+    """
+
+    cfg = _worker_conf_from_args(args)
+    log_file_path = os.path.join(cfg["data_path"], "worker.log")
     # log file path
     while True:
         if os.path.exists(log_file_path):
@@ -263,6 +266,8 @@ def task_worker(args: argparse.Namespace):
         return list_workers(args)
     elif workertask == "listen":
         return listen_worker(args)
+    elif workertask == "activate":
+        return activate_worker_env(args)
     else:
         raise Exception(f"Unknown workertask: {workertask}")
 
@@ -285,6 +290,48 @@ def start_worker_manager(args: argparse.Namespace):
 
     fn.worker.worker_manager.start_worker_manager(
         host=args.host, port=args.port, debug=args.debug
+    )
+
+
+def activate_worker_env(args: argparse.Namespace):
+    """
+    Activates the funcnodes environment.
+
+    Returns:
+      None
+
+    Examples:
+      >>> activate_fn_env()
+      None
+    """
+    import subprocess
+
+    cfg = _worker_conf_from_args(args)
+
+    venv = cfg["env_path"]
+
+    if not os.path.exists(venv):
+        raise Exception(f"Environment not found: {venv}")
+
+    # Construct the command to open a new shell with the environment activated
+    if sys.platform == "win32":
+        # For Windows
+        venv_activate_script = os.path.join(venv, "Scripts", "activate.bat")
+        shell_command = [
+            venv_activate_script,
+            "&&",
+            "cmd /k",
+        ]
+    else:
+        # For Unix-based systems (Linux, macOS)
+        venv_activate_script = os.path.join(venv, "bin", "activate")
+        shell_command = f"source {venv_activate_script} && exec $SHELL"
+
+    # Run the shell command
+    subprocess.run(
+        shell_command,
+        shell=True,
+        executable="/bin/bash" if sys.platform != "win32" else None,
     )
 
 
