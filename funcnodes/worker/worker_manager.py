@@ -47,9 +47,7 @@ class ReturnValueThread(threading.Thread):
         try:
             self.result = self._target(*self._args, **self._kwargs)
         except Exception as exc:
-            print(
-                f"{type(exc).__name__}: {exc}", file=sys.stderr
-            )  # properly handle the exception
+            fn.FUNCNODES_LOGGER.exception(exc)
 
     def join(self, *args, **kwargs):
         """
@@ -73,7 +71,7 @@ def run_in_new_process(*args, **kwargs):
     Returns:
       subprocess.Popen: The new process.
     """
-    print(f"Starting new process: {' '.join(args)}")
+    fn.FUNCNODES_LOGGER.info(f"Starting new process: {' '.join(args)}")
     if os.name == "posix":
         p = subprocess.Popen(args, start_new_session=True)
     # For Windows
@@ -193,7 +191,9 @@ async def check_worker(workerconfig: WorkerJson):
 
     if "host" in workerconfig and "port" in workerconfig:
         # reqest uuid
-        print(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
+        fn.FUNCNODES_LOGGER.info(
+            f"Checking worker {workerconfig['host']}:{workerconfig['port']}"
+        )
         try:
             async with websockets.connect(
                 f"ws{'s' if workerconfig.get('ssl',False) else ''}://{workerconfig['host']}:{workerconfig['port']}"
@@ -313,7 +313,6 @@ class WorkerManager:
             t = time.time()
             await self.check_shutdown()
 
-            # print("Checking workers", self.worker_changed())
             if t - l_rl > 20 or self.worker_changed():
                 await self.reload_workers()
                 l_rl = t
@@ -401,7 +400,7 @@ class WorkerManager:
             except json.JSONDecodeError:
                 pass
 
-            print(f"Unknown message: {message}")
+            fn.FUNCNODES_LOGGER.warning(f"Unknown message: {message}")
 
     async def reset_progress_state(
         self, websocket: websockets.WebSocketServerProtocol = None
@@ -637,12 +636,13 @@ class WorkerManager:
         ]
         joined_names = "\n".join(active_names)
 
-        print(f"Active workers: [{joined_names}]")
         inactive_names = [
             f"{workerconfigs[uuid].get('name')}({uuid})" for uuid in inactive_worker_ids
         ]
-        joined_names = "\n".join(inactive_names)
-        print(f"inactive workers:[{joined_names}]")
+        joined_names = "\n  ".join(inactive_names)
+        fn.FUNCNODES_LOGGER.info(
+            f"Active workers: [\n{joined_names}\n  ]\ninactive workers:[\n{joined_names}\n  ]"
+        )
 
         await self.broadcast_worker_status()
 
@@ -758,7 +758,7 @@ class WorkerManager:
                 if response.get("result") is True:
                     while workerid in [w["uuid"] for w in self._active_workers]:
                         await asyncio.sleep(0.5)
-                        print("Waiting for worker to stop.")
+                        fn.FUNCNODES_LOGGER.debug("Waiting for worker to stop.")
 
                 await self.reload_workers()
 
@@ -880,6 +880,8 @@ class WorkerManager:
                 ):
                     await asyncio.sleep(0.5)
                     continue
+                except Exception as e:
+                    fn.FUNCNODES_LOGGER.exception(e)
 
             return await websocket.send(
                 json.dumps(
@@ -1015,7 +1017,7 @@ async def assert_worker_manager_running(
     p = None
     for i in range(max_retries):
         try:
-            print(
+            fn.FUNCNODES_LOGGER.info(
                 f"Trying to connect to worker manager at ws{'s' if ssl else ''}://{host}:{port}"
             )
             async with websockets.connect(
@@ -1027,7 +1029,9 @@ async def assert_worker_manager_running(
                 if response == "pong":
                     break
         except ConnectionRefusedError:
-            print("Worker manager not running. Starting new worker manager.")
+            fn.FUNCNODES_LOGGER.info(
+                "Worker manager not running. Starting new worker manager."
+            )
 
             if p is not None:
                 # terminate previous worker manager
@@ -1057,5 +1061,5 @@ async def assert_worker_manager_running(
             await asyncio.sleep(retry_interval)
     else:
         raise ConnectionRefusedError("Could not connect to worker manager.")
-    print("Connected to worker manager.")
+    fn.FUNCNODES_LOGGER.info("Connected to worker manager.")
     return True
