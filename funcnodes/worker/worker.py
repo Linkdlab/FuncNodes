@@ -12,6 +12,7 @@ from typing import (
     Optional,
     Dict,
     Union,
+    cast,
 )
 import os
 import time
@@ -46,6 +47,10 @@ from typing_extensions import deprecated
 import subprocess_monitor
 import threading
 from weakref import WeakSet
+import io
+import zipfile
+import base64
+import warnings
 from ..utils import AVAILABLE_REPOS, reload_base, install_repo, try_import_module
 
 try:
@@ -128,6 +133,14 @@ class ErrorMessage(TypedDict):
     error: str
     tb: List[str]
     id: str | None
+
+
+class ExtendedFullNodeJSON(FullNodeJSON):
+    """
+    ExtendedFullNodeJSON is the interface for the serialization of a Node with additional data
+    """
+
+    frontend: Optional[NodeViewState]
 
 
 class NodeUpdateJSON(NodeJSON):
@@ -442,6 +455,10 @@ def module_to_worker(mod) -> List[Type[FuncNodesExternalWorker]]:
     return classes
 
 
+class PossibleUpdates(TypedDict, total=False):
+    funcnodes: bool
+
+
 class WorkerJson(TypedDict):
     type: str
     uuid: str
@@ -454,6 +471,7 @@ class WorkerJson(TypedDict):
     # shelves_dependencies: Dict[str, ShelfDict]
     worker_dependencies: Dict[str, WorkerDict]
     package_dependencies: Dict[str, PackageDependency]
+    update_on_startup: PossibleUpdates
 
 
 class Worker(ABC):
@@ -579,7 +597,18 @@ class Worker(ABC):
     def config(self) -> WorkerJson:
         return self.load_or_generate_config()
 
+    def exportable_config(self) -> dict:
+        """creates a copy of the config without the process specific data"""
+        exportable = dict(**self.config)
+        exportable.pop("pid", None)
+        exportable.pop("python_path", None)
+        exportable.pop("env_path", None)
+        exportable.pop("data_path", None)
+        exportable.pop("uuid", None)
+        return exportable
+
     def load_config(self) -> WorkerJson | None:
+        """loads the config from the config file"""
         cfile = self._config_file
         oldc = None
         if os.path.exists(cfile):
@@ -595,18 +624,20 @@ class Worker(ABC):
         return oldc
 
     def load_or_generate_config(self) -> WorkerJson:
+        """loads the config from the config file or generates a new one if it does not exist"""
         c = self.load_config()
         if c is None:
             c = self.generate_config()
         return c
 
     def generate_config(self) -> WorkerJson:
+        """generates a new config"""
         uuid = self.uuid()
         name = self.name()
         data_path = self.data_path
         env_path = os.path.abspath(os.path.join(self.data_path, "env"))
 
-        worker_dependencies: List[WorkerDict] = []
+        worker_dependencies: Dict[str, WorkerDict] = {}
         python_path = sys.executable
         return self.update_config(
             WorkerJson(
@@ -620,28 +651,38 @@ class Worker(ABC):
                 worker_dependencies=worker_dependencies,
                 package_dependencies=self._package_dependencies.copy(),
                 pid=os.getpid(),
+                update_on_startup={},
             )
         )
 
     def update_config(self, conf: WorkerJson) -> WorkerJson:
+        """Updates a configuration dictionary for the Worker."""
         conf["uuid"] = self.uuid()
         conf["name"] = self.name()
         conf["data_path"] = self.data_path
         conf["python_path"] = sys.executable
         conf["pid"] = os.getpid()
 
+        if "update_on_startup" not in conf:
+            conf["update_on_startup"] = {}
+
+        if "funcnodes" not in conf["update_on_startup"]:
+            conf["update_on_startup"]["funcnodes"] = True
+
         # conf["shelves_dependencies"] = self._shelves_dependencies.copy()
         conf["package_dependencies"] = self._package_dependencies.copy()
 
         worker_dependencies = conf.get("worker_dependencies", {})
         if isinstance(worker_dependencies, list):
-            worker_dependencies = {w["module"]: w for w in worker_dependencies}
+            worker_dependencies = {
+                w["module"]: w for w in cast(List[WorkerDict], worker_dependencies)
+            }
 
         def w_in_without_classes(w: WorkerDict):
             cs = w.copy()
             cs["worker_classes"] = []
             csj = json.dumps(cs, sort_keys=True, cls=JSONEncoder)
-            for k, w2 in worker_dependencies.items():
+            for w2 in worker_dependencies.values():
                 w2 = w2.copy()
                 w2["worker_classes"] = []
                 if csj == json.dumps(w2, sort_keys=True, cls=JSONEncoder):
@@ -656,6 +697,11 @@ class Worker(ABC):
         return conf
 
     def write_config(self, opt_conf: Optional[WorkerJson] = None) -> WorkerJson:
+        """
+        Writes the configuration to the config file.
+        If opt_conf is not None, it will write the opt_conf to the config file
+        otherwise it will write the current config to the config file.
+        """
         if opt_conf is None:
             c = self.update_config(self.config)
         else:
@@ -675,13 +721,19 @@ class Worker(ABC):
         return c
 
     def ini_config(self):
+        """initializes the worker from the config file"""
         if os.path.exists(self._process_file):
             raise RuntimeError("Worker already running")
         self._write_process_file()
         c = self.load_or_generate_config()
 
-        if "package_dependencies" in c:
-            for name, dep in c["package_dependencies"].items():
+        self.update_from_config(dict(c))
+
+    def update_from_config(self, config: dict):
+        """updates the worker from a config dict"""
+
+        if "package_dependencies" in config:
+            for name, dep in config["package_dependencies"].items():
                 try:
                     self.add_package_dependency(name, dep, save=False)
                 except Exception as e:
@@ -718,21 +770,85 @@ class Worker(ABC):
 
             return d
 
-        if "shelves_dependencies" in c:
-            if isinstance(c["shelves_dependencies"], dict):
-                for k, v in c["shelves_dependencies"].items():
+        if "shelves_dependencies" in config:
+            if isinstance(config["shelves_dependencies"], dict):
+                for k, v in config["shelves_dependencies"].items():
                     try:
                         pkg = _shelves_dependencies_to_package(v)
                         self.add_package_dependency(pkg["package"], pkg, save=False)
                     except Exception as e:
                         self.logger.exception(e)
-            elif isinstance(c["shelves_dependencies"], list):
-                for dep in c["shelves_dependencies"]:
+            elif isinstance(config["shelves_dependencies"], list):
+                for dep in config["shelves_dependencies"]:
                     try:
                         pkg = _shelves_dependencies_to_package(dep)
                         self.add_package_dependency(pkg["package"], pkg, save=False)
                     except Exception as e:
                         self.logger.exception(e)
+
+    @exposed_method()
+    def export_worker(self) -> bytes:
+        """packs all the required data for the worker to be exported into a custom zip file format"""
+
+        self.save()
+
+        zip_buffer = io.BytesIO()
+        config = self.exportable_config()
+
+        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+            zip_file.writestr(
+                "config", json.dumps(config, cls=JSONEncoder, indent=2).encode("utf-8")
+            )
+            zip_file.writestr(
+                "state",
+                json.dumps(self.get_save_state(), cls=JSONEncoder, indent=2).encode(
+                    "utf-8"
+                ),
+            )
+
+        zip_bytes = zip_buffer.getvalue()
+        zip_buffer.close()
+
+        return zip_bytes
+
+    @exposed_method()
+    def update(
+        self,
+        config: Union[str, dict, None] = None,
+        state: Union[str, dict, None] = None,
+    ):
+        """updates the worker from a config and state dict"""
+        if isinstance(config, str):
+            dictconfig = json.loads(config)
+        else:
+            dictconfig = config
+        if not isinstance(dictconfig, dict):
+            raise ValueError("config must be a dict or a json string")
+
+        if isinstance(state, str):
+            dictstate = json.loads(state)
+        else:
+            dictstate = state
+        if not isinstance(dictstate, dict):
+            raise ValueError("state must be a dict or a json string")
+
+        if config is not None:
+            self.update_from_config(dictconfig)
+        if state is not None:
+            self.load_data(dictstate)
+
+    @exposed_method()
+    def update_from_export(self, data: Union[str, bytes]):
+        """updates the worker from an exported zip file"""
+        if isinstance(data, str):
+            # data is base64 encoded zip data
+            data = base64.b64decode(data)
+
+        with zipfile.ZipFile(io.BytesIO(data), "r") as zip_file:
+            config = json.loads(zip_file.read("config").decode("utf-8"))
+            state = json.loads(zip_file.read("state").decode("utf-8"))
+
+        self.update(config=config, state=state)
 
     # endregion config
     # region properties
@@ -814,14 +930,17 @@ class Worker(ABC):
     # region states
     @exposed_method()
     def uuid(self) -> str:
+        """returns the uuid of the worker"""
         return self._uuid
 
     @exposed_method()
     def name(self) -> str:
-        return self._name
+        """returns the name of the worker or the uuid if no name is set"""
+        return self._name or self._uuid
 
     @exposed_method()
     def view_state(self) -> ViewState:
+        """returns the view state of the worker"""
         available_nodeids = []
         if "nodes" not in self.viewdata:
             self.viewdata["nodes"] = {}
@@ -858,8 +977,11 @@ class Worker(ABC):
             "meta": self.get_meta(),
             "dependencies": self.nodespace.lib.get_dependencies(),
             "external_workers": {
-                w.NODECLASSID: w.running_instances()
-                for w in self.local_worker_lookup_loop.worker_classes
+                workerclass.NODECLASSID: [
+                    w_instance.serialize()
+                    for w_instance in workerclass.running_instances()
+                ]
+                for workerclass in self.local_worker_lookup_loop.worker_classes
             },
         }
         return data
@@ -885,8 +1007,11 @@ class Worker(ABC):
         return self.nodespace.lib.full_serialize()
 
     @exposed_method()
-    def get_nodes(self, with_frontend: bool = False) -> List[FullNodeJSON]:
-        nodes = self.nodespace.full_nodes_serialize()
+    def get_nodes(self, with_frontend: bool = False) -> List[ExtendedFullNodeJSON]:
+        nodes = [
+            ExtendedFullNodeJSON(**nodedata, frontend=None)
+            for nodedata in self.nodespace.full_nodes_serialize()
+        ]
         if with_frontend:
             nodes_viewdata = self.viewdata.get("nodes", {})
             for node in nodes:
@@ -953,28 +1078,28 @@ class Worker(ABC):
         return self.loop_manager.async_call(self.load(data))
 
     async def load(self, data: WorkerState | str | None = None):
+        self.clear()
         if data is None:
             if not os.path.exists(self.local_nodespace):
                 return
             with open(self.local_nodespace, "r", encoding="utf-8") as f:
-                data: WorkerState = json.loads(f.read(), cls=JSONDecoder)
+                worker_data: WorkerState = json.loads(f.read(), cls=JSONDecoder)
 
-        if isinstance(data, str):
-            data: WorkerState = json.loads(data, cls=JSONDecoder)
+        elif isinstance(data, str):
+            worker_data: WorkerState = json.loads(data, cls=JSONDecoder)
 
-        if "backend" not in data:
-            data["backend"] = {}
-        if "view" not in data:
-            data["view"] = {}
+        elif isinstance(data, dict):
+            worker_data = cast(WorkerState, data)
+        else:
+            raise ValueError("data must be a dict or a json string or None")
 
-        if "external_workers" in data:
-            for worker_id, worker_uuid in data["external_workers"].items():
-                print(
-                    "external_worker",
-                    worker_id,
-                    worker_uuid,
-                    self.local_worker_lookup_loop.worker_classes,
-                )
+        if "backend" not in worker_data:
+            worker_data["backend"] = NodeSpaceJSON(nodes=[], edges=[], prop={})
+        if "view" not in worker_data:
+            worker_data["view"] = ViewState(nodes={}, renderoptions={})
+
+        if "external_workers" in worker_data:
+            for worker_id, worker_uuid in worker_data["external_workers"].items():
                 found = False
                 for worker in self.local_worker_lookup_loop.worker_classes:
                     if worker.NODECLASSID == worker_id:
@@ -986,23 +1111,22 @@ class Worker(ABC):
                                 if "name" in instance:
                                     w.name = instance["name"]
                             found = True
-                            print("WORKER", w)
                 if not found:
                     self.logger.warning(f"External worker {worker_id} not found")
 
-        if "nodes" in data["backend"]:
-            nodes = data["backend"]["nodes"]
+        if "nodes" in worker_data["backend"]:
+            nodes = worker_data["backend"]["nodes"]
             for node in nodes:
                 try:
                     await self.install_node(node)
                 except NodeClassNotFoundError:
                     pass
 
-        if "meta" in data:
-            if "id" in data["meta"]:
-                self._set_nodespace_id(data["meta"]["id"])
-        self.nodespace.deserialize(data["backend"])
-        self.viewdata = data["view"]
+        if "meta" in worker_data:
+            if "id" in worker_data["meta"]:
+                self._set_nodespace_id(worker_data["meta"]["id"])
+        self.nodespace.deserialize(worker_data["backend"])
+        self.viewdata = worker_data["view"]
 
         return self.request_save()
 
@@ -1070,6 +1194,10 @@ class Worker(ABC):
         self.set_progress_state_sync(
             message="Adding shelf", status="info", progress=0.0, blocking=True
         )
+        warnings.warn(
+            "add_shelf is deprecated",
+            DeprecationWarning,
+        )
         self.logger.info(f"Adding shelf {src}")
         try:
             shelfdata = find_shelf(src=src)
@@ -1078,7 +1206,6 @@ class Worker(ABC):
             shelf, shelfdata = shelfdata
             if shelf is None:
                 raise ValueError(f"Shelf in {src} not found")
-            self.add_shelves_dependency(shelfdata)
             self.nodespace.add_shelf(shelf)
             if save:
                 self.request_save()
@@ -1101,64 +1228,100 @@ class Worker(ABC):
     ):
         if dep and "path" in dep:
             raise NotImplementedError("Local package dependencies not implemented")
-
-        if name not in AVAILABLE_REPOS:
-            try_import_module(name)
-        if name not in AVAILABLE_REPOS:
-            raise ValueError(
-                f"Package {name} not found, available: {list(AVAILABLE_REPOS.keys())}"
-            )
-
-        repo = AVAILABLE_REPOS[name]
-        if dep is None:
-            dep = PipPackageDependency(
-                package=repo.package_name,
-                version=None,
-            )
-        if not repo:
-            raise ValueError(f"Package {name} not found")
-
-        if not repo.installed:
-            repo = install_repo(name, version=dep.get("version", None))
-
-        module = repo.moduledata
-
-        if module is None:
-            raise ValueError(f"Package {name} not found")
-
-        shelf = module.entry_points.get("shelf")
-        if shelf:
-            self.nodespace.add_shelf(shelf)
-
-        external_worker = module.entry_points.get("external_worker")
-
-        if external_worker:
-            if not isinstance(external_worker, (list, tuple)):
-                external_worker = [external_worker]
-
-            self.add_worker_dependency(
-                WorkerDict(
-                    module=repo.moduledata.name,
-                    worker_classes=[
-                        ExternalWorkerSerClass(
-                            module=worker_class.__module__,
-                            class_name=worker_class.__name__,
-                            name=getattr(worker_class, "NAME", worker_class.__name__),
-                            _classref=worker_class,
-                            instances=WeakSet(worker_class.running_instances()),
-                        )
-                        for worker_class in external_worker
-                        if issubclass(worker_class, FuncNodesExternalWorker)
-                    ],
-                )
-            )
-        self._package_dependencies[name] = PipPackageDependency(
-            package=repo.package_name,
-            version=dep.get("version", None),
+        self.set_progress_state_sync(
+            message="Add package dependency", status="info", progress=0.0, blocking=True
         )
+        try:
+            if name not in AVAILABLE_REPOS:
+                try_import_module(name)
+            if name not in AVAILABLE_REPOS:
+                raise ValueError(
+                    f"Package {name} not found, available: {list(AVAILABLE_REPOS.keys())}"
+                )
 
-        if save:
-            self.request_save()
+            repo = AVAILABLE_REPOS[name]
+            if dep is None:
+                dep = PipPackageDependency(
+                    package=repo.package_name,
+                    version=None,
+                )
+            if not repo:
+                raise ValueError(f"Package {name} not found")
+
+            if not repo.installed:
+                self.set_progress_state_sync(
+                    message="Install dependency",
+                    status="info",
+                    progress=40.0,
+                    blocking=True,
+                )
+
+                repo = install_repo(name, version=dep.get("version", None))
+
+            if not repo:
+                raise ValueError(f"Package {name} not found")
+
+            module = repo.moduledata
+
+            if module is None:
+                raise ValueError(f"Package {name} not found")
+
+            self.set_progress_state_sync(
+                message="Adding dependency",
+                status="info",
+                progress=80.0,
+                blocking=True,
+            )
+
+            shelf = module.entry_points.get("shelf")
+            if shelf:
+                self.nodespace.add_shelf(shelf)
+
+            external_worker = module.entry_points.get("external_worker")
+
+            if external_worker:
+                if not isinstance(external_worker, (list, tuple)):
+                    external_worker = [external_worker]
+
+                self.add_worker_dependency(
+                    WorkerDict(
+                        module=module.name,
+                        worker_classes=[
+                            ExternalWorkerSerClass(
+                                module=worker_class.__module__,
+                                class_name=worker_class.__name__,
+                                name=getattr(
+                                    worker_class, "NAME", worker_class.__name__
+                                ),
+                                _classref=worker_class,
+                                instances=WeakSet(worker_class.running_instances()),
+                            )
+                            for worker_class in external_worker
+                            if issubclass(worker_class, FuncNodesExternalWorker)
+                        ],
+                    )
+                )
+            self._package_dependencies[name] = PipPackageDependency(
+                package=repo.package_name,
+                version=dep.get("version", None),
+            )
+
+            if save:
+                self.request_save()
+            self.set_progress_state_sync(
+                message="Package dependency added",
+                status="success",
+                progress=1,
+                blocking=False,
+            )
+        except Exception as exc:
+            self.set_progress_state_sync(
+                message=f"Could not install {name}",
+                status="error",
+                progress=0.0,
+                blocking=True,
+            )
+            raise exc
 
     @exposed_method()
     async def remove_package_dependency(
@@ -1196,7 +1359,7 @@ class Worker(ABC):
 
             await self.remove_worker_dependency(
                 WorkerDict(
-                    module=repo.moduledata.name,
+                    module=module.name,
                     worker_classes=[
                         ExternalWorkerSerClass(
                             module=worker_class.__module__,
@@ -1219,14 +1382,16 @@ class Worker(ABC):
 
     @exposed_method()
     def remove_shelf(self, src: Union[str, ShelfDict], save: bool = True):
+        warnings.warn(
+            "remove_shelf is deprecated",
+            DeprecationWarning,
+        )
         shelfdata = find_shelf(src=src)
         if shelfdata is None:
             return {"error": f"Shelf in {src} not found"}
         shelf, shelfdata = shelfdata
         if shelf is None:
             raise ValueError(f"Shelf in {src} not found")
-
-        self.remove_shelves_dependency(shelfdata)
         self.nodespace.remove_shelf(shelf)
         if save:
             self.request_save()

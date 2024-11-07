@@ -291,3 +291,10 @@ class WSWorker(RemoteWorker):
             d["ssl"] = self.ws_loop._use_ssl
 
         return d
+
+    def exportable_config(self) -> dict:
+        conf = super().exportable_config()
+        conf.pop("host", None)
+        conf.pop("port", None)
+        conf.pop("ssl", None)
+        return conf
