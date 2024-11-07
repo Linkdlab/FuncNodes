@@ -551,13 +551,13 @@ funcnodes-core = ">=0.1.24"
 
 [[package]]
 name = "funcnodes-core"
-version = "0.2.0"
+version = "0.2.2"
 description = "core package for funcnodes"
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "funcnodes_core-0.2.0-py3-none-any.whl", hash = "sha256:897544a448ab6e53766c6d3c85a97d39df4664d4ca39785c39b94b87549818b5"},
-    {file = "funcnodes_core-0.2.0.tar.gz", hash = "sha256:dec6a994070125d393322bff07fd174ded7e1966f4b62a036b339d633d06c88a"},
+    {file = "funcnodes_core-0.2.2-py3-none-any.whl", hash = "sha256:67bd105bf3a7a79023f56fd79277c210a9e5a43aea96c13babc1e96e99faa9ef"},
+    {file = "funcnodes_core-0.2.2.tar.gz", hash = "sha256:da8c828a94c7471a72ce0804c5da722207885adca77f3fc2e608692ae8805b4b"},
 ]
 
 [package.dependencies]
@@ -1167,13 +1167,13 @@ type = ["importlib-metadata (>=7.0.2)", "jaraco.develop (>=7.21)", "mypy (==1.12
 
 [[package]]
 name = "subprocess-monitor"
-version = "0.1.2"
+version = "0.1.3"
 description = "A service to manage monitor and spawn subprocess"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "subprocess_monitor-0.1.2-py3-none-any.whl", hash = "sha256:03d20b26012bb3fc18f2ea129100e6700e3e303783c4e3969482cfcdf68d9e63"},
-    {file = "subprocess_monitor-0.1.2.tar.gz", hash = "sha256:8c5e7c73c28736c0710c6716311d3e0566bbbd719b1e2c5c955846a2024e4b87"},
+    {file = "subprocess_monitor-0.1.3-py3-none-any.whl", hash = "sha256:c0e66633d6d02235948956331c84fcb107379b01a2cc0bc4769dcf8035b629a8"},
+    {file = "subprocess_monitor-0.1.3.tar.gz", hash = "sha256:cc9d7980d3d44b9826d88e4220dda4fc579a0043be8fd33313ef608c861222f2"},
 ]
 
 [package.dependencies]
@@ -1210,19 +1210,19 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "venvmngr"
-version = "0.1.5"
+version = "0.1.7"
 description = "managing a local environment"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "venvmngr-0.1.5-py3-none-any.whl", hash = "sha256:c250f8367ef6b2fd558e2abb8f457d189bfb6dcac442721bc1b9d1e7411c66d7"},
-    {file = "venvmngr-0.1.5.tar.gz", hash = "sha256:8484c9e80a70cc628e31f298a24bb519964f08f4a9492829144c8952dd2f2702"},
+    {file = "venvmngr-0.1.7-py3-none-any.whl", hash = "sha256:95877a80183e905a8d0dba9f790284e93d2074075883e54e4f87b01812a5f7b8"},
+    {file = "venvmngr-0.1.7.tar.gz", hash = "sha256:3d3b679f86fb64d6e68aad63e8c3e414d817cac0ce49a8bb79fd99a07b8beff0"},
 ]
 
 [package.dependencies]
 packaging = "*"
 requests = "*"
-subprocess-monitor = ">=0.1.0,<0.2.0"
+subprocess-monitor = ">=0.1.2,<0.2.0"
 
 [[package]]
 name = "virtualenv"
@@ -1449,4 +1449,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11"
-content-hash = "ba2ec6d92d3358a709b771eed1fd24dd2d184ff2900fe2f9400a42f690be3ae0"
+content-hash = "bbe52b37d684c1e8c8040a8e9adbfa82872d37c6e4a31a351992aee167be23e4"
