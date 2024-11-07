@@ -117,3 +117,7 @@ class RemoteWorker(Worker):
 
     def update_config(self, config: WorkerJson) -> RemoteWorkerJson:
         return super().update_config(config)
+
+    def exportable_config(self) -> dict:
+        """creates a copy of the config without the process specific data"""
+        return super().exportable_config()

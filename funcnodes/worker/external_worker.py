@@ -57,6 +57,17 @@ class FuncNodesExternalWorker(NodeClassMixin, EventEmitterMixin, CustomLoop):
         self.cleanup()
         await super().stop()
 
+    def serialize(self) -> FuncNodesExternalWorkerJson:
+        """
+        Serializes the FuncNodesExternalWorker class.
+        """
+        return FuncNodesExternalWorkerJson(
+            uuid=self.uuid,
+            nodeclassid=self.NODECLASSID,
+            running=self.running,
+            name=self.name,
+        )
+
 
 class FuncNodesExternalWorkerJson(TypedDict):
     """
@@ -72,12 +83,7 @@ class FuncNodesExternalWorkerJson(TypedDict):
 def encode_external_worker(obj, preview=False):  # noqa: F841
     if isinstance(obj, FuncNodesExternalWorker):
         return Encdata(
-            data=FuncNodesExternalWorkerJson(
-                uuid=obj.uuid,
-                nodeclassid=obj.NODECLASSID,
-                running=obj.running,
-                name=obj.name,
-            ),
+            data=obj.serialize(),
             handeled=True,
             done=True,
             continue_preview=False,
