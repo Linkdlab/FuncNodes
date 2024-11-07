@@ -568,17 +568,17 @@ setuptools = "*"
 
 [[package]]
 name = "funcnodes-react-flow"
-version = "0.2.1"
+version = "0.2.2"
 description = "funcnodes frontend for react flow"
 optional = false
 python-versions = ">=3.11"
 files = [
-    {file = "funcnodes_react_flow-0.2.1-py3-none-any.whl", hash = "sha256:cefba9635f751a4d0964cdc22d6e1fc980eed09e0e199db771fad2eea4cb8d40"},
-    {file = "funcnodes_react_flow-0.2.1.tar.gz", hash = "sha256:c1cd568987989b5540477f8fc100dabb49bbca0dcdce765f32df29cd015a5661"},
+    {file = "funcnodes_react_flow-0.2.2-py3-none-any.whl", hash = "sha256:05abcdcda614ad5129d37e7f10a60e914e844e49b6390a13555ed1f18c51402d"},
+    {file = "funcnodes_react_flow-0.2.2.tar.gz", hash = "sha256:e833e7d761528d85a9f607a568627c7578783271407d4b4837e211c2da9031cc"},
 ]
 
 [package.dependencies]
-funcnodes = ">=0.4.28"
+funcnodes = ">=0.4.35"
 
 [[package]]
 name = "identify"
@@ -1449,4 +1449,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11"
-content-hash = "bbe52b37d684c1e8c8040a8e9adbfa82872d37c6e4a31a351992aee167be23e4"
+content-hash = "5be47af960420a137257689d6117be87bed7d6cca4ed7c0b8ef2d5ab4fa47a2f"
