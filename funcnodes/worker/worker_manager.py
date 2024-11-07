@@ -128,6 +128,16 @@ def create_worker_env(workerconfig: WorkerJson):
     )
 
 
+def update_worker_env(workerconfig: WorkerJson):
+    workerenv = venvmngr.get_virtual_env(workerconfig["env_path"])
+
+    update_on_startup = workerconfig.get("update_on_startup", {})
+    if update_on_startup.get("funcnodes", True):
+        workerenv.install_package("funcnodes", upgrade=True)
+    if update_on_startup.get("funcnodes-core", True):
+        workerenv.install_package("funcnodes-core", upgrade=True)
+
+
 def start_worker(workerconfig: WorkerJson, debug=False):
     """
     Starts the worker process.
@@ -805,6 +815,21 @@ class WorkerManager:
             if active_worker is None:
                 for worker in self._inactive_workers:
                     if worker["uuid"] == workerid:
+                        await self.set_progress_state(
+                            message="Updating worker.",
+                            progress=0.2,
+                            blocking=True,
+                            status="info",
+                            websocket=websocket,
+                        )
+                        update_worker_env(worker)
+                        await self.set_progress_state(
+                            message="Starting worker.",
+                            progress=0.4,
+                            blocking=True,
+                            status="info",
+                            websocket=websocket,
+                        )
                         start_worker(worker, debug=self._debug)
                         active_worker = worker
 
@@ -822,7 +847,7 @@ class WorkerManager:
                 self.worker_dir, f"worker_{active_worker['uuid']}.json"
             )
             await self.set_progress_state(
-                message="Activating worker.",
+                message="Contacting worker.",
                 progress=0.5,
                 blocking=True,
                 status="info",
@@ -830,7 +855,7 @@ class WorkerManager:
             )
             for i in range(20):
                 await self.set_progress_state(
-                    message="Activating worker.",
+                    message="Contacting worker.",
                     progress=0.5 + i * 0.02,
                     blocking=True,
                     status="info",
