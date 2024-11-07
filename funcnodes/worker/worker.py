@@ -731,7 +731,7 @@ class Worker(ABC):
 
     def update_from_config(self, config: dict):
         """updates the worker from a config dict"""
-
+        reload_base(with_repos=True)
         if "package_dependencies" in config:
             for name, dep in config["package_dependencies"].items():
                 try:
