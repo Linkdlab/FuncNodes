@@ -5,6 +5,7 @@ from typing import List, Optional
 import logging
 from funcnodes_core import NodeSpace
 import time
+import threading
 
 MIN_DELAY = 0.1
 MIN_DEF = 0.1
@@ -94,6 +95,34 @@ class LoopManager:
                 asyncio.set_event_loop(self._loop)
             else:
                 raise
+
+    def run_until_complete(self, coro):
+        if self._loop.is_running():
+            # Loop is running, execute the coroutine in a new thread
+            result = {}
+            exception = {}
+
+            def run_coroutine():
+                try:
+                    # Each thread needs its own event loop
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    result["value"] = new_loop.run_until_complete(coro)
+                except Exception as e:
+                    exception["e"] = e
+                finally:
+                    new_loop.close()
+
+            thread = threading.Thread(target=run_coroutine)
+            thread.start()
+            thread.join()
+
+            if "e" in exception:
+                raise exception["e"]
+            return result.get("value")
+
+        else:
+            return self._loop.run_until_complete(coro)
 
     def add_loop(self, loop: CustomLoop):
         if self._running:
