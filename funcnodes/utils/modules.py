@@ -19,6 +19,7 @@ class AvailableRepo:
     description: str = ""
     entry_point__module: Optional[str] = None
     entry_point__shelf: Optional[str] = None
+    entry_point__external_worker: Optional[str] = None
     moduledata: Optional[InstalledModule] = None
     last_updated: Optional[str] = None
     homepage: Optional[str] = None
@@ -28,7 +29,8 @@ class AvailableRepo:
     @classmethod
     def from_dict(cls, data):
         data.setdefault("installed", False)
-        return cls(**data)
+
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
 AVAILABLE_REPOS: Dict[str, AvailableRepo] = {}
@@ -43,12 +45,12 @@ def load_repo_csv():
     for line in reader:
         try:
             data = AvailableRepo.from_dict(line)
-            if line["package_name"] in AVAILABLE_REPOS:
-                moddata = AVAILABLE_REPOS[line["package_name"]].moduledata
+            if data.package_name in AVAILABLE_REPOS:
+                moddata = AVAILABLE_REPOS[data.package_name].moduledata
                 data.moduledata = moddata
             if data.moduledata:
                 data.installed = True
-            AVAILABLE_REPOS[line["package_name"]] = data
+            AVAILABLE_REPOS[data.package_name] = data
 
         except Exception as e:
             FUNCNODES_LOGGER.exception(e)
