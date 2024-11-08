@@ -720,22 +720,22 @@ class Worker(ABC):
 
         return c
 
-    def ini_config(self):
+    async def ini_config(self):
         """initializes the worker from the config file"""
         if os.path.exists(self._process_file):
             raise RuntimeError("Worker already running")
         self._write_process_file()
         c = self.load_or_generate_config()
 
-        self.update_from_config(dict(c))
+        await self.update_from_config(dict(c))
 
-    def update_from_config(self, config: dict):
+    async def update_from_config(self, config: dict):
         """updates the worker from a config dict"""
         reload_base(with_repos=True)
         if "package_dependencies" in config:
             for name, dep in config["package_dependencies"].items():
                 try:
-                    self.add_package_dependency(name, dep, save=False)
+                    await self.add_package_dependency(name, dep, save=False)
                 except Exception as e:
                     self.logger.exception(e)
 
@@ -775,14 +775,18 @@ class Worker(ABC):
                 for k, v in config["shelves_dependencies"].items():
                     try:
                         pkg = _shelves_dependencies_to_package(v)
-                        self.add_package_dependency(pkg["package"], pkg, save=False)
+                        await self.add_package_dependency(
+                            pkg["package"], pkg, save=False
+                        )
                     except Exception as e:
                         self.logger.exception(e)
             elif isinstance(config["shelves_dependencies"], list):
                 for dep in config["shelves_dependencies"]:
                     try:
                         pkg = _shelves_dependencies_to_package(dep)
-                        self.add_package_dependency(pkg["package"], pkg, save=False)
+                        await self.add_package_dependency(
+                            pkg["package"], pkg, save=False
+                        )
                     except Exception as e:
                         self.logger.exception(e)
 
@@ -812,7 +816,7 @@ class Worker(ABC):
         return zip_bytes
 
     @exposed_method()
-    def update(
+    async def update(
         self,
         config: Union[str, dict, None] = None,
         state: Union[str, dict, None] = None,
@@ -833,12 +837,12 @@ class Worker(ABC):
             raise ValueError("state must be a dict or a json string")
 
         if config is not None:
-            self.update_from_config(dictconfig)
+            await self.update_from_config(dictconfig)
         if state is not None:
             self.load_data(dictstate)
 
     @exposed_method()
-    def update_from_export(self, data: Union[str, bytes]):
+    async def update_from_export(self, data: Union[str, bytes]):
         """updates the worker from an exported zip file"""
         if isinstance(data, str):
             # data is base64 encoded zip data
@@ -848,7 +852,7 @@ class Worker(ABC):
             config = json.loads(zip_file.read("config").decode("utf-8"))
             state = json.loads(zip_file.read("state").decode("utf-8"))
 
-        self.update(config=config, state=state)
+        await self.update(config=config, state=state)
 
     # endregion config
     # region properties
@@ -1187,7 +1191,7 @@ class Worker(ABC):
         }
 
     def set_progress_state_sync(self, *args, **kwargs):
-        self.loop_manager.async_call(self.set_progress_state(*args, **kwargs))
+        self.loop_manager.run_until_complete(self.set_progress_state(*args, **kwargs))
 
     @exposed_method()
     def add_shelf(self, src: Union[str, ShelfDict], save: bool = True):
@@ -1223,12 +1227,12 @@ class Worker(ABC):
         return self.add_shelf(module)
 
     @exposed_method()
-    def add_package_dependency(
+    async def add_package_dependency(
         self, name: str, dep: Optional[PackageDependency] = None, save: bool = True
     ):
         if dep and "path" in dep:
             raise NotImplementedError("Local package dependencies not implemented")
-        self.set_progress_state_sync(
+        await self.set_progress_state(
             message="Add package dependency", status="info", progress=0.0, blocking=True
         )
         try:
@@ -1249,10 +1253,10 @@ class Worker(ABC):
                 raise ValueError(f"Package {name} not found")
 
             if not repo.installed:
-                self.set_progress_state_sync(
+                await self.set_progress_state(
                     message="Install dependency",
                     status="info",
-                    progress=40.0,
+                    progress=0.40,
                     blocking=True,
                 )
 
@@ -1266,10 +1270,10 @@ class Worker(ABC):
             if module is None:
                 raise ValueError(f"Package {name} not found")
 
-            self.set_progress_state_sync(
+            await self.set_progress_state(
                 message="Adding dependency",
                 status="info",
-                progress=80.0,
+                progress=0.80,
                 blocking=True,
             )
 
@@ -1308,14 +1312,14 @@ class Worker(ABC):
 
             if save:
                 self.request_save()
-            self.set_progress_state_sync(
+            await self.set_progress_state(
                 message="Package dependency added",
                 status="success",
                 progress=1,
                 blocking=False,
             )
         except Exception as exc:
-            self.set_progress_state_sync(
+            await self.set_progress_state(
                 message=f"Could not install {name}",
                 status="error",
                 progress=0.0,
@@ -1707,7 +1711,7 @@ class Worker(ABC):
         self._save_disabled = True
         self.logger.info("Starting worker forever")
         self.loop_manager.reset_loop()
-        self.ini_config()
+        self.loop_manager.run_until_complete(self.ini_config())
         self.initialize_nodespace()
         self._save_disabled = False
 
