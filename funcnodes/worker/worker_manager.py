@@ -678,14 +678,22 @@ class WorkerManager:
         active_names = [
             f"{workerconfigs[uuid].get('name')}({uuid})" for uuid in active_worker_ids
         ]
-        joined_names = "\n".join(active_names)
+        if active_names:
+            active_joined_names = "\n" + "\n  ".join(active_names) + "\n  "
+        else:
+            active_joined_names = ""
 
         inactive_names = [
             f"{workerconfigs[uuid].get('name')}({uuid})" for uuid in inactive_worker_ids
         ]
-        joined_names = "\n  ".join(inactive_names)
+        if inactive_names:
+            inactive_joined_names = "\n" + "\n  ".join(inactive_names) + "\n  "
+        else:
+            inactive_joined_names = ""
         fn.FUNCNODES_LOGGER.info(
-            f"Active workers: [\n{joined_names}\n  ]\ninactive workers:[\n{joined_names}\n  ]"
+            "Active workers: [%s]\ninactive workers:[%s]",
+            active_joined_names,
+            inactive_joined_names,
         )
 
         await self.broadcast_worker_status()
@@ -939,6 +947,7 @@ class WorkerManager:
                     asyncio.TimeoutError,
                     KeyError,
                     json.JSONDecodeError,
+                    websockets.exceptions.WebSocketException,
                 ):
                     await asyncio.sleep(0.5)
                     continue
