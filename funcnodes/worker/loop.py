@@ -153,6 +153,7 @@ class LoopManager:
                 else:
                     _ = self._loop.create_task(loop.stop())
             except Exception as e:
+                self._worker.logger.exception(e)
                 raise e
 
         if loop in self._loops:
@@ -206,6 +207,7 @@ class LoopManager:
             print("Interrupt received, shutting down.")
             self._worker.stop()
         except Exception as e:
+            self._worker.logger.exception(e)
             raise e
         finally:
             self.stop()
