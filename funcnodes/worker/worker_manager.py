@@ -6,11 +6,13 @@ import websockets
 import asyncio
 import subprocess
 import sys
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Any
+from collections.abc import Callable
 import threading
 
 from funcnodes.worker.worker import WorkerJson, WorkerState
 import subprocess_monitor
+import weakref
 import venvmngr
 
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
@@ -24,7 +26,12 @@ class ReturnValueThread(threading.Thread):
     A thread class for returning values from a thread.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        target: Optional[Callable] = None,
+        args: Optional[tuple] = None,
+        kwargs: Optional[dict] = None,
+    ) -> None:
         """
         Initializes a new instance of the ReturnValueThread class.
 
@@ -32,8 +39,9 @@ class ReturnValueThread(threading.Thread):
           *args: Variable length argument list.
           **kwargs: Arbitrary keyword arguments.
         """
-        super().__init__(*args, **kwargs)
-        self.result = None
+        super().__init__(target=target, args=args or (), kwargs=kwargs or {})
+        self.result: Any = None
+        self.exception: Optional[Exception] = None
 
     def run(self):
         """
@@ -43,11 +51,11 @@ class ReturnValueThread(threading.Thread):
           None
         """
         if self._target is None:
-            return  # could alternatively raise an exception, depends on the use case
+            return
         try:
             self.result = self._target(*self._args, **self._kwargs)
         except Exception as exc:
-            fn.FUNCNODES_LOGGER.exception(exc)
+            self.exception = exc
 
     def join(self, *args, **kwargs):
         """
@@ -56,7 +64,10 @@ class ReturnValueThread(threading.Thread):
         Returns:
           Any: The result of the target function.
         """
+        #
         super().join(*args, **kwargs)
+        if self.exception:
+            raise self.exception
         return self.result
 
 
@@ -185,9 +196,6 @@ def start_worker(workerconfig: WorkerJson, debug=False):
         )
 
 
-#
-
-
 async def check_worker(workerconfig: WorkerJson):
     """
     Checks if the worker is active.
@@ -275,12 +283,17 @@ class WorkerManager:
             os.makedirs(self._worker_dir)
         self._isrunninglock = threading.Lock()
         self._is_running = False
-        self._connections: List[websockets.WebSocketServerProtocol] = []
+        self._connectionslock = threading.Lock()
+        self._connections: List[
+            weakref.ReferenceType[websockets.WebSocketServerProtocol]
+        ] = []
         self._active_workers: List[WorkerJson] = []
         self._inactive_workers: List[WorkerJson] = []
         self._debug = debug
         if debug:
             fn.FUNCNODES_LOGGER.setLevel("DEBUG")
+
+        self._checking_worker_thread = None
 
     @property
     def worker_dir(self):
@@ -305,7 +318,6 @@ class WorkerManager:
         )
         with self._isrunninglock:
             self._is_running = True
-        l_rl = 0
 
         def _stop():
             with self._isrunninglock:
@@ -315,44 +327,62 @@ class WorkerManager:
             if not os.environ.get("SUBPROCESS_MONITOR_KEEP_RUNNING"):
                 subprocess_monitor.call_on_manager_death(_stop)
 
+        self._checking_worker_thread = threading.Thread(
+            target=self._checking_worker_thread_fn, daemon=True
+        )
+        self._checking_worker_thread.start()
+
         while self._is_running:
             await asyncio.sleep(0.5)
-            for conn in self._connections:
-                if conn.closed:
-                    self._connections.remove(conn)
+            # remove dead references
+            with self._connectionslock:
+                self._connections = [
+                    conn for conn in self._connections if conn() is not None
+                ]
 
-            t = time.time()
             await self.check_shutdown()
 
-            if t - l_rl > 20 or self.worker_changed():
-                await self.reload_workers()
+    def _checking_worker_thread_fn(self):
+        l_rl = 0
+        while self._is_running:
+            t = time.time()
+            if t - l_rl > 5 or self.worker_changed():
+                asyncio.run(self.reload_workers())
                 l_rl = t
-
-        await self.stop()
+            time.sleep(1)
 
     async def _handle_connection(
-        self, websocket: websockets.WebSocketServerProtocol, path
+        self, websocket: websockets.WebSocketServerProtocol, *args, **kwargs
     ):
         """
         Handles a new connection to the WorkerManager.
 
         Args:
           websocket (websockets.WebSocketServerProtocol): The websocket connection.
-          path (str): The path of the connection.
 
         Returns:
           None
         """
+
         fn.FUNCNODES_LOGGER.debug("New connection: %s", websocket)
-        self._connections.append(websocket)
+        with self._connectionslock:
+            self._connections.append(weakref.ref(websocket))
+
         try:
             async for message in websocket:
-                await self._handle_message(message, websocket)
+                asyncio.create_task(self._handle_message(message, websocket))
+
+            await websocket.close()
         except (websockets.exceptions.WebSocketException,):
             pass
+
         finally:
-            if websocket in self._connections:
-                self._connections.remove(websocket)
+            with self._connectionslock:
+                self._connections = [
+                    conn
+                    for conn in self._connections
+                    if conn() is not None and conn() != websocket
+                ]
 
     async def _handle_message(
         self, message: str, websocket: websockets.WebSocketServerProtocol
@@ -618,7 +648,10 @@ class WorkerManager:
             await asyncio.sleep(0.1)
 
         for t in workerchecks:
-            res = t.join()
+            try:
+                res = t.join()
+            except Exception as exc:
+                fn.FUNCNODES_LOGGER.exception(exc)
             if res is None:
                 continue
 
@@ -712,7 +745,10 @@ class WorkerManager:
             except Exception:
                 pass
 
-        await asyncio.gather(*[try_send(conn, message) for conn in self._connections])
+        with self._connectionslock:
+            cons = [conn() for conn in self._connections]
+            cons = [conn for conn in cons if conn is not None]
+        await asyncio.gather(*[try_send(conn, message) for conn in cons])
 
     async def stop_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol
@@ -988,16 +1024,6 @@ class WorkerManager:
         await self.reload_workers()
         return new_worker
 
-    # def start_worker(workerconfig):
-    #     subprocess.Popen(
-    #         [
-    #             sys.executable,
-    #             os.path.join(fn.__path__[0], "worker", "worker.py"),
-    #             workerconfig["host"],
-    #             str(workerconfig["port"]),
-    #         ]
-    #     )
-
 
 def start_worker_manager(
     host: Optional[str] = None,
@@ -1017,7 +1043,8 @@ def start_worker_manager(
       >>> start_worker_manager()
       None
     """
-    asyncio.run(WorkerManager(host=host, port=port, debug=debug).run_forever())
+    wm = WorkerManager(host=host, port=port, debug=debug)
+    asyncio.run(wm.run_forever())
 
 
 async def assert_worker_manager_running(
