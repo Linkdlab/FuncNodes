@@ -229,6 +229,7 @@ async def check_worker(workerconfig: WorkerJson):
             asyncio.TimeoutError,
             KeyError,
             json.JSONDecodeError,
+            websockets.exceptions.WebSocketException,
         ):
             pass
 
