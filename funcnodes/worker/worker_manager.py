@@ -500,7 +500,10 @@ class WorkerManager:
             }
         )
         if websocket is not None:
-            await websocket.send(msg)
+            try:
+                await websocket.send(msg)
+            except Exception:
+                pass
         else:
             await self.broadcast(msg)
 
