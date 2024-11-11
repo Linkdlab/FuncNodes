@@ -1254,7 +1254,7 @@ class Worker(ABC):
 
             if not repo.installed:
                 await self.set_progress_state(
-                    message="Install dependency",
+                    message="Install dependency " + name,
                     status="info",
                     progress=0.40,
                     blocking=True,
