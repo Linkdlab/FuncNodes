@@ -119,18 +119,22 @@ def start_existing_worker(args: argparse.Namespace):
         # run the worker with the same python executable
         if not os.path.exists(cfg["python_path"]):
             raise Exception(f"Python executable not found: {cfg['python_path']}")
-        return os.execv(
-            cfg["python_path"],
-            [
-                "-m",
-                "funcnodes",
-                "worker",
-                "start",
-                "--uuid",
-                args.uuid,
+        calllist = [
+            "-m",
+            "funcnodes",
+            "worker",
+            "start",
+            "--uuid",
+            cfg["uuid"],
+        ]
+        if args.workertype:
+            calllist += [
                 "--workertype",
                 args.workertype,
-            ],
+            ]
+        return os.execv(
+            cfg["python_path"],
+            calllist,
         )
 
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
