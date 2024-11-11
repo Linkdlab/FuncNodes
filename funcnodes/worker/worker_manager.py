@@ -148,6 +148,11 @@ def update_worker_env(workerconfig: WorkerJson):
     if update_on_startup.get("funcnodes-core", True):
         workerenv.install_package("funcnodes-core", upgrade=True)
 
+    for k, dep in workerconfig["package_dependencies"].items():
+        if "package" in dep:
+            if dep.get("version", None) is None:
+                workerenv.install_package(dep["package"], upgrade=True)
+
 
 def start_worker(workerconfig: WorkerJson, debug=False):
     """
@@ -870,7 +875,42 @@ class WorkerManager:
                             status="info",
                             websocket=websocket,
                         )
-                        update_worker_env(worker)
+                        workerenv = venvmngr.get_virtual_env(worker["env_path"])
+
+                        update_on_startup = worker.get("update_on_startup", {})
+                        if update_on_startup.get("funcnodes", True):
+                            await self.set_progress_state(
+                                message="updating funcnodes",
+                                progress=0.3,
+                                blocking=True,
+                                status="info",
+                                websocket=websocket,
+                            )
+                            workerenv.install_package("funcnodes", upgrade=True)
+                        if update_on_startup.get("funcnodes-core", True):
+                            await self.set_progress_state(
+                                message="updating funcnodes-core",
+                                progress=0.3,
+                                blocking=True,
+                                status="info",
+                                websocket=websocket,
+                            )
+                            workerenv.install_package("funcnodes-core", upgrade=True)
+
+                        for k, dep in worker["package_dependencies"].items():
+                            if "package" in dep:
+                                if dep.get("version", None) is None:
+                                    await self.set_progress_state(
+                                        message="updating " + dep["package"],
+                                        progress=0.3,
+                                        blocking=True,
+                                        status="info",
+                                        websocket=websocket,
+                                    )
+                                    workerenv.install_package(
+                                        dep["package"], upgrade=True
+                                    )
+
                         await self.set_progress_state(
                             message="Starting worker.",
                             progress=0.4,
@@ -1110,7 +1150,6 @@ async def assert_worker_manager_running(
 
                 if p.poll() is None:
                     p.kill()
-
             # start worker manager in a new process
             p = run_in_new_process(
                 sys.executable,
