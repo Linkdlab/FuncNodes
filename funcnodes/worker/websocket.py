@@ -83,14 +83,13 @@ class WSLoop(CustomLoop):
         self._use_ssl: bool = False
 
     async def _handle_connection(
-        self, websocket: websockets.WebSocketServerProtocol, path
+        self, websocket: websockets.WebSocketServerProtocol, *args, **kwargs
     ):
         """
         Handles a new client connection.
 
         Args:
           websocket (websockets.WebSocketServerProtocol): The WebSocket connection.
-          path: The path for the WebSocket connection.
         """
         self.clients.append(websocket)
         try:
