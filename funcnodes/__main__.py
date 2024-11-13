@@ -92,6 +92,8 @@ def start_new_worker(args: argparse.Namespace):
     args.uuid = new_worker.uuid()
     args.name = new_worker.name()
 
+    if args.create_only:
+        return
     return start_existing_worker(args)
 
 
@@ -425,6 +427,11 @@ def main():
     parser_worker.add_argument(
         "--new", action="store_true", help="Create a new instance"
     )
+
+    parser_worker.add_argument(
+        "--create-only", action="store_true", help="Create a new instance only"
+    )
+
     parser_worker.add_argument(
         "--uuid", default=None, required=False, help="The uuid of the worker to start"
     )

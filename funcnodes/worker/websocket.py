@@ -3,13 +3,9 @@ from typing import List, Optional
 import websockets
 from funcnodes import NodeSpace, JSONDecoder
 from funcnodes.worker import CustomLoop
-from .worker import (
-    ErrorMessage,
-)
 from .remote_worker import RemoteWorker, RemoteWorkerJson
 
 import json
-import traceback
 import asyncio
 from funcnodes import FUNCNODES_LOGGER
 
@@ -102,31 +98,6 @@ class WSLoop(CustomLoop):
         finally:
             print("Client disconnected")
             self.clients.remove(websocket)
-
-    async def _send_error(
-        self,
-        websocket: websockets.WebSocketServerProtocol,
-        error: Exception,
-        id: Optional[str] = None,
-    ):
-        """
-        Sends an error message to a client.
-
-        Args:
-          websocket (websockets.WebSocketServerProtocol): The WebSocket connection.
-          error (Exception): The error to send.
-          id (str | None): The ID of the message that caused the error.
-        """
-        await websocket.send(
-            json.dumps(
-                ErrorMessage(
-                    type="error",
-                    error=str(error),
-                    tb=traceback.format_exception(error),
-                    id=id,
-                )
-            )
-        )
 
     async def _assert_connection(self):
         """

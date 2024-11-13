@@ -4,9 +4,7 @@ from funcnodes_basic.math_nodes import add_node
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
-
     async def test_simple_node_creation(self):
-
         add_node_ins = add_node()  # basically lambda a, b: a+b
 
         add_node_ins.inputs["a"].value = 2  # sets the input of a to 1
@@ -22,7 +20,6 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(add_node_ins.outputs["out"].value, 5)
 
     async def test_simple_connection(self):
-
         add_node1 = add_node()
         add_node2 = add_node()
 

@@ -1034,7 +1034,7 @@ class WorkerManager:
         worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
 
         new_worker = worker_class(name=name, uuid=uuid)
-        new_worker.ini_config()
+        await new_worker.ini_config()
         new_worker.stop()
         c = new_worker.write_config()
         if name:
