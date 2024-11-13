@@ -15,6 +15,8 @@ import subprocess_monitor
 import weakref
 import venvmngr
 
+from funcnodes.utils.messages import make_progress_message_string
+
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 
 if DEVMODE:
@@ -495,14 +497,8 @@ class WorkerManager:
         Examples:
           >>> await set_progress_state("Processing...", "info", 0.5, False, websocket)
         """
-        msg = json.dumps(
-            {
-                "type": "progress",
-                "message": message,
-                "status": status,
-                "progress": progress,
-                "blocking": blocking,
-            }
+        msg = make_progress_message_string(
+            message=message, status=status, progress=progress, blocking=blocking
         )
         if websocket is not None:
             try:
@@ -1038,7 +1034,7 @@ class WorkerManager:
         worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
 
         new_worker = worker_class(name=name, uuid=uuid)
-        new_worker.ini_config()
+        await new_worker.ini_config()
         new_worker.stop()
         c = new_worker.write_config()
         if name:
