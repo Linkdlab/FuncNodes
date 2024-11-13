@@ -51,6 +51,7 @@ import io
 import zipfile
 import base64
 import warnings
+from funcnodes.utils.messages import worker_event_message
 from ..utils import AVAILABLE_REPOS, reload_base, install_repo, try_import_module
 
 try:
@@ -490,6 +491,8 @@ class Worker(ABC):
     ) -> None:
         if default_nodes is None:
             default_nodes = []
+
+        print("Init Worker", self.__class__.__name__)
 
         self._debug = debug
         self._package_dependencies: Dict[str, PackageDependency] = {}
@@ -1140,11 +1143,10 @@ class Worker(ABC):
 
     async def worker_event(self, event: str, **kwargs):
         await self.send(
-            {
-                "type": "workerevent",
-                "event": event,
-                "data": kwargs,
-            }
+            worker_event_message(
+                event=event,
+                data=kwargs,
+            )
         )
 
     async def send(self, data, **kwargs):

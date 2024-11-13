@@ -107,6 +107,10 @@ class BaseServer:
         self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.ssl_context.load_cert_chain(certfile=certfile, keyfile=keyfile)
 
+    @property
+    def is_running(self):
+        return self._is_running
+
     async def shutdown(self):
         print("Shutting down server")
         async with self._is_running_lock:
@@ -166,7 +170,6 @@ class BaseServer:
                 asyncio.CancelledError,
                 asyncio.TimeoutError,
             ):
-                print("AAAA")
                 await self.shutdown()
             while self._is_running:
                 try:
