@@ -139,6 +139,10 @@ def start_existing_worker(args: argparse.Namespace):
             calllist,
         )
 
+    workertype = args.workertype
+    if workertype is None:
+        workertype = cfg.get("type", "WSWorker")
+
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, args.workertype)
     fn.FUNCNODES_LOGGER.info(f"Starting existing worker of type {args.workertype}")
     worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
@@ -422,7 +426,7 @@ def main():
     )
 
     parser_worker.add_argument(
-        "--workertype", default="WSWorker", help="The type of worker to start"
+        "--workertype", default=None, help="The type of worker to start"
     )
     parser_worker.add_argument(
         "--new", action="store_true", help="Create a new instance"

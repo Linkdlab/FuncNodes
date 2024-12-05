@@ -90,6 +90,7 @@ class WSLoop(CustomLoop):
         self.clients.append(websocket)
         try:
             async for message in websocket:
+                print(f"Recieved message: {message}")
                 json_msg = json.loads(message, cls=JSONDecoder)
                 await self._worker.recieve_message(json_msg, websocket=websocket)
 
@@ -116,6 +117,24 @@ class WSLoop(CustomLoop):
                 if self._port > ENDPORT:
                     self._port = STARTPORT
                     raise Exception("No free ports available")
+
+    def change_port(self, port: Optional[int] = None):
+        """
+        Changes the port number for the WebSocket server.
+        If no port number is provided, the port number will be incremented by 1.
+
+        Args:
+          port (int, optional): The new port number. Defaults to None.
+        """
+        if port is not None:
+            self._port = port
+        else:
+            self._port += 1
+            if self._port > ENDPORT:
+                self._port = STARTPORT
+        if self.ws_server is not None:
+            self.ws_server.close()
+            self.ws_server = None
 
     async def loop(self):
         """
