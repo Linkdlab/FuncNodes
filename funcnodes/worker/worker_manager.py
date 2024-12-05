@@ -575,7 +575,7 @@ class WorkerManager:
             return True
         return False
 
-    def get_all_workercfg(self):
+    def get_all_workercfg(self) -> List[WorkerJson]:
         """
         Gets all worker configurations.
 
