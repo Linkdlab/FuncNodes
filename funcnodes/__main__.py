@@ -123,6 +123,7 @@ def start_existing_worker(args: argparse.Namespace):
         if not os.path.exists(cfg["python_path"]):
             raise Exception(f"Python executable not found: {cfg['python_path']}")
         calllist = [
+            cfg["python_path"],
             "-m",
             "funcnodes",
             "worker",
