@@ -269,18 +269,22 @@ def task_worker(args: argparse.Namespace):
     """
 
     workertask = args.workertask
-    if workertask == "start":
-        return start_existing_worker(args)
-    elif workertask == "new":
-        return start_new_worker(args)
-    elif workertask == "list":
-        return list_workers(args)
-    elif workertask == "listen":
-        return listen_worker(args)
-    elif workertask == "activate":
-        return activate_worker_env(args)
-    else:
-        raise Exception(f"Unknown workertask: {workertask}")
+    try:
+        if workertask == "start":
+            return start_existing_worker(args)
+        elif workertask == "new":
+            return start_new_worker(args)
+        elif workertask == "list":
+            return list_workers(args)
+        elif workertask == "listen":
+            return listen_worker(args)
+        elif workertask == "activate":
+            return activate_worker_env(args)
+        else:
+            raise Exception(f"Unknown workertask: {workertask}")
+    except Exception as exc:
+        fn.FUNCNODES_LOGGER.exception(exc)
+        raise
 
 
 def start_worker_manager(args: argparse.Namespace):
