@@ -8,6 +8,7 @@ from .remote_worker import RemoteWorker, RemoteWorkerJson
 import json
 import asyncio
 from funcnodes import FUNCNODES_LOGGER
+import os
 
 
 class WSWorkerJson(RemoteWorkerJson):
@@ -25,8 +26,8 @@ class WSWorkerJson(RemoteWorkerJson):
     ssl: bool
 
 
-STARTPORT = 9382
-ENDPORT = 9482
+STARTPORT = os.environ.get("FUNCNODES_WS_WORKER_STARTPORT", 9382)
+ENDPORT = os.environ.get("FUNCNODES_WS_WORKER_ENDPORT", 9582)
 
 
 class WSLoop(CustomLoop):
@@ -53,7 +54,7 @@ class WSLoop(CustomLoop):
     def __init__(
         self,
         worker: WSWorker,
-        host: str = "127.0.0.1",
+        host: str = None,
         port: int = STARTPORT,
         delay=5,
         *args,
@@ -71,7 +72,7 @@ class WSLoop(CustomLoop):
           **kwargs: Additional keyword arguments.
         """
         super().__init__(*args, delay=delay, **kwargs)
-        self._host = host
+        self._host = host or os.environ.get("FUNCNODES_HOST", "localhost")
         self._port = port
         self.ws_server: websockets.WebSocketServer | None = None
         self._worker = worker
@@ -108,7 +109,12 @@ class WSLoop(CustomLoop):
             try:
                 if self.ws_server is None:
                     self.ws_server = await websockets.serve(
-                        self._handle_connection, self._host, self._port, max_size=2**32
+                        self._handle_connection,
+                        self._host,
+                        self._port,
+                        max_size=int(
+                            os.environ.get("FUNCNODES_WS_WORKER_MAX_SIZE", 2**32)
+                        ),
                     )
                     self._worker.write_config()
                 return
@@ -184,7 +190,7 @@ class WSWorker(RemoteWorker):
             c = {}
 
         if host is None:
-            host = c.get("host", "127.0.0.1")
+            host = c.get("host", os.environ.get("FUNCNODES_HOST", "localhost"))
         if port is None:
             port = c.get("port", STARTPORT)
         self.ws_loop = WSLoop(host=host, port=port, worker=self)
@@ -268,7 +274,7 @@ class WSWorker(RemoteWorker):
             **{
                 **super().update_config(config),
                 **dict(
-                    host="127.0.0.1",
+                    host=os.environ.get("FUNCNODES_HOST", "localhost"),
                     port=STARTPORT,
                     ssl=False,
                 ),
