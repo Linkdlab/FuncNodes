@@ -16,6 +16,7 @@ import weakref
 import venvmngr
 
 from funcnodes.utils.messages import make_progress_message_string
+from funcnodes.utils.cmd import build_worker_start, build_startworkermanager
 
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 
@@ -171,13 +172,9 @@ def start_worker(workerconfig: WorkerJson, debug=False):
     args = [
         workerconfig["python_path"],
         "-m",
-        "funcnodes",
-        "worker",
-        "start",
-        f"--uuid={workerconfig['uuid']}",
     ]
-    if debug:
-        args.append("--debug")
+
+    args += build_worker_start(uuid=workerconfig["uuid"], debug=debug)
 
     if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
         loop = asyncio.get_event_loop()
@@ -1137,17 +1134,13 @@ async def assert_worker_manager_running(
 
                 if p.poll() is None:
                     p.kill()
-            # start worker manager in a new process
-            p = run_in_new_process(
+            # start worker manager in a new
+
+            args = [
                 sys.executable,
                 "-m",
-                "funcnodes",
-                "startworkermanager",
-                "--host",
-                host,
-                "--port",
-                str(port),
-            )
+            ] + build_startworkermanager(host=host, port=port)
+            p = run_in_new_process(*args)
 
             await asyncio.sleep(retry_interval)
     else:
