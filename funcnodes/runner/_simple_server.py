@@ -40,6 +40,7 @@ class BaseServer:
         self,
         host: Optional[str] = None,
         port: Optional[int] = None,
+        has_worker_manager: bool = True,
         worker_manager_host: Optional[str] = None,
         worker_manager_port: Optional[int] = None,
         worker_manager_ssl: Optional[bool] = None,
@@ -47,19 +48,22 @@ class BaseServer:
         static_path: Optional[str] = None,
         static_url: Optional[str] = None,
     ) -> None:
-        if worker_manager_host is None:
-            worker_manager_host = fn.config.CONFIG["worker_manager"]["host"]
+        if has_worker_manager:
+            if worker_manager_host is None:
+                worker_manager_host = fn.config.CONFIG["worker_manager"]["host"]
 
-        if worker_manager_port is None:
-            worker_manager_port = fn.config.CONFIG["worker_manager"]["port"]
+            if worker_manager_port is None:
+                worker_manager_port = fn.config.CONFIG["worker_manager"]["port"]
 
-        if worker_manager_ssl is None:
-            worker_manager_ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
+            if worker_manager_ssl is None:
+                worker_manager_ssl = fn.config.CONFIG["worker_manager"].get(
+                    "ssl", False
+                )
 
-        self.start_worker_manager = start_worker_manager
-        self.worker_manager_ssl = worker_manager_ssl
-        self.worker_manager_host = worker_manager_host
-        self.worker_manager_port = worker_manager_port
+            self.start_worker_manager = start_worker_manager
+            self.worker_manager_ssl = worker_manager_ssl
+            self.worker_manager_host = worker_manager_host
+            self.worker_manager_port = worker_manager_port
         self.host = host
         self.port = port
         self.app = web.Application()
@@ -80,7 +84,8 @@ class BaseServer:
         else:
             self.static_url = self.STATIC_URL
 
-        self.add_route(Methods.GET, "/worker_manager", self.get_worker_manager)
+        if has_worker_manager:
+            self.add_route(Methods.GET, "/worker_manager", self.get_worker_manager)
 
         self.add_route(Methods.GET, "/", self.index)
 
@@ -223,6 +228,8 @@ class BaseServer:
         worker_manager_port: Optional[int] = None,
         worker_manager_ssl: Optional[bool] = None,
         start_worker_manager=True,
+        has_worker_manager=True,
+        **kwargs,
     ):
         ins = cls(
             port=port,
@@ -230,6 +237,8 @@ class BaseServer:
             worker_manager_port=worker_manager_port,
             worker_manager_ssl=worker_manager_ssl,
             start_worker_manager=start_worker_manager,
+            has_worker_manager=has_worker_manager,
+            **kwargs,
         )
 
         try:
