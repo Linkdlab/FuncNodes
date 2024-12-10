@@ -6,6 +6,7 @@ import subprocess_monitor
 from subprocess_monitor.types import StreamingLineOutput
 from funcnodes.utils.asyncutils import async_to_sync
 from funcnodes.worker import Worker
+from funcnodes.utils.cmd import build_worker_new, build_worker_start
 
 
 async def start_worker_via_subprocess_monitor(
@@ -25,16 +26,9 @@ async def start_worker_via_subprocess_monitor(
             raise Exception("Subprocess monitor not running")
         port = int(os.environ["SUBPROCESS_MONITOR_PORT"])
 
-    args = [
-        "-m",
-        "funcnodes",
-        "worker",
-        "start",
-        "--uuid",
-        uuid,
-    ]
-    if workertype is not None:
-        args.extend(["--workertype", workertype])
+    args = ["-m"]
+
+    args += build_worker_start(uuid=uuid, workertype=workertype)
 
     subprocess_kwargs: Dict[str, Any] = {
         "port": port,
@@ -77,17 +71,13 @@ async def spawn_worker_via_subprocess_monitor(
 
     args = [
         "-m",
-        "funcnodes",
-        "worker",
-        "new",
-        "--uuid",
-        uuid,
-        "--create-only",
     ]
+
     if workertype is not None:
         if isinstance(workertype, type):
             workertype = workertype.__name__
-        args.extend(["--workertype", workertype])
+
+    args += build_worker_new(uuid=uuid, workertype=workertype, create_only=True)
     subprocess_kwargs: Dict[str, Any] = {
         "port": port,
     }
