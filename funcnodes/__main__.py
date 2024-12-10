@@ -6,6 +6,8 @@ from pprint import pprint
 import sys
 import os
 import time
+import shutil
+from funcnodes.utils.cmd import build_worker_start
 
 
 try:
@@ -125,17 +127,8 @@ def start_existing_worker(args: argparse.Namespace):
         calllist = [
             cfg["python_path"],
             "-m",
-            "funcnodes",
-            "worker",
-            "start",
-            "--uuid",
-            cfg["uuid"],
-        ]
-        if args.workertype:
-            calllist += [
-                "--workertype",
-                args.workertype,
-            ]
+        ] + build_worker_start(uuid=cfg["uuid"], workertype=args.workertype)
+
         return os.execv(
             cfg["python_path"],
             calllist,
@@ -340,16 +333,17 @@ def activate_worker_env(args: argparse.Namespace):
             "&&",
             "cmd /k",
         ]
+        executable = None
     else:
         # For Unix-based systems (Linux, macOS)
         venv_activate_script = os.path.join(venv, "bin", "activate")
         shell_command = f"source {venv_activate_script} && exec $SHELL"
-
+        executable = shutil.which("bash") or shutil.which("sh")
     # Run the shell command
     subprocess.run(
         shell_command,
         shell=True,
-        executable="/bin/bash" if sys.platform != "win32" else None,
+        executable=executable,
     )
 
 
@@ -430,14 +424,26 @@ def add_runserver_parser(subparsers):
     )
 
 
+def _add_worker_identifiers(parser):
+    parser.add_argument(
+        "--uuid",
+        default=None,
+        help="The UUID of the worker (shared across subcommands)",
+    )
+    parser.add_argument(
+        "--name",
+        default=None,
+        help="The name of the worker (shared across subcommands)",
+    )
+
+
 def add_worker_parser(subparsers):
     parser = subparsers.add_parser("worker", help="Manage workers")
     worker_subparsers = parser.add_subparsers(
-        dest="workertask", help="Worker-related tasks"
+        dest="workertask", help="Worker-related tasks", required=True
     )
 
-    parser.add_argument("--uuid", default=None, help="The UUID of the worker")
-    parser.add_argument("--name", default=None, help="The name of the worker")
+    _add_worker_identifiers(parser)  # Add globally to "worker"
 
     # List workers
     list_parser = worker_subparsers.add_parser("list", help="List all workers")
@@ -455,11 +461,10 @@ def add_worker_parser(subparsers):
         "activate", help="Activate the worker environment"
     )
 
-    # run in python environment
+    # Run a Python command in the worker environment
     py_parser = worker_subparsers.add_parser(
         "py", help="Run python in the worker environment"
     )
-
     py_parser.add_argument(
         "command",
         nargs=argparse.REMAINDER,
@@ -493,9 +498,6 @@ def add_worker_manager_parser(subparsers):
     )
     parser.add_argument(
         "--port", default=None, type=int, help="The port to run the worker manager on"
-    )
-    parser.add_argument(
-        "--debug", action="store_true", help="Run the worker manager in debug mode"
     )
 
 
