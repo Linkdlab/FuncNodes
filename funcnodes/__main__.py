@@ -281,6 +281,8 @@ def task_worker(args: argparse.Namespace):
             return listen_worker(args)
         elif workertask == "activate":
             return activate_worker_env(args)
+        elif workertask == "py":
+            return py_in_worker_env(args)
         else:
             raise Exception(f"Unknown workertask: {workertask}")
     except Exception as exc:
@@ -351,6 +353,29 @@ def activate_worker_env(args: argparse.Namespace):
     )
 
 
+def py_in_worker_env(args: argparse.Namespace):
+    """
+    Runs python in the worker environment.
+
+    Args:
+      args (argparse.Namespace): The arguments passed to the function.
+
+    Returns:
+      None
+
+    Examples:
+      >>> py_in_worker_env(args)
+      None
+    """
+    cfg = _worker_conf_from_args(args)
+
+    # Run the command in the worker environment
+    print(f"{cfg['python_path']} {' '.join(args.command)}")
+    os.system(
+        f"{cfg['python_path']} {' '.join(args.command)}"
+    )  # Run the command in the worker environment
+
+
 def task_modules(args: argparse.Namespace):
     """
     Performs a task on modules.
@@ -371,6 +396,114 @@ def task_modules(args: argparse.Namespace):
         raise Exception(f"Unknown moduletask: {args.moduletask}")
 
 
+def add_runserver_parser(subparsers):
+    parser = subparsers.add_parser("runserver", help="Run the server")
+    parser.add_argument(
+        "--port",
+        default=fn.config.CONFIG["frontend"]["port"],
+        type=int,
+        help="Port to run the server on",
+    )
+    parser.add_argument(
+        "--no-browser",
+        action="store_false",
+        help="Do not open the browser after starting the server",
+    )
+    parser.add_argument(
+        "--no-manager", action="store_false", help="Do not start the worker manager"
+    )
+    parser.add_argument(
+        "--worker_manager_host",
+        default=None,
+        help="The host to run the worker manager on",
+    )
+    parser.add_argument(
+        "--worker_manager_port",
+        default=None,
+        type=int,
+        help="The port to run the worker manager on",
+    )
+    parser.add_argument(
+        "--worker_manager_ssl",
+        action="store_true",
+        help="Use SSL for the worker manager",
+    )
+
+
+def add_worker_parser(subparsers):
+    parser = subparsers.add_parser("worker", help="Manage workers")
+    worker_subparsers = parser.add_subparsers(
+        dest="workertask", help="Worker-related tasks"
+    )
+
+    parser.add_argument("--uuid", default=None, help="The UUID of the worker")
+    parser.add_argument("--name", default=None, help="The name of the worker")
+
+    # List workers
+    list_parser = worker_subparsers.add_parser("list", help="List all workers")
+    list_parser.add_argument(
+        "--full", action="store_true", help="Show detailed worker information"
+    )
+
+    # Listen to worker logs
+    listen_parser = worker_subparsers.add_parser(  # noqa: F841
+        "listen", help="Listen to a worker"
+    )
+
+    # Activate worker environment
+    activate_parser = worker_subparsers.add_parser(  # noqa: F841
+        "activate", help="Activate the worker environment"
+    )
+
+    # run in python environment
+    py_parser = worker_subparsers.add_parser(
+        "py", help="Run python in the worker environment"
+    )
+
+    py_parser.add_argument(
+        "command",
+        nargs=argparse.REMAINDER,
+        help="The command to run in the worker environment",
+    )
+
+    # Start a new worker
+    new_worker_parser = worker_subparsers.add_parser("new", help="Start a new worker")
+    new_worker_parser.add_argument(
+        "--workertype", default=None, help="The type of worker to start"
+    )
+    new_worker_parser.add_argument(
+        "--create-only", action="store_true", help="Only create a new worker instance"
+    )
+
+    # Start an existing worker
+    start_worker_parser = worker_subparsers.add_parser(
+        "start", help="Start an existing worker"
+    )
+    start_worker_parser.add_argument(
+        "--workertype", default=None, help="The type of worker to start"
+    )
+
+
+def add_worker_manager_parser(subparsers):
+    parser = subparsers.add_parser(
+        "startworkermanager", help="Start the worker manager"
+    )
+    parser.add_argument(
+        "--host", default=None, help="The host to run the worker manager on"
+    )
+    parser.add_argument(
+        "--port", default=None, type=int, help="The port to run the worker manager on"
+    )
+    parser.add_argument(
+        "--debug", action="store_true", help="Run the worker manager in debug mode"
+    )
+
+
+def add_modules_parser(subparsers):
+    parser = subparsers.add_parser("modules", help="Manage modules")
+    parser.add_argument("moduletask", help="Task to perform on modules")
+
+
 def main():
     """
     The main function.
@@ -386,110 +519,20 @@ def main():
         parser = argparse.ArgumentParser(description="Funcnodes Cli.")
         subparsers = parser.add_subparsers(dest="task", required=True)
 
-        # Subparser for the 'runserver' task
-        parser_runserver = subparsers.add_parser("runserver", help="Run the server")
-        parser_runserver.add_argument(
-            "--port",
-            default=fn.config.CONFIG["frontend"]["port"],
-            help="Port to run the server on",
-            type=int,
-        )
-        parser_runserver.add_argument(
-            "--no-browser",
-            action="store_false",
-            help="Open the browser after starting the server",
-        )
-        parser_runserver.add_argument(
-            "--no-manager",
-            action="store_false",
-            help="Do not start the worker manager",
-        )
+        # Add subparsers for each major task
+        add_runserver_parser(subparsers)
+        add_worker_parser(subparsers)
+        add_worker_manager_parser(subparsers)
+        add_modules_parser(subparsers)
 
-        parser_runserver.add_argument(
-            "--worker_manager_host",
-            default=None,
-            help="The host to run the worker manager on",
-        )
-
-        parser_runserver.add_argument(
-            "--worker_manager_port",
-            default=None,
-            help="The port to run the worker manager on",
-            type=int,
-        )
-
-        parser_runserver.add_argument(
-            "--worker_manager_ssl",
-            action="store_true",
-            help="Use SSL for the worker manager",
-        )
-
-        # Subparser for the 'startworker' task
-        parser_worker = subparsers.add_parser("worker", help="Start a worker")
-        parser_worker.add_argument("workertask", help="The task to run in the worker")
-
-        parser_worker.add_argument(
-            "--full", action="store_true", help="printing option for extensive output"
-        )
-
-        parser_worker.add_argument(
-            "--workertype", default=None, help="The type of worker to start"
-        )
-        parser_worker.add_argument(
-            "--new", action="store_true", help="Create a new instance"
-        )
-
-        parser_worker.add_argument(
-            "--create-only", action="store_true", help="Create a new instance only"
-        )
-
-        parser_worker.add_argument(
-            "--uuid",
-            default=None,
-            required=False,
-            help="The uuid of the worker to start",
-        )
-
-        parser_worker.add_argument(
-            "--name",
-            default=None,
-            required=False,
-            help="The name of the worker to start",
-        )
-
-        parser_worker.add_argument(
+        # Global worker arguments
+        parser.add_argument(
             "--debug", action="store_true", help="Run the worker in debug mode"
         )
-        # Subparser for the 'startworkermanager' task
-        startworkermanagerparser = subparsers.add_parser(
-            "startworkermanager", help="Start the worker manager"
-        )
 
-        startworkermanagerparser.add_argument(
-            "--host",
-            default=None,
-            help="The host to run the worker manager on",
-        )
-
-        startworkermanagerparser.add_argument(
-            "--port",
-            default=None,
-            help="The port to run the worker manager on",
-            type=int,
-        )
-
-        startworkermanagerparser.add_argument(
-            "--debug", action="store_true", help="Run the worker manager in debug mode"
-        )
-
-        # Global argument applicable to all subparsers
         parser.add_argument(
             "--version", action="version", version=f"%(prog)s {fn.__version__}"
         )
-
-        modules_parser = subparsers.add_parser("modules", help="")
-        modules_parser.add_argument("moduletask", help="The task to run on the modules")
-
         args = parser.parse_args()
         # try:
         if args.task == "runserver":
