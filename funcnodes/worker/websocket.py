@@ -26,8 +26,8 @@ class WSWorkerJson(RemoteWorkerJson):
     ssl: bool
 
 
-STARTPORT = os.environ.get("FUNCNODES_WS_WORKER_STARTPORT", 9382)
-ENDPORT = os.environ.get("FUNCNODES_WS_WORKER_ENDPORT", 9582)
+STARTPORT = int(os.environ.get("FUNCNODES_WS_WORKER_STARTPORT", 9382))
+ENDPORT = int(os.environ.get("FUNCNODES_WS_WORKER_ENDPORT", 9582))
 
 
 class WSLoop(CustomLoop):
