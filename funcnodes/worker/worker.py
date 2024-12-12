@@ -1737,9 +1737,12 @@ class Worker(ABC):
         finally:
             self.stop()
 
-    def run_forever_threaded(self):
+    def run_forever_threaded(self, wait_for_running=True):
         runthread = threading.Thread(target=self.run_forever, daemon=True)
         runthread.start()
+        if wait_for_running:
+            while not self.is_running():
+                time.sleep(0.1)
         return runthread
 
     def stop(self):
@@ -1755,8 +1758,12 @@ class Worker(ABC):
         if os.path.exists(self._process_file):
             os.remove(self._process_file)
 
+    def is_running(self):
+        return self.loop_manager.running
+
     def __del__(self):
-        self.stop()
+        if self.is_running():
+            self.stop()
 
     async def run_cmd(self, json_msg: CmdMessage):
         cmd = json_msg["cmd"]
