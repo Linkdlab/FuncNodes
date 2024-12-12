@@ -2,6 +2,8 @@ import unittest
 import funcnodes as fn
 from funcnodes_basic.math_nodes import add_node
 
+fn.config.IN_NODE_TEST = True
+
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
     async def test_simple_node_creation(self):
