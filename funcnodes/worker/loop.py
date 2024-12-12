@@ -177,7 +177,8 @@ class LoopManager:
             self.remove_loop(loop)
 
     @property
-    def running(self):
+    def running(self) -> bool:
+        """Returns True if the loop manager is running."""
         return self._running
 
     def _prerun(self):
