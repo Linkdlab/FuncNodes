@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Optional
-import websockets
+from aiohttp import web, WSCloseCode
 from funcnodes import NodeSpace, JSONDecoder
 from funcnodes.worker import CustomLoop
 from .remote_worker import RemoteWorker, RemoteWorkerJson
@@ -32,23 +32,7 @@ ENDPORT = int(os.environ.get("FUNCNODES_WS_WORKER_ENDPORT", 9582))
 
 class WSLoop(CustomLoop):
     """
-    Custom loop for WebSocket worker.
-
-    Args:
-      worker (WSWorker): The WebSocket worker.
-      host (str): The host address for the WebSocket server.
-      port (int): The port number for the WebSocket server.
-      delay (int): The delay between loop iterations.
-      *args: Additional arguments.
-      **kwargs: Additional keyword arguments.
-
-    Attributes:
-      ws_server (websockets.WebSocketServer | None): The WebSocket server.
-      clients (List[websockets.WebSocketServerProtocol]): The list of connected clients.
-
-    Methods:
-      loop: The main loop for the WebSocket server.
-      stop: Stops the WebSocket server.
+    Custom loop for WebSocket worker using aiohttp.
     """
 
     def __init__(
@@ -60,63 +44,69 @@ class WSLoop(CustomLoop):
         *args,
         **kwargs,
     ) -> None:
-        """
-        Initializes a new WSLoop instance.
-
-        Args:
-          worker (WSWorker): The WebSocket worker.
-          host (str): The host address for the WebSocket server.
-          port (int): The port number for the WebSocket server.
-          delay (int): The delay between loop iterations.
-          *args: Additional arguments.
-          **kwargs: Additional keyword arguments.
-        """
         super().__init__(*args, delay=delay, **kwargs)
         self._host = host or os.environ.get("FUNCNODES_HOST", "localhost")
         self._port = port
-        self.ws_server: websockets.WebSocketServer | None = None
-        self._worker = worker
-        self.clients: List[websockets.WebSocketServerProtocol] = []
         self._use_ssl: bool = False
+        self._worker = worker
+        self.clients: List[web.WebSocketResponse] = []
+        self.app = web.Application()
+        self.app.router.add_get("/", self._handle_connection)
+        self.site: Optional[web.TCPSite] = None
+        self.runner = None
 
-    async def _handle_connection(
-        self, websocket: websockets.WebSocketServerProtocol, *args, **kwargs
-    ):
+    async def _handle_connection(self, request: web.Request):
         """
         Handles a new client connection.
-
-        Args:
-          websocket (websockets.WebSocketServerProtocol): The WebSocket connection.
         """
+        websocket = web.WebSocketResponse(
+            max_msg_size=int(os.environ.get("FUNCNODES_WS_WORKER_MAX_SIZE", 2**32 - 1))
+        )
+        await websocket.prepare(request)
         self.clients.append(websocket)
+        self._worker.logger.debug("Client connected")
+
         try:
             async for message in websocket:
-                print(f"Recieved message: {message}")
-                json_msg = json.loads(message, cls=JSONDecoder)
-                await self._worker.recieve_message(json_msg, websocket=websocket)
-
-        except websockets.exceptions.WebSocketException as e:
+                if message.type == web.WSMsgType.TEXT:
+                    self._worker.logger.debug(f"Received message: {message.data}")
+                    json_msg = json.loads(message.data, cls=JSONDecoder)
+                    await self._worker.recieve_message(json_msg, websocket=websocket)
+                elif message.type == web.WSMsgType.ERROR:
+                    exc = websocket.exception()
+                    if exc is not None:
+                        FUNCNODES_LOGGER.error(f"WebSocket error: {exc}")
+                        raise exc
+                elif message.type == web.WSMsgType.CLOSE:
+                    self._worker.logger.debug("Client closed connection")
+                    break
+                else:
+                    print(f"Received unknown message type: {message.type}")
+        except Exception as e:
             FUNCNODES_LOGGER.exception(e)
         finally:
-            print("Client disconnected")
+            self._worker.logger.debug("Client disconnected")
             self.clients.remove(websocket)
+
+        return websocket
 
     async def _assert_connection(self):
         """
-        Asserts that the WebSocket server is running.
+        Starts the aiohttp WebSocket server if not already running.
         """
+        if self.site is not None:
+            return
+
         while True:
             try:
-                if self.ws_server is None:
-                    self.ws_server = await websockets.serve(
-                        self._handle_connection,
-                        self._host,
-                        self._port,
-                        max_size=int(
-                            os.environ.get("FUNCNODES_WS_WORKER_MAX_SIZE", 2**32)
-                        ),
-                    )
-                    self._worker.write_config()
+                self.runner = web.AppRunner(self.app)
+                await self.runner.setup()
+                self.site = web.TCPSite(self.runner, self._host, self._port)
+                await self.site.start()
+                self._worker.write_config()
+                self._worker.logger.info(
+                    f"WebSocket server running on {self._host}:{self._port}"
+                )
                 return
             except OSError:
                 self._port += 1
@@ -124,13 +114,9 @@ class WSLoop(CustomLoop):
                     self._port = STARTPORT
                     raise Exception("No free ports available")
 
-    def change_port(self, port: Optional[int] = None):
+    async def change_port(self, port: Optional[int] = None):
         """
         Changes the port number for the WebSocket server.
-        If no port number is provided, the port number will be incremented by 1.
-
-        Args:
-          port (int, optional): The new port number. Defaults to None.
         """
         if port is not None:
             self._port = port
@@ -138,9 +124,12 @@ class WSLoop(CustomLoop):
             self._port += 1
             if self._port > ENDPORT:
                 self._port = STARTPORT
-        if self.ws_server is not None:
-            self.ws_server.close()
-            self.ws_server = None
+        if self.site is not None:
+            await self.site.stop()
+            self.site = None
+        if self.runner is not None:
+            await self.runner.cleanup()
+            self.runner = None
 
     async def loop(self):
         """
@@ -152,15 +141,25 @@ class WSLoop(CustomLoop):
         """
         Stops the WebSocket server.
         """
-        if self.ws_server is not None:
-            self.ws_server.close()
-            await self.ws_server.wait_closed()
+
+        # close all clients
+        for client in self.clients:
+            await client.close(
+                code=WSCloseCode.GOING_AWAY, message="Server shutting down"
+            )
+
+        if self.site is not None:
+            await self.site.stop()
+            self.site = None
+        if self.runner is not None:
+            await self.runner.cleanup()
+            self.runner = None
         await super().stop()
 
 
 class WSWorker(RemoteWorker):
     """
-    Remote worker for WebSocket connections.
+    Remote worker for WebSocket connections using aiohttp.
     """
 
     def __init__(
@@ -197,22 +196,23 @@ class WSWorker(RemoteWorker):
         self.loop_manager.add_loop(self.ws_loop)
 
     async def sendmessage(
-        self, msg: str, websocket: Optional[websockets.WebSocketServerProtocol] = None
+        self, msg: str, websocket: Optional[web.WebSocketResponse] = None
     ):
         """send a message to the frontend"""
         if websocket:
             try:
-                await websocket.send(msg)
-            except websockets.exceptions.WebSocketException:
-                pass
+                await websocket.send_str(msg)
+            except Exception as exc:
+                self.logger.exception(exc)
         else:
-            clients = self.ws_loop.clients
-
-            if len(clients) > 0:
-                await asyncio.gather(
-                    *[ws.send(msg) for ws in clients],
+            if self.ws_loop.clients:
+                ans = await asyncio.gather(
+                    *[client.send_str(msg) for client in self.ws_loop.clients],
                     return_exceptions=True,
                 )
+                for a in ans:
+                    if isinstance(a, Exception):
+                        self.logger.exception(a)
 
     def _on_nodespaceerror(self, error: Exception, src: NodeSpace):
         """
@@ -293,3 +293,33 @@ class WSWorker(RemoteWorker):
         conf.pop("port", None)
         conf.pop("ssl", None)
         return conf
+
+    @property
+    def host(self) -> Optional[str]:
+        """
+        The host address for the WebSocket server.
+
+        Returns:
+          str: The host address for the WebSocket server.
+
+        Examples:
+          >>> worker.host
+        """
+        if hasattr(self, "ws_loop"):
+            return self.ws_loop._host
+        return None
+
+    @property
+    def port(self) -> Optional[int]:
+        """
+        The port number for the WebSocket server.
+
+        Returns:
+          int: The port number for the WebSocket server.
+
+        Examples:
+          >>> worker.port
+        """
+        if hasattr(self, "ws_loop"):
+            return self.ws_loop._port
+        return None
