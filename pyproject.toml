@@ -27,12 +27,13 @@ websockets = "*"
 virtualenv = "*"
 
 setproctitle = ">=1"
-funcnodes-basic = ">=0.1.6"
-funcnodes-core = ">=0.3.2"
+funcnodes-basic = ">=0.2.0"
+funcnodes-core = ">=0.3.6"
 funcnodes-react-flow = ">=0.2.2"
 requests = "*"
 subprocess-monitor = ">=0.2.0"
 venvmngr = ">=0.1.5"
+aiohttp-cors = "^0.7.0"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -1,6 +1,12 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List, Optional, Tuple, Dict
 from aiohttp import web, WSCloseCode
+
+try:
+    import aiohttp_cors
+except (ImportError, ModuleNotFoundError):
+    aiohttp_cors = None
+
 from funcnodes import NodeSpace, JSONDecoder
 from funcnodes.worker import CustomLoop
 from .remote_worker import RemoteWorker, RemoteWorkerJson
@@ -9,6 +15,8 @@ import json
 import asyncio
 from funcnodes import FUNCNODES_LOGGER
 import os
+import uuid
+import time
 
 
 class WSWorkerJson(RemoteWorkerJson):
@@ -28,6 +36,9 @@ class WSWorkerJson(RemoteWorkerJson):
 
 STARTPORT = int(os.environ.get("FUNCNODES_WS_WORKER_STARTPORT", 9382))
 ENDPORT = int(os.environ.get("FUNCNODES_WS_WORKER_ENDPORT", 9582))
+
+MESSAGE_SIZE_BEFORE_REQUEST = 1024 * 1024 * 1  # 1MB
+LARGE_MESSAGE_MEMORY_TIMEOUT = 60  # 1 minute
 
 
 class WSLoop(CustomLoop):
@@ -50,8 +61,36 @@ class WSLoop(CustomLoop):
         self._use_ssl: bool = False
         self._worker = worker
         self.clients: List[web.WebSocketResponse] = []
-        self.app = web.Application()
+        self.app = web.Application(client_max_size=1 * 1024 * 1024 * 1024)
+        # A store for large messages that cannot be sent directly over WebSocket
+        self.message_store: Dict[str, Tuple[str, float]] = {}
+
+        # WebSocket endpoint
         self.app.router.add_get("/", self._handle_connection)
+
+        # Endpoint for retrieving large messages
+        self.app.router.add_get("/message/{msg_id}", self._handle_get_message)
+
+        # Endpoint for uploading large messages
+        self.app.router.add_post("/message/", self._handle_post_message)
+
+        # Enable CORS
+        if aiohttp_cors is not None:
+            cors = aiohttp_cors.setup(
+                self.app,
+                defaults={
+                    "*": aiohttp_cors.ResourceOptions(
+                        allow_credentials=True,
+                        expose_headers="*",
+                        allow_headers="*",
+                    )
+                },
+            )
+
+            # Apply CORS to all routes
+            for route in list(self.app.router.routes()):
+                cors.add(route)
+
         self.site: Optional[web.TCPSite] = None
         self.runner = None
 
@@ -89,6 +128,38 @@ class WSLoop(CustomLoop):
             self.clients.remove(websocket)
 
         return websocket
+
+    async def _handle_get_message(self, request: web.Request):
+        """
+        Handle GET requests to retrieve large messages that were previously stored.
+        """
+        msg_id = request.match_info["msg_id"]
+        if msg_id in self.message_store:
+            msg = self.message_store[msg_id][
+                0
+            ]  # Remove after retrieval : self.message_store.pop(msg_id)[0]
+            return web.Response(text=msg, status=200, content_type="application/json")
+        return web.Response(text="Message not found", status=404)
+
+    async def _handle_post_message(self, request: web.Request):
+        """
+        Handle POST requests to store large incoming messages on the server.
+
+        Clients can use this endpoint to upload large messages, and the server
+        will return a unique ID that can be shared over WebSocket.
+        """
+        try:
+            data = await request.read()
+            # Here we assume the incoming data is JSON text.
+            # If it's not JSON, you may need additional processing/validation.
+            msg = data.decode("utf-8")
+            json_msg = json.loads(msg, cls=JSONDecoder)
+
+            await self._worker.recieve_message(json_msg)
+            return web.Response(text="Message received", status=200)
+        except Exception as e:
+            FUNCNODES_LOGGER.exception(e)
+            return web.Response(text="Error processing message", status=400)
 
     async def _assert_connection(self):
         """
@@ -131,11 +202,21 @@ class WSLoop(CustomLoop):
             await self.runner.cleanup()
             self.runner = None
 
+    async def clear_old_messages(self):
+        """
+        Clears old messages from the message store.
+        """
+        now = time.time()
+        for msg_id, (msg, timestamp) in list(self.message_store.items()):
+            if now - timestamp > LARGE_MESSAGE_MEMORY_TIMEOUT:
+                self.message_store.pop(msg_id)
+
     async def loop(self):
         """
         The main loop for the WebSocket server.
         """
         await self._assert_connection()
+        await self.clear_old_messages()
 
     async def stop(self):
         """
@@ -147,6 +228,8 @@ class WSLoop(CustomLoop):
             await client.close(
                 code=WSCloseCode.GOING_AWAY, message="Server shutting down"
             )
+
+        self.message_store.clear()
 
         if self.site is not None:
             await self.site.stop()
@@ -199,15 +282,30 @@ class WSWorker(RemoteWorker):
         self, msg: str, websocket: Optional[web.WebSocketResponse] = None
     ):
         """send a message to the frontend"""
+        if not msg:
+            return
+
+        if len(msg) > MESSAGE_SIZE_BEFORE_REQUEST:
+            msg_id = str(uuid.uuid4())
+            self.ws_loop.message_store[msg_id] = (msg, time.time())
+            # Construct a URL for the client to retrieve the message
+            link = f"http://{self.host}:{self.port}/message/{msg_id}"
+            wrapped_msg = json.dumps(
+                {"type": "large_message", "url": link, "msg_id": msg_id}
+            )
+            msg_to_send = wrapped_msg
+        else:
+            msg_to_send = msg
+
         if websocket:
             try:
-                await websocket.send_str(msg)
+                await websocket.send_str(msg_to_send)
             except Exception as exc:
                 self.logger.exception(exc)
         else:
             if self.ws_loop.clients:
                 ans = await asyncio.gather(
-                    *[client.send_str(msg) for client in self.ws_loop.clients],
+                    *[client.send_str(msg_to_send) for client in self.ws_loop.clients],
                     return_exceptions=True,
                 )
                 for a in ans:
