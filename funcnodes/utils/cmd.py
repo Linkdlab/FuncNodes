@@ -37,6 +37,7 @@ def build_worker_new(
     name: Optional[str] = None,
     workertype: Optional[str] = None,
     create_only: bool = False,
+    in_venv: Optional[bool] = None,
     **kwargs,
 ) -> List[str]:
     """
@@ -56,6 +57,10 @@ def build_worker_new(
         cmd.extend(["--workertype", workertype])
     if create_only:
         cmd.append("--create-only")
+    if in_venv is not None:
+        if not in_venv:
+            cmd.append("--not-in-venv")
+
     return cmd
 
 
