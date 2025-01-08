@@ -53,6 +53,7 @@ import base64
 import warnings
 from funcnodes.utils.messages import worker_event_message
 from ..utils import AVAILABLE_REPOS, reload_base, install_repo, try_import_module
+from ..utils.files import write_json_secure
 
 try:
     from funcnodes_react_flow import (
@@ -714,13 +715,8 @@ class Worker(ABC):
         cfile = self._config_file
         if not os.path.exists(os.path.dirname(cfile)):
             os.makedirs(os.path.dirname(cfile), exist_ok=True)
-        with open(
-            cfile,
-            "w+",
-            encoding="utf-8",
-        ) as f:
-            f.write(json.dumps(c, indent=2, cls=JSONEncoder))
 
+        write_json_secure(data=c, filepath=cfile, cls=JSONEncoder)
         return c
 
     async def ini_config(self):
@@ -1075,8 +1071,7 @@ class Worker(ABC):
             return
         data: WorkerState = self.get_save_state()
         print("saving", data)
-        with open(self.local_nodespace, "w+", encoding="utf-8") as f:
-            f.write(json.dumps(data, indent=2, cls=JSONEncoder))
+        write_json_secure(data, self.local_nodespace, cls=JSONEncoder)
         self.write_config()
         return data
 
@@ -1089,8 +1084,12 @@ class Worker(ABC):
         if data is None:
             if not os.path.exists(self.local_nodespace):
                 return
-            with open(self.local_nodespace, "r", encoding="utf-8") as f:
-                worker_data: WorkerState = json.loads(f.read(), cls=JSONDecoder)
+            try:
+                with open(self.local_nodespace, "r", encoding="utf-8") as f:
+                    worker_data: WorkerState = json.loads(f.read(), cls=JSONDecoder)
+            except json.JSONDecodeError as e:
+                self.logger.error(f"Error loading worker data: {e}")
+                worker_data = self.get_save_state()
 
         elif isinstance(data, str):
             worker_data: WorkerState = json.loads(data, cls=JSONDecoder)
@@ -1737,9 +1736,12 @@ class Worker(ABC):
         finally:
             self.stop()
 
-    def run_forever_threaded(self):
+    def run_forever_threaded(self, wait_for_running=True):
         runthread = threading.Thread(target=self.run_forever, daemon=True)
         runthread.start()
+        if wait_for_running:
+            while not self.is_running():
+                time.sleep(0.1)
         return runthread
 
     def stop(self):
@@ -1755,8 +1757,12 @@ class Worker(ABC):
         if os.path.exists(self._process_file):
             os.remove(self._process_file)
 
+    def is_running(self):
+        return self.loop_manager.running
+
     def __del__(self):
-        self.stop()
+        if self.is_running():
+            self.stop()
 
     async def run_cmd(self, json_msg: CmdMessage):
         cmd = json_msg["cmd"]
