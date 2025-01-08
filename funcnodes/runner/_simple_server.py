@@ -192,7 +192,10 @@ class BaseServer:
         if loop is None:
             loop = asyncio.get_event_loop()
 
-        loop.run_until_complete(self._run(**kwargs))
+        try:
+            loop.run_until_complete(self._run(**kwargs))
+        except KeyboardInterrupt:
+            loop.run_until_complete(self.shutdown())
 
     async def get_worker_manager(self, request):
         if self.start_worker_manager:

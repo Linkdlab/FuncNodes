@@ -87,6 +87,7 @@ def start_new_worker(args: argparse.Namespace):
         name=args.name,
         uuid=args.uuid,
         workertype=args.workertype or "WSWorker",
+        in_venv=args.in_venv,
     )
     import asyncio
 
@@ -120,7 +121,7 @@ def start_existing_worker(args: argparse.Namespace):
 
     cfg = _worker_conf_from_args(args)
 
-    if cfg["python_path"] != sys.executable:
+    if cfg.get("python_path", sys.executable) != sys.executable:
         # run the worker with the same python executable
         if not os.path.exists(cfg["python_path"]):
             raise Exception(f"Python executable not found: {cfg['python_path']}")
@@ -321,6 +322,9 @@ def activate_worker_env(args: argparse.Namespace):
 
     venv = cfg["env_path"]
 
+    if venv is None:
+        raise Exception("This worker does not have an environment")
+
     if not os.path.exists(venv):
         raise Exception(f"Environment not found: {venv}")
 
@@ -478,6 +482,9 @@ def add_worker_parser(subparsers):
     )
     new_worker_parser.add_argument(
         "--create-only", action="store_true", help="Only create a new worker instance"
+    )
+    new_worker_parser.add_argument(
+        "--not-in-venv", action="store_false", dest="in_venv", help="Do not use a venv"
     )
 
     # Start an existing worker

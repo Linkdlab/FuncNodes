@@ -17,6 +17,7 @@ import venvmngr
 
 from funcnodes.utils.messages import make_progress_message_string
 from funcnodes.utils.cmd import build_worker_start, build_startworkermanager
+from funcnodes.utils.files import write_json_secure
 
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 
@@ -145,6 +146,8 @@ def create_worker_env(workerconfig: WorkerJson):
 
 
 def update_worker_env(workerconfig: WorkerJson):
+    if workerconfig["env_path"] is None:
+        return
     workerenv = venvmngr.get_virtual_env(workerconfig["env_path"])
 
     update_on_startup = workerconfig.get("update_on_startup", {})
@@ -170,7 +173,7 @@ def start_worker(workerconfig: WorkerJson, debug=False):
       None
     """
     args = [
-        workerconfig["python_path"],
+        workerconfig.get("python_path", sys.executable),
         "-m",
     ]
 
@@ -505,6 +508,8 @@ class WorkerManager:
         else:
             await self.broadcast(msg)
 
+        await asyncio.sleep(0.05)
+
     async def stop(self):
         """
         Stops the worker manager.
@@ -536,6 +541,24 @@ class WorkerManager:
             await self.stop()
             os.remove(os.path.join(fn.config.CONFIG_DIR, "kill_worker_manager"))
 
+    def get_all_worker_files(self):
+        jsonbases = set()
+        processbases = set()
+        for f in os.listdir(self.worker_dir):
+            if f.startswith("worker_") and f.endswith(".json"):
+                jsonbases.add(f[:-5])
+            elif f.startswith("worker_") and f.endswith(".p"):
+                processbases.add(f[:-2])
+
+        processes_wo_json = processbases - jsonbases
+        for p in processes_wo_json:
+            try:
+                os.remove(os.path.join(self.worker_dir, f"{p}.p"))
+            except Exception:
+                pass
+        for j in jsonbases:
+            yield j + ".json", j + ".p" if j in processbases else None
+
     def worker_changed(self):
         """
         Checks if the worker configuration has changed.
@@ -548,25 +571,17 @@ class WorkerManager:
         """
         active_uuids = set([w["uuid"] for w in self._active_workers])
         active_files = set()
-        for f in os.listdir(self.worker_dir):
-            if f.startswith("worker_") and f.endswith(".p"):
-                if not os.path.exists(os.path.join(self.worker_dir, f[:-2] + ".json")):
-                    continue
-                active_files.add(f.split("_")[1].split(".")[0])
+        inactive_files = set()
+        for jsonf, pf in self.get_all_worker_files():
+            if pf:
+                active_files.add(pf.split("_")[1].split(".")[0])
+            else:
+                inactive_files.add(jsonf.split("_")[1].split(".")[0])
 
         if active_uuids != active_files:
             return True
 
         inactive_uuids = set([w["uuid"] for w in self._inactive_workers])
-
-        inactive_files = set(
-            [
-                f.split("_")[1].split(".")[0]
-                for f in os.listdir(self.worker_dir)
-                if f.startswith("worker_") and f.endswith(".json")
-            ]
-        )
-        inactive_files = inactive_files - active_files
 
         if inactive_uuids != inactive_files:
             return True
@@ -583,29 +598,25 @@ class WorkerManager:
           >>> get_all_workercfg()
         """
         workerconfigs: List[WorkerJson] = []
-        for f in os.listdir(self.worker_dir):
-            if f.startswith("worker_") and f.endswith(".json"):
-                with open(
-                    os.path.join(self.worker_dir, f), "r", encoding="utf-8"
-                ) as file:
-                    try:
-                        workerconfig: WorkerJson = json.load(file)
-                    except json.JSONDecodeError:
-                        continue
-                if workerconfig["type"] == "TestWorker":
-                    os.remove(os.path.join(self.worker_dir, f))
+        for jsonf, pf in self.get_all_worker_files():
+            jsonfilepath = os.path.join(self.worker_dir, jsonf)
+            with open(jsonfilepath, "r", encoding="utf-8") as file:
+                try:
+                    workerconfig: WorkerJson = json.load(file)
+                except json.JSONDecodeError:
                     continue
+            if workerconfig["type"] == "TestWorker":
+                os.remove(jsonfilepath)
+                continue
 
-                pfile = os.path.join(
-                    self.worker_dir, f"worker_{workerconfig['uuid']}.p"
-                )
-                if os.path.exists(pfile):
-                    try:
-                        with open(pfile, "rb") as file:
-                            workerconfig["pid"] = int(file.read())
-                    except Exception:
-                        pass
-                workerconfigs.append(workerconfig)
+            if pf:
+                pfile = os.path.join(self.worker_dir, pf)
+                try:
+                    with open(pfile, "rb") as file:
+                        workerconfig["pid"] = int(file.read())
+                except Exception:
+                    pass
+            workerconfigs.append(workerconfig)
 
         return workerconfigs
 
@@ -651,15 +662,15 @@ class WorkerManager:
         for t in workerchecks:
             try:
                 res = t.join()
+                if res is None:
+                    continue
+                if res[1]:
+                    active_worker_ids.append(res[0])
+                else:
+                    inactive_worker_ids.append(res[0])
+
             except Exception as exc:
                 logger.exception(exc)
-            if res is None:
-                continue
-
-            if res[1]:
-                active_worker_ids.append(res[0])
-            else:
-                inactive_worker_ids.append(res[0])
 
         for iid in inactive_worker_ids:
             pfile = os.path.join(self.worker_dir, f"worker_{iid}.p")
@@ -854,48 +865,67 @@ class WorkerManager:
             if active_worker is None:
                 for worker in self._inactive_workers:
                     if worker["uuid"] == workerid:
-                        await self.set_progress_state(
-                            message="Updating worker.",
-                            progress=0.2,
-                            blocking=True,
-                            status="info",
-                            websocket=websocket,
-                        )
-                        workerenv = venvmngr.get_virtual_env(worker["env_path"])
+                        if worker["env_path"] is not None:
+                            # check if abs or rel path
+                            if not os.path.isabs(worker["env_path"]):
+                                worker["env_path"] = os.path.abspath(
+                                    os.path.join(self.worker_dir, worker["env_path"])
+                                )
 
-                        update_on_startup = worker.get("update_on_startup", {})
-                        if update_on_startup.get("funcnodes", True):
+                            logger.info("Updating worker %s", workerid)
                             await self.set_progress_state(
-                                message="updating funcnodes",
-                                progress=0.3,
+                                message="Updating worker.",
+                                progress=0.2,
                                 blocking=True,
                                 status="info",
                                 websocket=websocket,
                             )
-                            workerenv.install_package("funcnodes", upgrade=True)
-                        if update_on_startup.get("funcnodes-core", True):
-                            await self.set_progress_state(
-                                message="updating funcnodes-core",
-                                progress=0.3,
-                                blocking=True,
-                                status="info",
-                                websocket=websocket,
-                            )
-                            workerenv.install_package("funcnodes-core", upgrade=True)
+                            workerenv = venvmngr.get_virtual_env(worker["env_path"])
 
-                        for k, dep in worker["package_dependencies"].items():
-                            if "package" in dep:
-                                if dep.get("version", None) is None:
-                                    await self.set_progress_state(
-                                        message="updating " + dep["package"],
-                                        progress=0.3,
-                                        blocking=True,
-                                        status="info",
-                                        websocket=websocket,
-                                    )
-                                    workerenv.install_package(
-                                        dep["package"], upgrade=True
-                                    )
+                            update_on_startup = worker.get("update_on_startup", {})
+                            if update_on_startup.get("funcnodes", True):
+                                logger.info("Updating worker %s - funcnodes", workerid)
+                                await self.set_progress_state(
+                                    message="updating funcnodes",
+                                    progress=0.3,
+                                    blocking=True,
+                                    status="info",
+                                    websocket=websocket,
+                                )
+                                workerenv.install_package("funcnodes", upgrade=True)
+                            if update_on_startup.get("funcnodes-core", True):
+                                logger.info(
+                                    "Updating worker %s - funcnodes-core", workerid
+                                )
+                                await self.set_progress_state(
+                                    message="updating funcnodes-core",
+                                    progress=0.3,
+                                    blocking=True,
+                                    status="info",
+                                    websocket=websocket,
+                                )
+                                workerenv.install_package(
+                                    "funcnodes-core", upgrade=True
+                                )
+
+                            for k, dep in worker["package_dependencies"].items():
+                                if "package" in dep:
+                                    if dep.get("version", None) is None:
+                                        logger.info(
+                                            "Updating worker %s - %s",
+                                            workerid,
+                                            dep["package"],
+                                        )
+                                        await self.set_progress_state(
+                                            message="updating " + dep["package"],
+                                            progress=0.3,
+                                            blocking=True,
+                                            status="info",
+                                            websocket=websocket,
+                                        )
+                                        workerenv.install_package(
+                                            dep["package"], upgrade=True
+                                        )
 
                         await self.set_progress_state(
                             message="Starting worker.",
@@ -991,6 +1021,16 @@ class WorkerManager:
                     }
                 )
             )
+        except Exception as e:
+            logger.exception(e)
+            return await websocket.send(
+                json.dumps(
+                    {
+                        "type": "error",
+                        "message": f"Could not activate worker with id {workerid}.",
+                    }
+                )
+            )
         finally:
             await self.reset_progress_state(
                 websocket=websocket,
@@ -1004,6 +1044,7 @@ class WorkerManager:
         copyNS: bool = False,
         uuid: str = None,
         workertype: str = "WSWorker",
+        in_venv: Optional[bool] = None,
     ):
         """
         Creates a new worker.
@@ -1030,14 +1071,27 @@ class WorkerManager:
         if name:
             c["name"] = name
 
-        # craete env
-        workerenv, new = venvmngr.get_or_create_virtual_env(
-            os.path.join(new_worker.data_path, "env")
-        )
-        workerenv.install_package("funcnodes", upgrade=True)
-        c["python_path"] = workerenv.python_exe
-        c["env_path"] = workerenv.env_path
+        if in_venv is None:
+            in_venv = os.environ.get("FUNCNODES_WORKER_IN_VENV", "1") in [
+                "1",
+                "True",
+                "true",
+                "yes",
+                "Yes",
+                "YES",
+            ]
 
+        if in_venv:
+            # craete env
+            workerenv, new = venvmngr.get_or_create_virtual_env(
+                os.path.join(new_worker.data_path, "env")
+            )
+            workerenv.install_package("funcnodes", upgrade=True)
+            c["python_path"] = workerenv.python_exe
+            c["env_path"] = workerenv.env_path
+        else:
+            c["python_path"] = sys.executable
+            c["env_path"] = None
         ref_cfg = None
         if reference:
             for cfg in self.get_all_workercfg():
@@ -1056,8 +1110,8 @@ class WorkerManager:
                     nsd = dict(ns)
                     del nsd["meta"]
                 nsfile = os.path.join(c["data_path"], "nodespace.json")
-                with open(nsfile, "w", encoding="utf-8") as file:
-                    json.dump(nsd, file, indent=4)
+                write_json_secure(data=nsd, filepath=nsfile)
+
         new_worker.write_config(c)
         await self.reload_workers()
         return new_worker
