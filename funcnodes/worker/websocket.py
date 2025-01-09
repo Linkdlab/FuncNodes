@@ -17,6 +17,7 @@ from funcnodes import FUNCNODES_LOGGER
 import os
 import uuid
 import time
+import io
 
 
 class WSWorkerJson(RemoteWorkerJson):
@@ -73,6 +74,7 @@ class WSLoop(CustomLoop):
 
         # Endpoint for uploading large messages
         self.app.router.add_post("/message/", self._handle_post_message)
+        self.app.router.add_post("/upload/", self._handle_upload)
 
         # Enable CORS
         if aiohttp_cors is not None:
@@ -160,6 +162,56 @@ class WSLoop(CustomLoop):
         except Exception as e:
             FUNCNODES_LOGGER.exception(e)
             return web.Response(text="Error processing message", status=400)
+
+    async def _handle_upload(self, request: web.Request):
+        """
+        Handles file upload via POST request.
+        Clients can upload files, which will be saved to the server's file system.
+
+        The request must include a multipart form with a file field.
+        """
+        try:
+            reader = await request.multipart()
+            files_uploaded = []
+            hexcode = uuid.uuid4().hex
+
+            while True:
+                # Process each field in the multipart request
+                field = await reader.next()
+                if field is None:
+                    break
+
+                # Ensure the field contains a file
+                if field.name != "file":
+                    continue
+
+                filename = field.filename
+                if not filename:
+                    continue
+
+                # Create in-memory storage for the file
+                with io.BytesIO() as filebytes:
+                    while True:
+                        chunk = await field.read_chunk()
+                        if not chunk:
+                            break
+                        filebytes.write(chunk)
+
+                    # Save the file using the worker, preserving folder structure
+                    local_filename = self._worker.upload(
+                        filebytes.getvalue(), filename, hexcode=hexcode
+                    )
+                    files_uploaded.append(local_filename)
+
+            return web.Response(
+                text=json.dumps({"files": files_uploaded}),
+                status=200,
+                content_type="application/json",
+            )
+
+        except Exception as e:
+            FUNCNODES_LOGGER.exception(e)
+            return web.Response(text="Error processing folder upload", status=500)
 
     async def _assert_connection(self):
         """

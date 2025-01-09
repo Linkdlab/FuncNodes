@@ -867,6 +867,14 @@ class Worker(ABC):
         self._data_path = data_path
 
     @property
+    def files_path(self) -> str:
+        fp = os.path.join(self.data_path, "files")
+        if not os.path.exists(fp):
+            os.makedirs(fp)
+
+        return fp
+
+    @property
     def local_nodespace(self):
         return os.path.join(self.data_path, "nodespace.json")
 
@@ -971,6 +979,19 @@ class Worker(ABC):
             "id": self.nodespace_id,
             "version": funcnodes.__version__,
         }
+
+    def upload(self, data: bytes, filename: str, hexcode: str | None = None) -> str:
+        if hexcode is None:
+            hexcode = uuid4().hex
+        filename = f"{hexcode}_{filename}"
+        full_path = os.path.join(self.files_path, filename)
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "wb") as f:
+            f.write(data)
+        self.nodespace.set_property("files_dir", self.files_path)
+        self.nodespace.add_file(filename)
+        return filename
 
     @exposed_method()
     def get_save_state(self) -> WorkerState:
@@ -1503,6 +1524,7 @@ class Worker(ABC):
     @exposed_method()
     def clear(self):
         self.nodespace.clear()
+        self.nodespace.set_property("files_dir", self.files_path)
 
     @requests_save
     @exposed_method()
