@@ -166,7 +166,7 @@ class BaseServer:
             async with self._is_running_lock:
                 self._is_running = True
                 self._shutdown_signal.clear()
-            print(f"Server started at http://{ self.host or '127.0.0.1' }:{self.port}")
+            print(f"Server started at http://{self.host or '127.0.0.1'}:{self.port}")
 
             try:
                 await self._shutdown_signal.wait()
