@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer
@@ -9,7 +9,7 @@ repos:
         args: ["--branch", "main", "--branch", "master", "--branch", "test"]
 
   - repo: https://github.com/python-poetry/poetry
-    rev: "1.8.0" # add version here
+    rev: "2.0.1" # add version here
     hooks:
       - id: poetry-check
         verbose: true
@@ -19,13 +19,13 @@ repos:
         verbose: true
 
   - repo: https://github.com/jendrikseipp/vulture
-    rev: "v2.11" # or any later Vulture version
+    rev: "v2.14" # or any later Vulture version
     hooks:
       - id: vulture
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.6.2
+    rev: v0.9.1
     hooks:
       # Run the linter.
       - id: ruff

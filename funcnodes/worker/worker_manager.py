@@ -220,8 +220,11 @@ async def check_worker(workerconfig: WorkerJson):
         # reqest uuid
         logger.debug(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
         try:
+            protocoll = (
+                "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
+            )
             async with websockets.connect(
-                f"ws{'s' if workerconfig.get('ssl',False) else ''}://{workerconfig['host']}:{workerconfig['port']}"
+                f"{protocoll}://{workerconfig['host']}:{workerconfig['port']}"
             ) as ws:
                 # send with timeout
 
@@ -318,8 +321,12 @@ class WorkerManager:
             fn.config.CONFIG["worker_manager"]["host"],
             fn.config.CONFIG["worker_manager"]["port"],
         )
+        protocoll = (
+            "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
+        )
         logger.info(
-            f"Worker manager started at ws{'s' if fn.config.CONFIG['worker_manager'].get('ssl',False) else ''}://%s:%s",
+            "Worker manager started at %s://%s:%s",
+            protocoll,
             fn.config.CONFIG["worker_manager"]["host"],
             fn.config.CONFIG["worker_manager"]["port"],
         )
@@ -803,9 +810,12 @@ class WorkerManager:
             return
 
         try:
+            protocol = (
+                "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
+            )
+
             async with websockets.connect(
-                f"ws{'s' if target_worker.get('ssl',False) else ''}://"
-                f"{target_worker['host']}:{target_worker['port']}"
+                f"{protocol}://{target_worker['host']}:{target_worker['port']}"
             ) as ws:
                 # send with timeout
 
@@ -975,9 +985,13 @@ class WorkerManager:
                         f"UUID mismatch: {workerconfig['uuid']} != {active_worker['uuid']}"
                     )
                 try:
+                    protocol = (
+                        "wss"
+                        if fn.config.CONFIG["worker_manager"].get("ssl", False)
+                        else "ws"
+                    )
                     async with websockets.connect(
-                        f"ws{'s' if workerconfig.get('ssl',False) else ''}://"
-                        f"{workerconfig['host']}:{workerconfig['port']}"
+                        f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
                     ) as ws:
                         # send with timeout
 
@@ -1160,14 +1174,16 @@ async def assert_worker_manager_running(
         ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
 
     p = None
+    protocol = "wss" if ssl else "ws"
     for i in range(max_retries):
         try:
             logger.info(
-                f"Trying to connect to worker manager at ws{'s' if ssl else ''}://{host}:{port}"
+                "Trying to connect to worker manager at %s://%s:%s",
+                protocol,
+                host,
+                port,
             )
-            async with websockets.connect(
-                f"ws{'s' if ssl else ''}://{host}:{port}"
-            ) as ws:
+            async with websockets.connect(f"{protocol}://{host}:{port}") as ws:
                 # healtch check via ping pong
                 await ws.send("ping")
                 response = await ws.recv()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Optional, Tuple, Dict
 from aiohttp import web, WSCloseCode
+from pathlib import Path
 
 try:
     import aiohttp_cors
@@ -173,7 +174,6 @@ class WSLoop(CustomLoop):
         try:
             reader = await request.multipart()
             files_uploaded = []
-            hexcode = uuid.uuid4().hex
 
             while True:
                 # Process each field in the multipart request
@@ -199,12 +199,34 @@ class WSLoop(CustomLoop):
 
                     # Save the file using the worker, preserving folder structure
                     local_filename = self._worker.upload(
-                        filebytes.getvalue(), filename, hexcode=hexcode
+                        filebytes.getvalue(),
+                        Path(filename),
                     )
                     files_uploaded.append(local_filename)
 
+            if len(files_uploaded) == 0:
+                return web.Response(text="No files uploaded", status=400)
+
+            if len(files_uploaded) == 1:
+                responefile = files_uploaded[0]
+            else:
+                # get the most common path
+                # Convert paths to parts and zip them to find the common prefix
+                parts = [p.parts for p in files_uploaded]
+                common_parts = []
+
+                for components in zip(*parts):
+                    # Check if all parts are the same at this level
+                    if all(component == components[0] for component in components):
+                        common_parts.append(components[0])
+                    else:
+                        break
+
+                # Construct the common ancestor as a relative path
+                responefile = Path(*common_parts)
+
             return web.Response(
-                text=json.dumps({"files": files_uploaded}),
+                text=json.dumps({"file": responefile.as_posix()}),
                 status=200,
                 content_type="application/json",
             )
