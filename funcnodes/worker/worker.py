@@ -51,6 +51,7 @@ import io
 import zipfile
 import base64
 import warnings
+from pathlib import Path
 from funcnodes.utils.messages import worker_event_message
 from ..utils import AVAILABLE_REPOS, reload_base, install_repo, try_import_module
 from ..utils.files import write_json_secure
@@ -531,7 +532,7 @@ class Worker(ABC):
         }
         self._uuid = uuid4().hex if not uuid else uuid
         self._name = name or None
-        self._data_path: str = (
+        self._data_path: Path = Path(
             os.path.abspath(data_path)
             if data_path
             else os.path.join(
@@ -856,19 +857,19 @@ class Worker(ABC):
     # endregion config
     # region properties
     @property
-    def data_path(self) -> str:
+    def data_path(self) -> Path:
         return self._data_path
 
     @data_path.setter
-    def data_path(self, data_path: str):
-        data_path = os.path.abspath(data_path)
+    def data_path(self, data_path: Path):
+        data_path = data_path.resolve()
         if not os.path.exists(data_path):
             os.makedirs(data_path)
         self._data_path = data_path
 
     @property
-    def files_path(self) -> str:
-        fp = os.path.join(self.data_path, "files")
+    def files_path(self) -> Path:
+        fp = self.data_path / "files"
         if not os.path.exists(fp):
             os.makedirs(fp)
 
@@ -980,17 +981,15 @@ class Worker(ABC):
             "version": funcnodes.__version__,
         }
 
-    def upload(self, data: bytes, filename: str, hexcode: str | None = None) -> str:
-        if hexcode is None:
-            hexcode = uuid4().hex
-        filename = f"{hexcode}_{filename}"
-        full_path = os.path.join(self.files_path, filename)
+    def upload(self, data: bytes, filename: Path) -> Path:
+        # filename = f"{hexcode}_{filename}"
+        full_path = self.files_path / filename
         # Ensure the directory exists
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, "wb") as f:
             f.write(data)
-        self.nodespace.set_property("files_dir", self.files_path)
-        self.nodespace.add_file(filename)
+        self.nodespace.set_property("files_dir", self.files_path.as_posix())
+
         return filename
 
     @exposed_method()
@@ -1524,7 +1523,7 @@ class Worker(ABC):
     @exposed_method()
     def clear(self):
         self.nodespace.clear()
-        self.nodespace.set_property("files_dir", self.files_path)
+        self.nodespace.set_property("files_dir", self.files_path.as_posix())
 
     @requests_save
     @exposed_method()

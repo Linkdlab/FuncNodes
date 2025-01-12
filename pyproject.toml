@@ -1,8 +1,9 @@
-[tool.poetry]
+[project]
 name = "funcnodes"
 version = "0.5.8"
 description = "funcnodes"
-authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
+
+authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
 readme = "README.md"
 license = "AGPL-3.0"
 classifiers = [
@@ -12,28 +13,26 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     ]
+requires-python = ">=3.11"
+dependencies = [
+    "websockets",
+    "virtualenv",
+    "setproctitle",
+    "funcnodes-basic>=0.2.0",
+    "funcnodes-core>=0.3.9",
+    "funcnodes-react-flow>=0.3.3",
+    "requests",
+    "subprocess-monitor>=0.2.0",
+    "venvmngr>=0.1.5",
+    "aiohttp-cors",
+    ]
 
 
-[tool.poetry.urls]
+[project.urls]
 homepage  = "https://github.com/Linkdlab/funcnodes"
 source  = "https://github.com/Linkdlab/funcnodes"
 tracker  = "https://github.com/Linkdlab/funcnodes/issues"
 download = "https://pypi.org/project/funcnodes/#files"
-
-
-[tool.poetry.dependencies]
-python = ">=3.11"
-websockets = "*"
-virtualenv = "*"
-
-setproctitle = ">=1"
-funcnodes-basic = ">=0.2.0"
-funcnodes-core = ">=0.3.8"
-funcnodes-react-flow = ">=0.3.1"
-requests = "*"
-subprocess-monitor = ">=0.2.0"
-venvmngr = ">=0.1.5"
-aiohttp-cors = "^0.7.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -46,7 +45,7 @@ vulture = "*"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
+[project.scripts]
 funcnodes = 'funcnodes.__main__:main'
 
 
