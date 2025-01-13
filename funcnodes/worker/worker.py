@@ -1153,6 +1153,7 @@ class Worker(ABC):
                 self._set_nodespace_id(worker_data["meta"]["id"])
         self.nodespace.deserialize(worker_data["backend"])
         self.viewdata = worker_data["view"]
+        self.nodespace.set_property("files_dir", self.files_path.as_posix())
 
         return self.request_save()
 
