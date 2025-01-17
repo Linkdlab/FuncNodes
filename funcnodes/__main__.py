@@ -8,7 +8,7 @@ import os
 import time
 import shutil
 from funcnodes.utils.cmd import build_worker_start
-
+import asyncio
 
 try:
     from setproctitle import setproctitle
@@ -147,6 +147,12 @@ def start_existing_worker(args: argparse.Namespace):
     worker.run_forever()
 
 
+def stop_worker(args: argparse.Namespace):
+    cfg = _worker_conf_from_args(args)
+    mng = fn.worker.worker_manager.WorkerManager()
+    asyncio.run(mng.stop_worker(cfg["uuid"]))
+
+
 def _worker_conf_from_args(args: argparse.Namespace):
     """
     Returns the worker configuration from the arguments.
@@ -267,6 +273,8 @@ def task_worker(args: argparse.Namespace):
     try:
         if workertask == "start":
             return start_existing_worker(args)
+        elif workertask == "stop":
+            return stop_worker(args)
         elif workertask == "new":
             return start_new_worker(args)
         elif workertask == "list":
@@ -493,6 +501,11 @@ def add_worker_parser(subparsers):
     )
     start_worker_parser.add_argument(
         "--workertype", default=None, help="The type of worker to start"
+    )
+
+    # Stop an existing worker
+    stop_worker_parser = worker_subparsers.add_parser(  # noqa: F841
+        "stop", help="Stops an existing worker"
     )
 
 
