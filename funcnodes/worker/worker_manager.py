@@ -637,6 +637,7 @@ class WorkerManager:
         Examples:
           >>> await reload_workers()
         """
+
         active_worker: List[WorkerJson] = []
         inactive_worker: List[WorkerJson] = []
         active_worker_ids: List[str] = []
@@ -771,7 +772,7 @@ class WorkerManager:
         await asyncio.gather(*[try_send(conn, message) for conn in cons])
 
     async def stop_worker(
-        self, workerid, websocket: websockets.WebSocketServerProtocol
+        self, workerid, websocket: websockets.WebSocketServerProtocol = None
     ):
         """
         Stops a worker.
@@ -787,13 +788,7 @@ class WorkerManager:
           >>> await stop_worker("1234", websocket)
           None
         """
-        await self.set_progress_state(
-            message="Stopping worker.",
-            progress=0.1,
-            blocking=True,
-            status="info",
-            websocket=websocket,
-        )
+
         logger.info("Stopping worker %s", workerid)
         target_worker = None
         for worker in self._active_workers:
@@ -806,10 +801,18 @@ class WorkerManager:
                     target_worker = worker
                     break
 
-        if target_worker is None:
-            return
-
         try:
+            if target_worker is None:
+                return
+
+            await self.set_progress_state(
+                message="Stopping worker.",
+                progress=0.1,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+
             protocol = (
                 "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
             )
@@ -830,16 +833,15 @@ class WorkerManager:
                         await asyncio.sleep(0.5)
                         logger.debug("Waiting for worker to stop.")
 
-                await self.reload_workers()
-
         except Exception:
             raise
+        finally:
+            await self.reload_workers()
+            await self.broadcast_worker_status()
 
-        await self.broadcast_worker_status()
-
-        await self.reset_progress_state(
-            websocket=websocket,
-        )
+            await self.reset_progress_state(
+                websocket=websocket,
+            )
 
     async def activate_worker(
         self, workerid, websocket: websockets.WebSocketServerProtocol
