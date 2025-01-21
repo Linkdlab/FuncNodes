@@ -9,6 +9,7 @@ import time
 import shutil
 from funcnodes.utils.cmd import build_worker_start
 import asyncio
+import venvmngr
 
 try:
     from setproctitle import setproctitle
@@ -120,6 +121,15 @@ def start_existing_worker(args: argparse.Namespace):
     """
 
     cfg = _worker_conf_from_args(args)
+    if cfg["env_path"]:
+        workerenv = venvmngr.UVVenvManager.get_virtual_env(cfg["env_path"])
+
+        update_on_startup = cfg.get("update_on_startup", {})
+        if update_on_startup.get("funcnodes", True):
+            workerenv.install_package("funcnodes", upgrade=True)
+        if update_on_startup.get("funcnodes-core", True):
+            workerenv.install_package("funcnodes-core", upgrade=True)
+        cfg["python_path"] = str(workerenv.python_exe)
 
     if cfg.get("python_path", sys.executable) != sys.executable:
         # run the worker with the same python executable
