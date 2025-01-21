@@ -4,11 +4,12 @@ import subprocess
 import sys
 import pkg_resources
 import requests
-from typing import Optional, Dict
+from typing import List, Optional, Dict
 from funcnodes_core import AVAILABLE_MODULES, setup, FUNCNODES_LOGGER
 from funcnodes_core._setup import setup_module
 from funcnodes_core.utils.plugins import InstalledModule
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import venvmngr
 
 
 @dataclass
@@ -25,10 +26,17 @@ class AvailableRepo:
     homepage: Optional[str] = None
     source: Optional[str] = None
     summary: Optional[str] = None
+    releases: List[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data):
         data.setdefault("installed", False)
+        data.setdefault("releases", "")
+        releases = data["releases"]
+        releases = releases.strip().split(",")
+        releases = [v.strip() for v in releases]
+        releases = [v for v in releases if v]
+        data["releases"] = releases
 
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
@@ -56,7 +64,12 @@ def load_repo_csv():
             FUNCNODES_LOGGER.exception(e)
 
 
-def install_package(package_name, version=None, upgrade=False):
+def install_package(
+    package_name,
+    version=None,
+    upgrade=False,
+    env_manager: Optional[venvmngr.VenvManager] = None,
+):
     """
     Install a Python package using pip.
 
@@ -68,48 +81,64 @@ def install_package(package_name, version=None, upgrade=False):
     Returns:
     - bool: True if installation was successful or the package is already installed, False otherwise.
     """
-    try:
-        # Check if the package is already installed
-        pkg_resources.get_distribution(package_name)
-        if upgrade:
-            print(f"Package '{package_name}' is already installed. Upgrading...")
-            install_cmd = [
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "--upgrade",
-                package_name,
-            ]
-        else:
-            print(f"Package '{package_name}' is already installed.")
+    if env_manager is None:
+        try:
+            # Check if the package is already installed
+            pkg_resources.get_distribution(package_name)
+            if upgrade:
+                print(f"Package '{package_name}' is already installed. Upgrading...")
+                install_cmd = [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    package_name,
+                ]
+            else:
+                print(f"Package '{package_name}' is already installed.")
+                return True
+        except pkg_resources.DistributionNotFound:
+            # Package is not installed; proceed to install
+            install_cmd = [sys.executable, "-m", "pip", "install", package_name]
+
+        # If a specific version is requested, modify the install command
+        if version:
+            install_cmd[-1] = f"{package_name}=={version}"
+
+        try:
+            subprocess.check_call(install_cmd)
             return True
-    except pkg_resources.DistributionNotFound:
-        # Package is not installed; proceed to install
-        install_cmd = [sys.executable, "-m", "pip", "install", package_name]
-
-    # If a specific version is requested, modify the install command
-    if version:
-        install_cmd[-1] = f"{package_name}=={version}"
-
+        except subprocess.CalledProcessError:
+            return False
     try:
-        subprocess.check_call(install_cmd)
+        env_manager.install_package(
+            package_name=package_name,
+            version=version,
+            upgrade=upgrade,
+            stderr_callback=print,
+            stdout_callback=print,
+        )
         return True
-    except subprocess.CalledProcessError:
+    except Exception:
         return False
 
 
 def install_repo(
-    package_name: str, upgrade: bool = False, version=None
+    package_name: str,
+    upgrade: bool = False,
+    version=None,
+    env_manager: Optional[venvmngr.VenvManager] = None,
 ) -> Optional[AvailableRepo]:
     if package_name not in AVAILABLE_REPOS:
         return False
 
-    if not install_package(package_name, version, upgrade):
+    if not install_package(package_name, version, upgrade, env_manager=env_manager):
         return None
 
     # reload imports
     reload_base(with_repos=False)
+
     if package_name in AVAILABLE_REPOS:
         try_import_repo(package_name)
         return AVAILABLE_REPOS[package_name]
@@ -185,3 +214,7 @@ def reload_base(with_repos=True):
                 summary=moduledata.description,
                 moduledata=moduledata,
             )
+    for modulename, repo in AVAILABLE_REPOS.items():
+        if repo.moduledata:
+            if repo.moduledata.version:
+                repo.version = repo.moduledata.version

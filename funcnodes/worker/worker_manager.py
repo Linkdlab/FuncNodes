@@ -148,18 +148,13 @@ def create_worker_env(workerconfig: WorkerJson):
 def update_worker_env(workerconfig: WorkerJson):
     if workerconfig["env_path"] is None:
         return
-    workerenv = venvmngr.get_virtual_env(workerconfig["env_path"])
+    workerenv = venvmngr.UVVenvManager.get_virtual_env(workerconfig["env_path"])
 
     update_on_startup = workerconfig.get("update_on_startup", {})
     if update_on_startup.get("funcnodes", True):
         workerenv.install_package("funcnodes", upgrade=True)
     if update_on_startup.get("funcnodes-core", True):
         workerenv.install_package("funcnodes-core", upgrade=True)
-
-    for k, dep in workerconfig["package_dependencies"].items():
-        if "package" in dep:
-            if dep.get("version", None) is None:
-                workerenv.install_package(dep["package"], upgrade=True)
 
 
 def start_worker(workerconfig: WorkerJson, debug=False):
@@ -418,6 +413,16 @@ class WorkerManager:
         logger.debug("Received message: %s", message)
         if message == "ping":
             return await websocket.send("pong")
+        if message == "identify":
+            return await websocket.send(
+                json.dumps(
+                    {
+                        "class": "WorkerManager",
+                        "py": sys.executable,
+                    }
+                )
+            )
+
         elif message == "stop":
             await self.set_progress_state(
                 message="Stopping worker manager.",
@@ -892,7 +897,9 @@ class WorkerManager:
                                 status="info",
                                 websocket=websocket,
                             )
-                            workerenv = venvmngr.get_virtual_env(worker["env_path"])
+                            workerenv = venvmngr.UVVenvManager.get_virtual_env(
+                                worker["env_path"]
+                            )
 
                             update_on_startup = worker.get("update_on_startup", {})
                             if update_on_startup.get("funcnodes", True):
@@ -1099,12 +1106,12 @@ class WorkerManager:
 
         if in_venv:
             # craete env
-            workerenv, new = venvmngr.get_or_create_virtual_env(
-                os.path.join(new_worker.data_path, "env")
+            workerenv, new = venvmngr.UVVenvManager.get_or_create_virtual_env(
+                new_worker.data_path / "pyproject.toml"
             )
             workerenv.install_package("funcnodes", upgrade=True)
-            c["python_path"] = workerenv.python_exe
-            c["env_path"] = workerenv.env_path
+            c["python_path"] = str(workerenv.python_exe)
+            c["env_path"] = str(workerenv.env_path)
         else:
             c["python_path"] = sys.executable
             c["env_path"] = None
@@ -1155,6 +1162,63 @@ def start_worker_manager(
     asyncio.run(wm.run_forever())
 
 
+class WorkerManagerConnection:
+    def __init__(
+        self,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        ssl: Optional[bool] = None,
+    ):
+        if host is None:
+            host = fn.config.CONFIG["worker_manager"]["host"]
+        if port is None:
+            port = fn.config.CONFIG["worker_manager"]["port"]
+        if ssl is None:
+            ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
+
+        protocol = "wss" if ssl else "ws"
+
+        self.host = host
+        self.port = port
+        self.protocol = protocol
+        self._ws: Optional[websockets.ClientConnection] = None
+
+    async def __aenter__(self):
+        self._ws = await websockets.connect(
+            f"{self.protocol}://{self.host}:{self.port}"
+        )
+        return self._ws
+
+    async def __aexit__(
+        self,
+        exc_type,  # noqa: F841
+        exc_value,  # noqa: F841
+        traceback,  # noqa: F841
+    ):
+        if self._ws:
+            await self._ws.close()
+
+    async def ping(self, timeout=5):
+        async with self as ws:
+            # healtch check via ping pong
+            await ws.send("ping")
+            async with asyncio.timeout(timeout):
+                response = await ws.recv()
+                if response == "pong":
+                    return True
+        return False
+
+    async def identify(self, timeout=5):
+        async with self as ws:
+            # healtch check via ping pong
+            await ws.send("identify")
+            async with asyncio.timeout(timeout):
+                response = json.loads(await ws.recv())
+                if response["class"] == "WorkerManager":
+                    return response
+        raise ValueError("Could not identify")
+
+
 async def assert_worker_manager_running(
     retry_interval=1.0,
     termination_wait=10.0,
@@ -1162,35 +1226,26 @@ async def assert_worker_manager_running(
     host: Optional[str] = None,
     port: Optional[int] = None,
     ssl: Optional[bool] = None,
-):
+) -> WorkerManagerConnection:
     """
     build a connection to the worker manager and assert that it is running.
     If it is not running, start it in a new process.
     """
 
-    if host is None:
-        host = fn.config.CONFIG["worker_manager"]["host"]
-    if port is None:
-        port = fn.config.CONFIG["worker_manager"]["port"]
-    if ssl is None:
-        ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
-
     p = None
-    protocol = "wss" if ssl else "ws"
+
+    wsc = WorkerManagerConnection(host=host, port=port, ssl=ssl)
+    logger.info(
+        "Trying to connect to worker manager at %s://%s:%s",
+        wsc.protocol,
+        wsc.host,
+        wsc.port,
+    )
     for i in range(max_retries):
         try:
-            logger.info(
-                "Trying to connect to worker manager at %s://%s:%s",
-                protocol,
-                host,
-                port,
-            )
-            async with websockets.connect(f"{protocol}://{host}:{port}") as ws:
-                # healtch check via ping pong
-                await ws.send("ping")
-                response = await ws.recv()
-                if response == "pong":
-                    break
+            if await wsc.ping():
+                if await wsc.identify():
+                    return wsc
         except ConnectionRefusedError:
             logger.info("Worker manager not running. Starting new worker manager.")
 
@@ -1217,5 +1272,3 @@ async def assert_worker_manager_running(
             await asyncio.sleep(retry_interval)
     else:
         raise ConnectionRefusedError("Could not connect to worker manager.")
-    logger.info("Connected to worker manager.")
-    return True

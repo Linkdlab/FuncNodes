@@ -52,6 +52,7 @@ import zipfile
 import base64
 import warnings
 from pathlib import Path
+import venvmngr
 from funcnodes.utils.messages import worker_event_message
 from ..utils import AVAILABLE_REPOS, reload_base, install_repo, try_import_module
 from ..utils.files import write_json_secure
@@ -494,7 +495,7 @@ class Worker(ABC):
         if default_nodes is None:
             default_nodes = []
 
-        print("Init Worker", self.__class__.__name__)
+        print("Init Worker", self.__class__.__name__, sys.path)
 
         self._debug = debug
         self._package_dependencies: Dict[str, PackageDependency] = {}
@@ -560,6 +561,16 @@ class Worker(ABC):
             "blocking": False,
         }
         self._save_disabled = False
+
+    @property
+    def venvmanager(self):
+        envpath = self.config["env_path"]
+        if envpath:
+            try:
+                return venvmngr.UVVenvManager.get_virtual_env(envpath)
+            except Exception:
+                return None
+        return None
 
     @property
     def _process_file(self):
@@ -640,7 +651,7 @@ class Worker(ABC):
         uuid = self.uuid()
         name = self.name()
         data_path = self.data_path
-        env_path = os.path.abspath(os.path.join(self.data_path, "env"))
+        env_path = None
 
         worker_dependencies: Dict[str, WorkerDict] = {}
         python_path = sys.executable
@@ -1250,13 +1261,22 @@ class Worker(ABC):
 
     @exposed_method()
     async def add_package_dependency(
-        self, name: str, dep: Optional[PackageDependency] = None, save: bool = True
+        self,
+        name: str,
+        dep: Optional[PackageDependency] = None,
+        save: bool = True,
+        version: Optional[str] = None,
     ):
+        if version == "latest":
+            version = None
+
         if dep and "path" in dep:
             raise NotImplementedError("Local package dependencies not implemented")
         await self.set_progress_state(
             message="Add package dependency", status="info", progress=0.0, blocking=True
         )
+        ser_nodespace = self.nodespace.serialize()
+        self.nodespace.clear()
         try:
             if name not in AVAILABLE_REPOS:
                 try_import_module(name)
@@ -1266,13 +1286,24 @@ class Worker(ABC):
                 )
 
             repo = AVAILABLE_REPOS[name]
+            if not repo:
+                raise ValueError(f"Package {name} not found")
+
+            if version:
+                if version[:2] in ["==", ">=", "<="]:
+                    subversion = version[2:]
+                else:
+                    subversion = version
+                if subversion not in repo.releases:
+                    raise ValueError(
+                        f"Version {subversion} not found in {name}, available: {repo.releases}"
+                    )
+
             if dep is None:
                 dep = PipPackageDependency(
                     package=repo.package_name,
-                    version=None,
+                    version=version,
                 )
-            if not repo:
-                raise ValueError(f"Package {name} not found")
 
             if not repo.installed:
                 await self.set_progress_state(
@@ -1282,10 +1313,30 @@ class Worker(ABC):
                     blocking=True,
                 )
 
-                repo = install_repo(name, version=dep.get("version", None))
+                repo = install_repo(
+                    name, version=dep.get("version", None), env_manager=self.venvmanager
+                )
+            elif version:
+                if repo.version != version:
+                    await self.set_progress_state(
+                        message="Upgrade dependency " + name,
+                        status="info",
+                        progress=0.40,
+                        blocking=True,
+                    )
+                    repo = install_repo(
+                        name,
+                        version=dep.get("version", None),
+                        upgrade=True,
+                        env_manager=self.venvmanager,
+                    )
 
             if not repo:
-                raise ValueError(f"Package {name} not found")
+                _name = name
+                version = dep.get("version", None)
+                if version:
+                    _name += version
+                raise ValueError(f"Package {_name} could not be added")
 
             module = repo.moduledata
 
@@ -1348,6 +1399,8 @@ class Worker(ABC):
                 blocking=True,
             )
             raise exc
+        finally:
+            self.nodespace.deserialize(ser_nodespace)
 
     @exposed_method()
     async def remove_package_dependency(
@@ -1503,7 +1556,12 @@ class Worker(ABC):
                 "version": moddata.version or "latest",
                 "homepage": moddata.homepage or "",
                 "source": moddata.source or "",
+                "releases": moddata.releases or [],
             }
+            if moddata.moduledata:
+                if moddata.moduledata.version:
+                    data["version"] = moddata.moduledata.version
+
             if (
                 # self._shelves_dependencies.get(modname.replace("-", "_")) is not None or
                 self._worker_dependencies.get(modname.replace("-", "_")) is not None
