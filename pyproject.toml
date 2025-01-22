@@ -25,6 +25,7 @@ dependencies = [
     "subprocess-monitor>=0.2.0",
     "venvmngr>=0.1.10",
     "aiohttp-cors",
+    "uv>=0.5.21",
     ]
 
 
