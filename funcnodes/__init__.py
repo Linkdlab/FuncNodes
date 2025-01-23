@@ -118,4 +118,4 @@ __all__ = [
     "signaturewrapper",
 ]
 
-__version__ = "0.5.14"
+__version__ = "0.5.15"

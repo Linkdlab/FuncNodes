@@ -1299,12 +1299,15 @@ class Worker(ABC):
             if not repo:
                 raise ValueError(f"Package {name} not found")
 
+            if repo.version and repo.version not in repo.releases:
+                repo.releases.append(repo.version)
+
             if version:
                 if version[:2] in ["==", ">=", "<="]:
                     subversion = version[2:]
                 else:
                     subversion = version
-                if subversion not in repo.releases or subversion != repo.version:
+                if subversion not in repo.releases and subversion != repo.version:
                     raise ValueError(
                         f"Version {subversion} not found in {name}, available: {repo.releases}"
                     )
