@@ -549,6 +549,13 @@ def main():
     """
     try:
         parser = argparse.ArgumentParser(description="Funcnodes Cli.")
+
+        parser.add_argument(
+            "--dir",
+            default=None,
+            help="Funcnodes project directory",
+        )
+
         subparsers = parser.add_subparsers(dest="task", required=True)
 
         # Add subparsers for each major task
@@ -566,7 +573,12 @@ def main():
             "--version", action="version", version=f"%(prog)s {fn.__version__}"
         )
         args = parser.parse_args()
-        # try:
+
+        if args.dir:
+            os.environ["FUNCNODES_CONFIG_DIR"] = os.path.abspath(args.dir)
+            fn.config.BASE_CONFIG_DIR = os.path.abspath(args.dir)
+            fn.config.check_config_dir()
+            # try:
         if args.task == "runserver":
             task_run_server(args)
         elif args.task == "worker":
