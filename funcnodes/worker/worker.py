@@ -468,7 +468,7 @@ class WorkerJson(TypedDict):
     uuid: str
     name: str | None
     data_path: str
-    env_path: str
+    env_path: Optional[str]
     python_path: str
     pid: Optional[int]
 
@@ -660,7 +660,7 @@ class Worker(ABC):
                 type=self.__class__.__name__,
                 uuid=uuid,
                 name=name,
-                data_path=data_path,
+                data_path=str(data_path),
                 env_path=env_path,
                 # shelves_dependencies=self._shelves_dependencies.copy(),
                 python_path=python_path,
@@ -820,6 +820,10 @@ class Worker(ABC):
                     "utf-8"
                 ),
             )
+            if self.venvmanager:
+                tomlpath = self.data_path / "pyproject.toml"
+                if os.path.exists(tomlpath):
+                    zip_file.write(tomlpath, "pyproject.toml")
 
         zip_bytes = zip_buffer.getvalue()
         zip_buffer.close()
@@ -862,6 +866,11 @@ class Worker(ABC):
         with zipfile.ZipFile(io.BytesIO(data), "r") as zip_file:
             config = json.loads(zip_file.read("config").decode("utf-8"))
             state = json.loads(zip_file.read("state").decode("utf-8"))
+            if "pyproject.toml" in zip_file.namelist() and self.venvmanager:
+                with zip_file.open("pyproject.toml") as f:
+                    toml = f.read()
+                with open(self.data_path / "pyproject.toml", "wb") as f:
+                    f.write(toml)
 
         await self.update(config=config, state=state)
 
@@ -1166,6 +1175,7 @@ class Worker(ABC):
         self.viewdata = worker_data["view"]
         self.nodespace.set_property("files_dir", self.files_path.as_posix())
 
+        await self.worker_event("fullsync")
         return self.request_save()
 
     # endregion save and load
@@ -1401,6 +1411,7 @@ class Worker(ABC):
             raise exc
         finally:
             self.nodespace.deserialize(ser_nodespace)
+            await self.worker_event("fullsync")
 
     @exposed_method()
     async def remove_package_dependency(

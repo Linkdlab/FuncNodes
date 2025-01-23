@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "0.5.12"
+version = "0.5.13"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -25,6 +25,7 @@ dependencies = [
     "subprocess-monitor>=0.2.0",
     "venvmngr>=0.1.10",
     "aiohttp-cors",
+    "uv>=0.5.21",
     ]
 
 
