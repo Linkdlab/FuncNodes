@@ -1304,7 +1304,7 @@ class Worker(ABC):
                     subversion = version[2:]
                 else:
                     subversion = version
-                if subversion not in repo.releases:
+                if subversion not in repo.releases or subversion != repo.version:
                     raise ValueError(
                         f"Version {subversion} not found in {name}, available: {repo.releases}"
                     )
@@ -1327,7 +1327,7 @@ class Worker(ABC):
                     name, version=dep.get("version", None), env_manager=self.venvmanager
                 )
             elif version:
-                if repo.version != version:
+                if repo.version != subversion:
                     await self.set_progress_state(
                         message="Upgrade dependency " + name,
                         status="info",
@@ -1351,7 +1351,7 @@ class Worker(ABC):
             module = repo.moduledata
 
             if module is None:
-                raise ValueError(f"Package {name} not found")
+                raise ValueError(f"Module {name} not found")
 
             await self.set_progress_state(
                 message="Adding dependency",
