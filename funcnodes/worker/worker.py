@@ -23,6 +23,8 @@ import importlib
 import importlib.util
 import inspect
 from uuid import uuid4
+
+import psutil
 import funcnodes
 from funcnodes.worker.loop import LoopManager, NodeSpaceLoop, CustomLoop
 from funcnodes.worker.external_worker import (
@@ -734,7 +736,21 @@ class Worker(ABC):
     async def ini_config(self):
         """initializes the worker from the config file"""
         if os.path.exists(self._process_file):
-            raise RuntimeError("Worker already running")
+            await asyncio.sleep(
+                1
+            )  # wait for at least 1 second to make sure the process file is written
+            if os.path.exists(self._process_file):
+                # get the pid from the process file
+                with open(self._process_file, "r") as f:
+                    pid = f.read()
+                if pid != "":
+                    try:
+                        pid = int(pid)
+                        if psutil.pid_exists(pid):
+                            raise RuntimeError("Worker already running")
+                    except ValueError:
+                        raise RuntimeError("Worker already running")
+
         self._write_process_file()
         c = self.load_or_generate_config()
 

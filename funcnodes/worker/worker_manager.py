@@ -1,5 +1,7 @@
 import json
 import time
+
+import psutil
 import funcnodes as fn
 import os
 import websockets
@@ -210,6 +212,15 @@ async def check_worker(workerconfig: WorkerJson):
     Returns:
       Tuple[str, bool]: The worker UUID and whether the worker is active.
     """
+
+    try:
+        # initial check via the pid
+        if "pid" in workerconfig and workerconfig["pid"] is not None:
+            pid = int(workerconfig["pid"])
+            if not psutil.pid_exists(pid):
+                return workerconfig["uuid"], False
+    except Exception:
+        pass
 
     if "host" in workerconfig and "port" in workerconfig:
         # reqest uuid
@@ -627,7 +638,7 @@ class WorkerManager:
                     with open(pfile, "rb") as file:
                         workerconfig["pid"] = int(file.read())
                 except Exception:
-                    pass
+                    workerconfig["pid"] = None
             workerconfigs.append(workerconfig)
 
         return workerconfigs
