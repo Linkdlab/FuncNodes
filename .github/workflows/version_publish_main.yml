@@ -26,13 +26,13 @@ jobs:
           python_version: 3.12
 
       - name: Run Tests
-        run: poetry run pytest
+        run: uv run pytest
 
       - name: Get current package version
         shell: bash
         id: get_version
         run: |
-          CURRENT_VERSION=$(poetry version --short)
+          CURRENT_VERSION=$(uvx poetry version --short)
           echo "CURRENT_VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
           echo "CURRENT_VERSION=${CURRENT_VERSION}"
 
@@ -40,7 +40,7 @@ jobs:
         shell: bash
         id: get_pypi_version
         run: |
-          PACKAGE_NAME=$(poetry version | awk '{print $1}')
+          PACKAGE_NAME=$(uvx poetry version | awk '{print $1}')
           LATEST_VERSION=$(curl -s https://pypi.org/pypi/$PACKAGE_NAME/json | jq -r .info.version)
           echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
           echo "LATEST_VERSION=${LATEST_VERSION}"
@@ -56,7 +56,7 @@ jobs:
           fi
 
       - name: Package project
-        run: poetry build
+        run: uv build
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

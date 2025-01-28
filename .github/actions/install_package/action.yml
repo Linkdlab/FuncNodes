@@ -1,5 +1,5 @@
 name: install_package
-description: Install a package from local poetry
+description: Install a package from local pyproject.toml
 inputs:
   python_version:
     description: "Python version to install"
@@ -16,21 +16,15 @@ runs:
         python-version: ${{ inputs.python_version }}
         allow-prereleases: true
 
-    - name: Install Poetry
+    - name: Install UV
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        pip install poetry
+        pip install uv
         echo "python-version=${{ steps.setup_python.outputs.python-version }}" >> "$GITHUB_OUTPUT"
-
-    - name: Setup a local virtual environment (if no poetry.toml file)
-      shell: bash
-      run: |
-        poetry config virtualenvs.create true --local
-        poetry config virtualenvs.in-project true --local
 
     - name: Install Dependencies
       shell: bash
       run: |
-        poetry install  --no-interaction
+        uv sync
         echo "python-version=${{ steps.setup_python.outputs.python-version }}" >> "$GITHUB_OUTPUT"
