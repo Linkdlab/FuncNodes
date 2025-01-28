@@ -166,7 +166,7 @@ class BaseServer:
             async with self._is_running_lock:
                 self._is_running = True
                 self._shutdown_signal.clear()
-            print(f"Server started at http://{self.host or '127.0.0.1'}:{self.port}")
+            print(f"Server started at http://{self.host or '0.0.0.0'}:{self.port}")
 
             try:
                 await self._shutdown_signal.wait()
@@ -226,6 +226,7 @@ class BaseServer:
     def run_server(
         cls,
         port=8029,
+        host=None,
         open_browser=True,
         worker_manager_host: Optional[str] = None,
         worker_manager_port: Optional[int] = None,
@@ -236,6 +237,7 @@ class BaseServer:
     ):
         ins = cls(
             port=port,
+            host=host,
             worker_manager_host=worker_manager_host,
             worker_manager_port=worker_manager_port,
             worker_manager_ssl=worker_manager_ssl,
@@ -264,6 +266,13 @@ class BaseServer:
                 )
 
         if open_browser:
-            threading.Thread(target=_open_browser, args=(port,), daemon=True).start()
+            threading.Thread(
+                target=_open_browser,
+                kwargs={
+                    "port": port,
+                    "host": "localhost",
+                },
+                daemon=True,
+            ).start()
 
         ins.run(loop=loop)
