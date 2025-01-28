@@ -10,6 +10,7 @@ import shutil
 from funcnodes.utils.cmd import build_worker_start
 import asyncio
 import venvmngr
+import subprocess_monitor
 
 try:
     from setproctitle import setproctitle
@@ -34,6 +35,7 @@ def task_run_server(args: argparse.Namespace):
     setproctitle("funcnodes_server")
     run_server(
         port=args.port,
+        host=args.host,
         open_browser=args.no_browser,
         worker_manager_host=args.worker_manager_host,
         worker_manager_port=args.worker_manager_port,
@@ -415,6 +417,11 @@ def task_modules(args: argparse.Namespace):
 def add_runserver_parser(subparsers):
     parser = subparsers.add_parser("runserver", help="Run the server")
     parser.add_argument(
+        "--host",
+        default=fn.config.CONFIG["frontend"].get("host", None),
+        help="Host to run the server on",
+    )
+    parser.add_argument(
         "--port",
         default=fn.config.CONFIG["frontend"]["port"],
         type=int,
@@ -547,6 +554,26 @@ def main():
       >>> main()
       None
     """
+
+    if os.environ.get("SUBPROCESS_MONITOR_PID") is None:
+
+        async def via_subprocess_monitor():
+            monitor = subprocess_monitor.SubprocessMonitor()
+            asyncio.create_task(monitor.run())
+            await asyncio.sleep(1)
+            resp = await subprocess_monitor.send_spawn_request(
+                sys.executable,
+                [os.path.abspath(__file__)] + sys.argv[1:],
+            )
+            await subprocess_monitor.subscribe(
+                pid=resp["pid"], callback=lambda x: print(x["data"])
+            )
+            while True:
+                await asyncio.sleep(1)
+
+        asyncio.run(via_subprocess_monitor())
+        return
+
     try:
         parser = argparse.ArgumentParser(description="Funcnodes Cli.")
 
