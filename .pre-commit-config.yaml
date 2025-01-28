@@ -8,24 +8,16 @@ repos:
       - id: no-commit-to-branch
         args: ["--branch", "main", "--branch", "master", "--branch", "test"]
 
-  - repo: https://github.com/python-poetry/poetry
-    rev: "2.0.1" # add version here
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: "0.5.24"
     hooks:
-      - id: poetry-check
-        verbose: true
-      - id: poetry-lock
-        verbose: true
-      - id: poetry-install
-        verbose: true
-
-  - repo: https://github.com/jendrikseipp/vulture
-    rev: "v2.14" # or any later Vulture version
-    hooks:
-      - id: vulture
+      # Update the uv lockfile
+      - id: uv-lock
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.9.1
+    rev: v0.9.3
     hooks:
       # Run the linter.
       - id: ruff

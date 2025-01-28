@@ -1,7 +1,10 @@
 import json
 import time
+
+import psutil
 import funcnodes as fn
 import os
+import subprocess_monitor.defaults
 import websockets
 import asyncio
 import subprocess
@@ -210,6 +213,15 @@ async def check_worker(workerconfig: WorkerJson):
     Returns:
       Tuple[str, bool]: The worker UUID and whether the worker is active.
     """
+
+    try:
+        # initial check via the pid
+        if "pid" in workerconfig and workerconfig["pid"] is not None:
+            pid = int(workerconfig["pid"])
+            if not psutil.pid_exists(pid):
+                return workerconfig["uuid"], False
+    except Exception:
+        pass
 
     if "host" in workerconfig and "port" in workerconfig:
         # reqest uuid
@@ -627,7 +639,7 @@ class WorkerManager:
                     with open(pfile, "rb") as file:
                         workerconfig["pid"] = int(file.read())
                 except Exception:
-                    pass
+                    workerconfig["pid"] = None
             workerconfigs.append(workerconfig)
 
         return workerconfigs
@@ -1267,7 +1279,31 @@ async def assert_worker_manager_running(
                 sys.executable,
                 "-m",
             ] + build_startworkermanager(host=host, port=port)
-            p = run_in_new_process(*args)
+
+            if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
+                resp = await subprocess_monitor.send_spawn_request(
+                    args[0],
+                    args[1:],
+                    port=int(os.environ["SUBPROCESS_MONITOR_PORT"]),
+                    host=os.environ.get(
+                        "SUBPROCESS_MONITOR_HOST",
+                        subprocess_monitor.defaults.DEFAULT_HOST,
+                    ),
+                )
+                pid = resp["pid"]
+                await subprocess_monitor.subscribe(
+                    pid=pid,
+                    port=int(os.environ["SUBPROCESS_MONITOR_PORT"]),
+                    host=os.environ.get(
+                        "SUBPROCESS_MONITOR_HOST",
+                        subprocess_monitor.defaults.DEFAULT_HOST,
+                    ),
+                    callback=lambda x: logger.info("Worker manager: %s", x["data"]),
+                )
+            else:
+                run_in_new_process(
+                    *args,
+                )
 
             await asyncio.sleep(retry_interval)
     else:

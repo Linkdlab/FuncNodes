@@ -575,9 +575,7 @@ def main():
         args = parser.parse_args()
 
         if args.dir:
-            os.environ["FUNCNODES_CONFIG_DIR"] = os.path.abspath(args.dir)
-            fn.config.BASE_CONFIG_DIR = os.path.abspath(args.dir)
-            fn.config.check_config_dir()
+            fn.config.reload(os.path.abspath(args.dir))
             # try:
         if args.task == "runserver":
             task_run_server(args)
