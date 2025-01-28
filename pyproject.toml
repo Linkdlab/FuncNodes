@@ -1,11 +1,10 @@
 [project]
 name = "funcnodes"
-version = "0.5.15"
+version = "0.5.16"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
 readme = "README.md"
-license = "AGPL-3.0"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -29,6 +28,8 @@ dependencies = [
     "pip>=24.2",
     ]
 
+[project.license]
+text = "AGPL-3.0"
 
 [project.urls]
 homepage  = "https://github.com/Linkdlab/funcnodes"
@@ -37,15 +38,23 @@ tracker  = "https://github.com/Linkdlab/funcnodes/issues"
 download = "https://pypi.org/project/funcnodes/#files"
 
 
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
-coverage = "*"
-pre-commit = "*"
-vulture = "*"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "coverage>=7.6.10",
+    "pre-commit>=4.1.0",
+    "pytest>=8.3.4",
+    "vulture>=2.14",
+]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [project.scripts]
 funcnodes = 'funcnodes.__main__:main'

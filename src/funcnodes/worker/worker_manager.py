@@ -4,6 +4,7 @@ import time
 import psutil
 import funcnodes as fn
 import os
+import subprocess_monitor.defaults
 import websockets
 import asyncio
 import subprocess
@@ -1278,7 +1279,31 @@ async def assert_worker_manager_running(
                 sys.executable,
                 "-m",
             ] + build_startworkermanager(host=host, port=port)
-            p = run_in_new_process(*args)
+
+            if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
+                resp = await subprocess_monitor.send_spawn_request(
+                    args[0],
+                    args[1:],
+                    port=int(os.environ["SUBPROCESS_MONITOR_PORT"]),
+                    host=os.environ.get(
+                        "SUBPROCESS_MONITOR_HOST",
+                        subprocess_monitor.defaults.DEFAULT_HOST,
+                    ),
+                )
+                pid = resp["pid"]
+                await subprocess_monitor.subscribe(
+                    pid=pid,
+                    port=int(os.environ["SUBPROCESS_MONITOR_PORT"]),
+                    host=os.environ.get(
+                        "SUBPROCESS_MONITOR_HOST",
+                        subprocess_monitor.defaults.DEFAULT_HOST,
+                    ),
+                    callback=lambda x: logger.info("Worker manager: %s", x["data"]),
+                )
+            else:
+                run_in_new_process(
+                    *args,
+                )
 
             await asyncio.sleep(retry_interval)
     else:
