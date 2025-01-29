@@ -580,9 +580,9 @@ class WorkerManager:
         inactive_files = set()
         for jsonf, pf in self.get_all_worker_files():
             if pf:
-                active_files.add(pf.split("_")[1].split(".")[0])
+                active_files.add(pf.split("_", 1)[1].split(".")[0])
             else:
-                inactive_files.add(jsonf.split("_")[1].split(".")[0])
+                inactive_files.add(jsonf.split("_", 1)[1].split(".")[0])
 
         if active_uuids != active_files:
             return True
