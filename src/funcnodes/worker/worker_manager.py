@@ -296,10 +296,10 @@ class WorkerManager:
         if debug:
             logger.setLevel("DEBUG")
 
-        self._checking_worker_thread = None
         self.app: Optional[web.Application] = None
         self._runner: Optional[web.AppRunner] = None
         self._site: Optional[web.TCPSite] = None
+        self._last_woker_check = 0
 
     @property
     def worker_dir(self):
@@ -341,10 +341,7 @@ class WorkerManager:
                 subprocess_monitor.call_on_manager_death(_stop)
 
         # Start background thread to periodically check workers
-        self._checking_worker_thread = threading.Thread(
-            target=self._checking_worker_thread_fn, daemon=True
-        )
-        self._checking_worker_thread.start()
+        asyncio.create_task(self._checking_worker_loop())
 
         # Main loop
         while self._is_running:
@@ -365,7 +362,7 @@ class WorkerManager:
         # Track connection
         with self._connectionslock:
             self._connections.append(weakref.ref(ws))
-
+        logger.debug("New connection.")
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
@@ -382,20 +379,19 @@ class WorkerManager:
         finally:
             # Remove from connections list
             with self._connectionslock:
+                logger.debug("Removing connection.")
                 self._connections = [
                     c for c in self._connections if c() is not None and c() != ws
                 ]
 
         return ws
 
-    def _checking_worker_thread_fn(self):
-        l_rl = 0
+    async def _checking_worker_loop(self):
         while self._is_running:
-            t = time.time()
-            if t - l_rl > 5 or self.worker_changed():
-                asyncio.run(self.reload_workers())
-                l_rl = t
-            time.sleep(1)
+            if time.time() - self._last_woker_check > 10 or self.worker_changed():
+                await self.reload_workers()
+                self._last_woker_check = time.time()
+            await asyncio.sleep(1)
 
     async def _handle_message(self, message: str, ws: web.WebSocketResponse):
         """
@@ -452,7 +448,7 @@ class WorkerManager:
                     # Extra kwargs for creation
                     new_w = await self.new_worker(**msg.get("kwargs", {}))
                     if new_w:
-                        return await ws.send_str(
+                        await ws.send_str(
                             json.dumps(
                                 {
                                     "type": "worker_created",
@@ -460,8 +456,7 @@ class WorkerManager:
                                 }
                             )
                         )
-                    else:
-                        return
+                    return
             except json.JSONDecodeError:
                 pass
 
@@ -668,9 +663,8 @@ class WorkerManager:
             workerchecks.append(thread)
             thread.start()
 
-        await self.broadcast_worker_status()
         while any(t.is_alive() for t in workerchecks):
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
         for t in workerchecks:
             try:
@@ -724,6 +718,7 @@ class WorkerManager:
         Examples:
           >>> await broadcast_worker_status()
         """
+
         await self.broadcast(
             json.dumps(
                 {
@@ -812,8 +807,8 @@ class WorkerManager:
         except Exception as e:
             raise e
         finally:
-            await self.reload_workers()
-            await self.broadcast_worker_status()
+            self._last_woker_check = 0
+            # await self.broadcast_worker_status() # already done in reload_workers
             await self.reset_progress_state(websocket=websocket)
 
     async def activate_worker(self, workerid, websocket: web.WebSocketResponse):
@@ -1052,6 +1047,7 @@ class WorkerManager:
           >>> await new_worker("MyWorker", "1234", True, False)
           None
         """
+
         worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
         new_worker = worker_class(name=name, uuid=uuid)
         await new_worker.ini_config()
@@ -1071,9 +1067,23 @@ class WorkerManager:
             ]
 
         if in_venv:
+            await self.set_progress_state(
+                message="Making virtual environment.",
+                progress=0.1,
+                status="info",
+                blocking=True,
+            )
+
             workerenv, _ = venvmngr.UVVenvManager.get_or_create_virtual_env(
                 new_worker.data_path / "pyproject.toml"
             )
+            await self.set_progress_state(
+                message="Adding funcnodes",
+                progress=0.5,
+                status="info",
+                blocking=True,
+            )
+
             workerenv.install_package("funcnodes", upgrade=True)
             c["python_path"] = str(workerenv.python_exe)
             c["env_path"] = str(workerenv.env_path)
@@ -1100,9 +1110,22 @@ class WorkerManager:
                     del nsd["meta"]
                 nsfile = os.path.join(c["data_path"], "nodespace.json")
                 write_json_secure(data=nsd, filepath=nsfile)
+        await self.set_progress_state(
+            message="Writing configuration.",
+            progress=0.9,
+            status="info",
+            blocking=True,
+        )
 
         new_worker.write_config(c)
-        await self.reload_workers()
+        await self.set_progress_state(
+            message="Creating new worker.",
+            progress=1.0,
+            status="info",
+            blocking=True,
+        )
+
+        self._last_woker_check = 0
         return new_worker
 
 

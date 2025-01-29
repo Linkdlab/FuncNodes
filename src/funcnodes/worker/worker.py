@@ -253,7 +253,7 @@ class LocalWorkerLookupLoop(CustomLoop):
                 self.stop_local_worker_by_id(src.NODECLASSID, src.uuid)
             )
         except Exception as e:
-            print(e)
+            self._client.logger.exception(e)
 
     def start_local_worker(
         self, worker_class: Type[FuncNodesExternalWorker], worker_id: str
@@ -497,8 +497,6 @@ class Worker(ABC):
         if default_nodes is None:
             default_nodes = []
 
-        print("Init Worker", self.__class__.__name__, sys.path)
-
         self._debug = debug
         self._package_dependencies: Dict[str, PackageDependency] = {}
         # self._shelves_dependencies: Dict[str, ShelfDict] = {}
@@ -545,6 +543,8 @@ class Worker(ABC):
         self.data_path = self._data_path
         funcnodes.logging.set_logging_dir(self.data_path)
         self.logger = funcnodes.get_logger(self.uuid(), propagate=False)
+
+        self.logger.info("Init Worker %s", self.__class__.__name__)
         if debug:
             self.logger.setLevel("DEBUG")
         self.logger.addHandler(
@@ -1126,7 +1126,6 @@ class Worker(ABC):
         if self._save_disabled:
             return
         data: WorkerState = self.get_save_state()
-        print("saving", data)
         write_json_secure(data, self.local_nodespace, cls=JSONEncoder)
         self.write_config()
         return data
