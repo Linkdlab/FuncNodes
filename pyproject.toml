@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "0.5.17"
+version = "0.5.18"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -14,7 +14,6 @@ classifiers = [
     ]
 requires-python = ">=3.11"
 dependencies = [
-    "websockets",
     "virtualenv",
     "setproctitle",
     "funcnodes-basic>=0.2.1",

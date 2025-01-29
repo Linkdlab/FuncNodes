@@ -555,25 +555,6 @@ def main():
       None
     """
 
-    if os.environ.get("SUBPROCESS_MONITOR_PID") is None:
-
-        async def via_subprocess_monitor():
-            monitor = subprocess_monitor.SubprocessMonitor()
-            asyncio.create_task(monitor.run())
-            await asyncio.sleep(1)
-            resp = await subprocess_monitor.send_spawn_request(
-                sys.executable,
-                [os.path.abspath(__file__)] + sys.argv[1:],
-            )
-            await subprocess_monitor.subscribe(
-                pid=resp["pid"], callback=lambda x: print(x["data"])
-            )
-            while True:
-                await asyncio.sleep(1)
-
-        asyncio.run(via_subprocess_monitor())
-        return
-
     try:
         parser = argparse.ArgumentParser(description="Funcnodes Cli.")
 
@@ -604,6 +585,27 @@ def main():
         if args.dir:
             fn.config.reload(os.path.abspath(args.dir))
             # try:
+
+        if os.environ.get("SUBPROCESS_MONITOR_PID") is None:
+            print("Starting subprocess via monitor")
+
+            async def via_subprocess_monitor():
+                monitor = subprocess_monitor.SubprocessMonitor()
+                asyncio.create_task(monitor.run())
+                await asyncio.sleep(1)
+                resp = await subprocess_monitor.send_spawn_request(
+                    sys.executable,
+                    [os.path.abspath(__file__)] + sys.argv[1:],
+                )
+                await subprocess_monitor.subscribe(
+                    pid=resp["pid"], callback=lambda x: print(x["data"])
+                )
+                while True:
+                    await asyncio.sleep(1)
+
+            asyncio.run(via_subprocess_monitor())
+            return
+
         if args.task == "runserver":
             task_run_server(args)
         elif args.task == "worker":

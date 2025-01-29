@@ -1,21 +1,27 @@
 import json
 import time
-
 import psutil
 import funcnodes as fn
 import os
 import subprocess_monitor.defaults
-import websockets
 import asyncio
 import subprocess
 import sys
 from typing import List, Optional, Type, Any
 from collections.abc import Callable
 import threading
+import weakref
+
+import aiohttp
+from aiohttp import (
+    web,
+    WSMsgType,
+    ClientWebSocketResponse,
+    ClientConnectorError,
+)
 
 from funcnodes.worker.worker import WorkerJson, WorkerState
 import subprocess_monitor
-import weakref
 import venvmngr
 
 from funcnodes.utils.messages import make_progress_message_string
@@ -23,7 +29,6 @@ from funcnodes.utils.cmd import build_worker_start, build_startworkermanager
 from funcnodes.utils.files import write_json_secure
 
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
-
 if DEVMODE:
     pass
 
@@ -41,13 +46,6 @@ class ReturnValueThread(threading.Thread):
         args: Optional[tuple] = None,
         kwargs: Optional[dict] = None,
     ) -> None:
-        """
-        Initializes a new instance of the ReturnValueThread class.
-
-        Args:
-          *args: Variable length argument list.
-          **kwargs: Arbitrary keyword arguments.
-        """
         super().__init__(target=target, args=args or (), kwargs=kwargs or {})
         self.result: Any = None
         self.exception: Optional[Exception] = None
@@ -94,8 +92,8 @@ def run_in_new_process(*args, **kwargs):
     logger.info(f"Starting new process: {' '.join(args)}")
     if os.name == "posix":
         p = subprocess.Popen(args, start_new_session=True)
-    # For Windows
     else:
+        # Windows
         p = subprocess.Popen(
             args,
             creationflags=subprocess.DETACHED_PROCESS
@@ -123,26 +121,17 @@ def create_worker_env(workerconfig: WorkerJson):
 
     if os.name == "nt":  # Windows
         pip_path = os.path.join(workerconfig["env_path"], "Scripts", "pip")
-    else:  # Linux
+    else:  # Linux/macOS
         pip_path = os.path.join(workerconfig["env_path"], "bin", "pip")
 
     # purge pip cache
-    command = [
-        pip_path,
-        "cache",
-        "purge",
-    ]
+    command = [pip_path, "cache", "purge"]
     subprocess.run(
         command, check=True, cwd=os.path.join(workerconfig["data_path"], "..")
     )
 
     # install funcnodes
-    command = [
-        pip_path,
-        "install",
-        "funcnodes",
-        "--upgrade",
-    ]
+    command = [pip_path, "install", "funcnodes", "--upgrade"]
     subprocess.run(
         command, check=True, cwd=os.path.join(workerconfig["data_path"], "..")
     )
@@ -152,7 +141,6 @@ def update_worker_env(workerconfig: WorkerJson):
     if workerconfig["env_path"] is None:
         return
     workerenv = venvmngr.UVVenvManager.get_virtual_env(workerconfig["env_path"])
-
     update_on_startup = workerconfig.get("update_on_startup", {})
     if update_on_startup.get("funcnodes", True):
         workerenv.install_package("funcnodes", upgrade=True)
@@ -174,7 +162,6 @@ def start_worker(workerconfig: WorkerJson, debug=False):
         workerconfig.get("python_path", sys.executable),
         "-m",
     ]
-
     args += build_worker_start(uuid=workerconfig["uuid"], debug=debug)
 
     if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
@@ -198,9 +185,7 @@ def start_worker(workerconfig: WorkerJson, debug=False):
                 )
             )
     else:
-        run_in_new_process(
-            *args,
-        )
+        run_in_new_process(*args)
 
 
 async def check_worker(workerconfig: WorkerJson):
@@ -224,37 +209,36 @@ async def check_worker(workerconfig: WorkerJson):
         pass
 
     if "host" in workerconfig and "port" in workerconfig:
-        # reqest uuid
+        # request uuid
         logger.debug(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
+        protocol = (
+            "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
+        )
+        url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
         try:
-            protocoll = (
-                "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
-            )
-            async with websockets.connect(
-                f"{protocoll}://{workerconfig['host']}:{workerconfig['port']}"
-            ) as ws:
-                # send with timeout
-
-                await asyncio.wait_for(
-                    ws.send(json.dumps({"type": "cmd", "cmd": "uuid"})),
-                    timeout=1,
-                )
-                response = await asyncio.wait_for(ws.recv(), timeout=1)
-                response = json.loads(response)
-                if response["type"] == "result":
-                    if workerconfig["uuid"] == response["result"]:
-                        return workerconfig["uuid"], True
-                    else:
-                        raise KeyError(
-                            f"UUID mismatch: {workerconfig['uuid']} != {response['result']}"
-                        )
-
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(url) as ws:
+                    await asyncio.wait_for(
+                        ws.send_str(json.dumps({"type": "cmd", "cmd": "uuid"})),
+                        timeout=1,
+                    )
+                    resp = await asyncio.wait_for(ws.receive(), timeout=1)
+                    if resp.type == WSMsgType.TEXT:
+                        data = json.loads(resp.data)
+                        if data["type"] == "result":
+                            if workerconfig["uuid"] == data["result"]:
+                                return workerconfig["uuid"], True
+                            else:
+                                raise KeyError(
+                                    f"UUID mismatch: "
+                                    f"{workerconfig['uuid']} != {data['result']}"
+                                )
         except (
             ConnectionRefusedError,
             asyncio.TimeoutError,
             KeyError,
             json.JSONDecodeError,
-            websockets.exceptions.WebSocketException,
+            ClientConnectorError,
         ):
             pass
 
@@ -295,15 +279,17 @@ class WorkerManager:
             fn.config.CONFIG["worker_manager"]["host"] = host
         if port is not None:
             fn.config.CONFIG["worker_manager"]["port"] = port
+
         self._worker_dir = os.path.join(fn.config.CONFIG_DIR, "workers")
         if not os.path.exists(self._worker_dir):
             os.makedirs(self._worker_dir)
+
         self._isrunninglock = threading.Lock()
         self._is_running = False
         self._connectionslock = threading.Lock()
-        self._connections: List[
-            weakref.ReferenceType[websockets.WebSocketServerProtocol]
-        ] = []
+        # Store each aiohttp WebSocketResponse using a weakref
+        self._connections: List[weakref.ReferenceType[web.WebSocketResponse]] = []
+
         self._active_workers: List[WorkerJson] = []
         self._inactive_workers: List[WorkerJson] = []
         self._debug = debug
@@ -311,6 +297,9 @@ class WorkerManager:
             logger.setLevel("DEBUG")
 
         self._checking_worker_thread = None
+        self.app: Optional[web.Application] = None
+        self._runner: Optional[web.AppRunner] = None
+        self._site: Optional[web.TCPSite] = None
 
     @property
     def worker_dir(self):
@@ -318,25 +307,27 @@ class WorkerManager:
 
     async def run_forever(self):
         """
-        Runs the WorkerManager forever.
-
-        Returns:
-          None
+        Runs the WorkerManager forever, serving WebSockets on the given host/port.
         """
-        self.ws_server = await websockets.serve(
-            self._handle_connection,
-            fn.config.CONFIG["worker_manager"]["host"],
-            fn.config.CONFIG["worker_manager"]["port"],
-        )
-        protocoll = (
+        self.app = web.Application()
+
+        # Route for the websocket endpoint at "/"
+        self.app.router.add_get("/", self._handle_connection)
+
+        self._runner = web.AppRunner(self.app)
+        await self._runner.setup()
+
+        protocol = (
             "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
         )
-        logger.info(
-            "Worker manager started at %s://%s:%s",
-            protocoll,
-            fn.config.CONFIG["worker_manager"]["host"],
-            fn.config.CONFIG["worker_manager"]["port"],
-        )
+        host = fn.config.CONFIG["worker_manager"]["host"]
+        port = fn.config.CONFIG["worker_manager"]["port"]
+
+        self._site = web.TCPSite(self._runner, host, port)
+        await self._site.start()
+
+        logger.info("Worker manager started at %s://%s:%s", protocol, host, port)
+
         with self._isrunninglock:
             self._is_running = True
 
@@ -344,24 +335,58 @@ class WorkerManager:
             with self._isrunninglock:
                 self._is_running = False
 
+        # If running under a subprocess monitor, stop if parent dies
         if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
             if not os.environ.get("SUBPROCESS_MONITOR_KEEP_RUNNING"):
                 subprocess_monitor.call_on_manager_death(_stop)
 
+        # Start background thread to periodically check workers
         self._checking_worker_thread = threading.Thread(
             target=self._checking_worker_thread_fn, daemon=True
         )
         self._checking_worker_thread.start()
 
+        # Main loop
         while self._is_running:
             await asyncio.sleep(0.5)
-            # remove dead references
+            # Remove dead references
             with self._connectionslock:
-                self._connections = [
-                    conn for conn in self._connections if conn() is not None
-                ]
+                self._connections = [c for c in self._connections if c() is not None]
 
             await self.check_shutdown()
+
+    async def _handle_connection(self, request: web.Request):
+        """
+        Handles incoming WebSocket connections.
+        """
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        # Track connection
+        with self._connectionslock:
+            self._connections.append(weakref.ref(ws))
+
+        try:
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    message = msg.data
+                    # Dispatch handling of this message
+                    asyncio.create_task(self._handle_message(message, ws))
+                elif msg.type == WSMsgType.ERROR:
+                    logger.warning(
+                        "WebSocket connection closed with error: %s", ws.exception()
+                    )
+                elif msg.type in (WSMsgType.CLOSE, WSMsgType.CLOSING, WSMsgType.CLOSED):
+                    break
+
+        finally:
+            # Remove from connections list
+            with self._connectionslock:
+                self._connections = [
+                    c for c in self._connections if c() is not None and c() != ws
+                ]
+
+        return ws
 
     def _checking_worker_thread_fn(self):
         l_rl = 0
@@ -372,80 +397,29 @@ class WorkerManager:
                 l_rl = t
             time.sleep(1)
 
-    async def _handle_connection(
-        self, websocket: websockets.WebSocketServerProtocol, *args, **kwargs
-    ):
+    async def _handle_message(self, message: str, ws: web.WebSocketResponse):
         """
-        Handles a new connection to the WorkerManager.
-
-        Args:
-          websocket (websockets.WebSocketServerProtocol): The websocket connection.
-
-        Returns:
-          None
-        """
-
-        logger.debug("New connection: %s", websocket)
-        with self._connectionslock:
-            self._connections.append(weakref.ref(websocket))
-
-        try:
-            async for message in websocket:
-                asyncio.create_task(self._handle_message(message, websocket))
-
-            await websocket.close()
-        except (websockets.exceptions.WebSocketException,):
-            pass
-
-        finally:
-            with self._connectionslock:
-                self._connections = [
-                    conn
-                    for conn in self._connections
-                    if conn() is not None and conn() != websocket
-                ]
-
-    async def _handle_message(
-        self, message: str, websocket: websockets.WebSocketServerProtocol
-    ):
-        """
-        Handles incoming messages from the websocket.
-
-        Args:
-          message (str): The message received from the websocket.
-          websocket (websockets.WebSocketServerProtocol): The websocket connection.
-
-        Returns:
-          None
-
-        Examples:
-          >>> await _handle_message("ping", websocket)
-          "pong"
+        Handles incoming messages from a single WebSocket client.
         """
         logger.debug("Received message: %s", message)
         if message == "ping":
-            return await websocket.send("pong")
-        if message == "identify":
-            return await websocket.send(
-                json.dumps(
-                    {
-                        "class": "WorkerManager",
-                        "py": sys.executable,
-                    }
-                )
-            )
+            return await ws.send_str("pong")
 
+        if message == "identify":
+            return await ws.send_str(
+                json.dumps({"class": "WorkerManager", "py": sys.executable})
+            )
         elif message == "stop":
             await self.set_progress_state(
                 message="Stopping worker manager.",
                 progress=1.0,
                 blocking=False,
                 status="info",
-                websocket=websocket,
+                websocket=ws,
             )
             return await self.stop()
         elif message == "worker_status":
-            return await websocket.send(
+            return await ws.send_str(
                 json.dumps(
                     {
                         "type": "worker_status",
@@ -455,33 +429,47 @@ class WorkerManager:
                 )
             )
         elif message == "new_worker":
-            return await self.new_worker()
+            # Create a new worker with default arguments
+            new_w = await self.new_worker()
+            if new_w:
+                return await ws.send_str(
+                    json.dumps({"type": "worker_created", "uuid": new_w.uuid()})
+                )
+            else:
+                return
         else:
+            # Possibly a JSON command
             try:
                 msg = json.loads(message)
                 if msg["type"] == "set_active":
-                    return await self.activate_worker(msg["workerid"], websocket)
+                    return await self.activate_worker(msg["workerid"], ws)
                 elif msg["type"] == "stop_worker":
-                    return await self.stop_worker(msg["workerid"], websocket)
+                    return await self.stop_worker(msg["workerid"], ws)
                 elif msg["type"] == "restart_worker":
-                    await self.stop_worker(msg["workerid"], websocket)
-                    return await self.activate_worker(msg["workerid"], websocket)
+                    await self.stop_worker(msg["workerid"], ws)
+                    return await self.activate_worker(msg["workerid"], ws)
                 elif msg["type"] == "new_worker":
-                    return await self.new_worker(**msg.get("kwargs", {}))
-
+                    # Extra kwargs for creation
+                    new_w = await self.new_worker(**msg.get("kwargs", {}))
+                    if new_w:
+                        return await ws.send_str(
+                            json.dumps(
+                                {
+                                    "type": "worker_created",
+                                    "uuid": new_w.uuid(),
+                                }
+                            )
+                        )
+                    else:
+                        return
             except json.JSONDecodeError:
                 pass
 
             logger.warning(f"Unknown message: {message}")
 
-    async def reset_progress_state(
-        self, websocket: websockets.WebSocketServerProtocol = None
-    ):
+    async def reset_progress_state(self, websocket: web.WebSocketResponse = None):
         """
         Resets the progress state.
-
-        Args:
-          websocket (websockets.WebSocketServerProtocol, optional): The websocket connection. Defaults to None.
 
         Returns:
           None
@@ -503,7 +491,7 @@ class WorkerManager:
         status="info",
         progress=0.0,
         blocking=False,
-        websocket: websockets.WebSocketServerProtocol = None,
+        websocket: web.WebSocketResponse = None,
     ):
         """
         Sets the progress state.
@@ -513,7 +501,7 @@ class WorkerManager:
           status (str, optional): The status of the message. Defaults to "info".
           progress (float, optional): The progress value. Defaults to 0.0.
           blocking (bool, optional): Whether the message should block other messages. Defaults to False.
-          websocket (websockets.WebSocketServerProtocol, optional): The websocket connection. Defaults to None.
+          websocket (WebSocketResponse, optional): The websocket connection. Defaults to None.
 
         Returns:
           None
@@ -526,7 +514,7 @@ class WorkerManager:
         )
         if websocket is not None:
             try:
-                await websocket.send(msg)
+                await websocket.send_str(msg)
             except Exception:
                 pass
         else:
@@ -544,10 +532,8 @@ class WorkerManager:
         Examples:
           >>> await stop()
         """
-
-        if self.ws_server is not None:
-            self.ws_server.close()
-            await self.ws_server.wait_closed()
+        if self._runner is not None:
+            await self._runner.cleanup()
         with self._isrunninglock:
             self._is_running = False
 
@@ -580,6 +566,7 @@ class WorkerManager:
                 os.remove(os.path.join(self.worker_dir, f"{p}.p"))
             except Exception:
                 pass
+
         for j in jsonbases:
             yield j + ".json", j + ".p" if j in processbases else None
 
@@ -604,11 +591,10 @@ class WorkerManager:
 
         if active_uuids != active_files:
             return True
-
         inactive_uuids = set([w["uuid"] for w in self._inactive_workers])
-
         if inactive_uuids != inactive_files:
             return True
+
         return False
 
     def get_all_workercfg(self) -> List[WorkerJson]:
@@ -629,6 +615,7 @@ class WorkerManager:
                     workerconfig: WorkerJson = json.load(file)
                 except json.JSONDecodeError:
                     continue
+
             if workerconfig["type"] == "TestWorker":
                 os.remove(jsonfilepath)
                 continue
@@ -640,6 +627,7 @@ class WorkerManager:
                         workerconfig["pid"] = int(file.read())
                 except Exception:
                     workerconfig["pid"] = None
+
             workerconfigs.append(workerconfig)
 
         return workerconfigs
@@ -679,9 +667,9 @@ class WorkerManager:
             thread = ReturnValueThread(target=sync_check_worker, args=(workerconfig,))
             workerchecks.append(thread)
             thread.start()
-        await self.broadcast_worker_status()
 
-        while any([t.is_alive() for t in workerchecks]):
+        await self.broadcast_worker_status()
+        while any(t.is_alive() for t in workerchecks):
             await asyncio.sleep(0.1)
 
         for t in workerchecks:
@@ -693,7 +681,6 @@ class WorkerManager:
                     active_worker_ids.append(res[0])
                 else:
                     inactive_worker_ids.append(res[0])
-
             except Exception as exc:
                 logger.exception(exc)
 
@@ -715,7 +702,6 @@ class WorkerManager:
         active_names = [
             f"{workerconfigs[uuid].get('name')}({uuid})" for uuid in active_worker_ids
         ]
-
         inactive_names = [
             f"{workerconfigs[uuid].get('name')}({uuid})" for uuid in inactive_worker_ids
         ]
@@ -750,53 +736,28 @@ class WorkerManager:
 
     async def broadcast(self, message: str):
         """
-        Broadcasts a message to all connected workers.
-
-        Args:
-          message (str): The message to broadcast.
-
-        Returns:
-          None
-
-        Examples:
-          >>> await broadcast("Hello world!")
-          None
+        Broadcasts a message to all connected WebSocket clients.
         """
 
-        async def try_send(conn, message):
-            """
-            Tries to send a message to a specific connection.
-
-            Args:
-              conn (websockets.WebSocketServerProtocol): The connection to send the message to.
-              message (str): The message to send.
-
-            Returns:
-              None
-
-            Examples:
-              >>> await try_send(conn, "Hello world!")
-              None
-            """
+        async def try_send(ws: web.WebSocketResponse, msg: str):
             try:
-                await conn.send(message)
+                await ws.send_str(msg)
             except Exception:
                 pass
 
         with self._connectionslock:
-            cons = [conn() for conn in self._connections]
-            cons = [conn for conn in cons if conn is not None]
-        await asyncio.gather(*[try_send(conn, message) for conn in cons])
+            conns = [c() for c in self._connections]
+            conns = [c for c in conns if c is not None]
 
-    async def stop_worker(
-        self, workerid, websocket: websockets.WebSocketServerProtocol = None
-    ):
+        await asyncio.gather(*[try_send(ws, message) for ws in conns])
+
+    async def stop_worker(self, workerid, websocket: web.WebSocketResponse = None):
         """
         Stops a worker.
 
         Args:
           workerid (str): The id of the worker to stop.
-          websocket (websockets.WebSocketServerProtocol): The websocket connection to send status updates to.
+          websocket (WebSocketResponse): The websocket connection to send status updates to.
 
         Returns:
           None
@@ -805,7 +766,6 @@ class WorkerManager:
           >>> await stop_worker("1234", websocket)
           None
         """
-
         logger.info("Stopping worker %s", workerid)
         target_worker = None
         for worker in self._active_workers:
@@ -818,10 +778,10 @@ class WorkerManager:
                     target_worker = worker
                     break
 
-        try:
-            if target_worker is None:
-                return
+        if target_worker is None:
+            return
 
+        try:
             await self.set_progress_state(
                 message="Stopping worker.",
                 progress=0.1,
@@ -829,46 +789,40 @@ class WorkerManager:
                 status="info",
                 websocket=websocket,
             )
-
             protocol = (
                 "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
             )
+            url = f"{protocol}://{target_worker['host']}:{target_worker['port']}"
 
-            async with websockets.connect(
-                f"{protocol}://{target_worker['host']}:{target_worker['port']}"
-            ) as ws:
-                # send with timeout
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(url) as ws:
+                    await asyncio.wait_for(
+                        ws.send_str(json.dumps({"type": "cmd", "cmd": "stop_worker"})),
+                        timeout=1,
+                    )
+                    response_msg = await asyncio.wait_for(ws.receive(), timeout=1)
+                    if response_msg.type == WSMsgType.TEXT:
+                        response = json.loads(response_msg.data)
+                        if response.get("result") is True:
+                            # Wait for it to actually stop
+                            while workerid in [w["uuid"] for w in self._active_workers]:
+                                await asyncio.sleep(0.5)
+                                logger.debug("Waiting for worker to stop.")
 
-                await asyncio.wait_for(
-                    ws.send(json.dumps({"type": "cmd", "cmd": "stop_worker"})),
-                    timeout=1,
-                )
-                response = await asyncio.wait_for(ws.recv(), timeout=1)
-                response = json.loads(response)
-                if response.get("result") is True:
-                    while workerid in [w["uuid"] for w in self._active_workers]:
-                        await asyncio.sleep(0.5)
-                        logger.debug("Waiting for worker to stop.")
-
-        except Exception:
-            raise
+        except Exception as e:
+            raise e
         finally:
             await self.reload_workers()
             await self.broadcast_worker_status()
+            await self.reset_progress_state(websocket=websocket)
 
-            await self.reset_progress_state(
-                websocket=websocket,
-            )
-
-    async def activate_worker(
-        self, workerid, websocket: websockets.WebSocketServerProtocol
-    ):
+    async def activate_worker(self, workerid, websocket: web.WebSocketResponse):
         """
         Activates a worker.
 
         Args:
           workerid (str): The id of the worker to activate.
-          websocket (websockets.WebSocketServerProtocol): The websocket connection to send status updates to.
+          websocket (web.WebSocketResponse): The websocket connection to send status updates to.
 
         Returns:
           None
@@ -912,7 +866,6 @@ class WorkerManager:
                             workerenv = venvmngr.UVVenvManager.get_virtual_env(
                                 worker["env_path"]
                             )
-
                             update_on_startup = worker.get("update_on_startup", {})
                             if update_on_startup.get("funcnodes", True):
                                 logger.info("Updating worker %s - funcnodes", workerid)
@@ -969,7 +922,7 @@ class WorkerManager:
                         active_worker = worker
 
             if active_worker is None:
-                return await websocket.send(
+                return await websocket.send_str(
                     json.dumps(
                         {
                             "type": "error",
@@ -978,6 +931,7 @@ class WorkerManager:
                     )
                 )
 
+            # Try to contact the new worker
             workerconfigfile = os.path.join(
                 self.worker_dir, f"worker_{active_worker['uuid']}.json"
             )
@@ -987,6 +941,10 @@ class WorkerManager:
                 blocking=True,
                 status="info",
                 websocket=websocket,
+            )
+
+            protocol = (
+                "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
             )
             for i in range(20):
                 await self.set_progress_state(
@@ -999,56 +957,55 @@ class WorkerManager:
                 if not os.path.exists(workerconfigfile):
                     await asyncio.sleep(0.5)
                     continue
+
                 with open(workerconfigfile, "r", encoding="utf-8") as file:
                     workerconfig = json.load(file)
+
                 if workerconfig["uuid"] != active_worker["uuid"]:
                     raise KeyError(
                         f"UUID mismatch: {workerconfig['uuid']} != {active_worker['uuid']}"
                     )
+
+                url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
                 try:
-                    protocol = (
-                        "wss"
-                        if fn.config.CONFIG["worker_manager"].get("ssl", False)
-                        else "ws"
-                    )
-                    async with websockets.connect(
-                        f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
-                    ) as ws:
-                        # send with timeout
-
-                        await asyncio.wait_for(
-                            ws.send(json.dumps({"type": "cmd", "cmd": "uuid"})),
-                            timeout=1,
-                        )
-                        response = await asyncio.wait_for(ws.recv(), timeout=1)
-                        response = json.loads(response)
-                        if response["type"] == "result":
-                            if workerconfig["uuid"] != response["result"]:
-                                raise KeyError(
-                                    f"UUID mismatch: {workerconfig['uuid']} != {response['result']}"
-                                )
-                            return await websocket.send(
-                                json.dumps(
-                                    {
-                                        "type": "set_worker",
-                                        "data": workerconfig,
-                                    }
-                                )
+                    async with aiohttp.ClientSession() as session:
+                        async with session.ws_connect(url) as wsc:
+                            await asyncio.wait_for(
+                                wsc.send_str(
+                                    json.dumps({"type": "cmd", "cmd": "uuid"})
+                                ),
+                                timeout=1,
                             )
-
+                            rmsg = await asyncio.wait_for(wsc.receive(), timeout=1)
+                            if rmsg.type == WSMsgType.TEXT:
+                                resp = json.loads(rmsg.data)
+                                if resp["type"] == "result":
+                                    if workerconfig["uuid"] != resp["result"]:
+                                        raise KeyError(
+                                            f"UUID mismatch: "
+                                            f"{workerconfig['uuid']} != {resp['result']}"
+                                        )
+                                    return await websocket.send_str(
+                                        json.dumps(
+                                            {
+                                                "type": "set_worker",
+                                                "data": workerconfig,
+                                            }
+                                        )
+                                    )
                 except (
                     ConnectionRefusedError,
                     asyncio.TimeoutError,
                     KeyError,
                     json.JSONDecodeError,
-                    websockets.exceptions.WebSocketException,
+                    ClientConnectorError,
                 ):
                     await asyncio.sleep(0.5)
                     continue
                 except Exception as e:
                     logger.exception(e)
 
-            return await websocket.send(
+            return await websocket.send_str(
                 json.dumps(
                     {
                         "type": "error",
@@ -1058,7 +1015,7 @@ class WorkerManager:
             )
         except Exception as e:
             logger.exception(e)
-            return await websocket.send(
+            return await websocket.send_str(
                 json.dumps(
                     {
                         "type": "error",
@@ -1067,17 +1024,15 @@ class WorkerManager:
                 )
             )
         finally:
-            await self.reset_progress_state(
-                websocket=websocket,
-            )
+            await self.reset_progress_state(websocket=websocket)
 
     async def new_worker(
         self,
-        name: str = None,
-        reference: str = None,
+        name: Optional[str] = None,
+        reference: Optional[str] = None,
         copyLib: bool = False,
         copyNS: bool = False,
-        uuid: str = None,
+        uuid: Optional[str] = None,
         workertype: str = "WSWorker",
         in_venv: Optional[bool] = None,
     ):
@@ -1098,7 +1053,6 @@ class WorkerManager:
           None
         """
         worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
-
         new_worker = worker_class(name=name, uuid=uuid)
         await new_worker.ini_config()
         new_worker.stop()
@@ -1117,8 +1071,7 @@ class WorkerManager:
             ]
 
         if in_venv:
-            # craete env
-            workerenv, new = venvmngr.UVVenvManager.get_or_create_virtual_env(
+            workerenv, _ = venvmngr.UVVenvManager.get_or_create_virtual_env(
                 new_worker.data_path / "pyproject.toml"
             )
             workerenv.install_package("funcnodes", upgrade=True)
@@ -1127,6 +1080,7 @@ class WorkerManager:
         else:
             c["python_path"] = sys.executable
             c["env_path"] = None
+
         ref_cfg = None
         if reference:
             for cfg in self.get_all_workercfg():
@@ -1175,6 +1129,10 @@ def start_worker_manager(
 
 
 class WorkerManagerConnection:
+    """
+    Represents a client connection to the WorkerManager using aiohttp.
+    """
+
     def __init__(
         self,
         host: Optional[str] = None,
@@ -1188,47 +1146,55 @@ class WorkerManagerConnection:
         if ssl is None:
             ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
 
-        protocol = "wss" if ssl else "ws"
-
+        self.protocol = "wss" if ssl else "ws"
         self.host = host
         self.port = port
-        self.protocol = protocol
-        self._ws: Optional[websockets.ClientConnection] = None
+        self._ws: Optional[ClientWebSocketResponse] = None
+
+    @property
+    def url(self) -> str:
+        return f"{self.protocol}://{self.host}:{self.port}"
 
     async def __aenter__(self):
-        self._ws = await websockets.connect(
-            f"{self.protocol}://{self.host}:{self.port}"
-        )
+        self._session = aiohttp.ClientSession()
+        self._ws = await self._session.ws_connect(self.url)
         return self._ws
 
-    async def __aexit__(
-        self,
-        exc_type,  # noqa: F841
-        exc_value,  # noqa: F841
-        traceback,  # noqa: F841
-    ):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):  # noqa: F841
         if self._ws:
             await self._ws.close()
+        if self._session:
+            await self._session.close()
 
     async def ping(self, timeout=5):
+        """
+        Send a ping/pong test.
+        """
         async with self as ws:
-            # healtch check via ping pong
-            await ws.send("ping")
-            async with asyncio.timeout(timeout):
-                response = await ws.recv()
-                if response == "pong":
+            await ws.send_str("ping")
+            try:
+                resp = await asyncio.wait_for(ws.receive(), timeout=timeout)
+                if resp.type == WSMsgType.TEXT and resp.data == "pong":
                     return True
+            except (asyncio.TimeoutError, ClientConnectorError):
+                pass
         return False
 
     async def identify(self, timeout=5):
+        """
+        Identify that we're talking to the WorkerManager.
+        """
         async with self as ws:
-            # healtch check via ping pong
-            await ws.send("identify")
-            async with asyncio.timeout(timeout):
-                response = json.loads(await ws.recv())
-                if response["class"] == "WorkerManager":
-                    return response
-        raise ValueError("Could not identify")
+            await ws.send_str("identify")
+            try:
+                resp = await asyncio.wait_for(ws.receive(), timeout=timeout)
+                if resp.type == WSMsgType.TEXT:
+                    data = json.loads(resp.data)
+                    if data.get("class") == "WorkerManager":
+                        return data
+            except (asyncio.TimeoutError, ClientConnectorError):
+                pass
+        raise ValueError("Could not identify WorkerManager.")
 
 
 async def assert_worker_manager_running(
@@ -1240,46 +1206,35 @@ async def assert_worker_manager_running(
     ssl: Optional[bool] = None,
 ) -> WorkerManagerConnection:
     """
-    build a connection to the worker manager and assert that it is running.
+    Build a connection to the worker manager and assert that it is running.
     If it is not running, start it in a new process.
     """
-
     p = None
-
     wsc = WorkerManagerConnection(host=host, port=port, ssl=ssl)
-    logger.info(
-        "Trying to connect to worker manager at %s://%s:%s",
-        wsc.protocol,
-        wsc.host,
-        wsc.port,
-    )
-    for i in range(max_retries):
+
+    logger.info("Trying to connect to worker manager at %s", wsc.url)
+    for _ in range(max_retries):
         try:
             if await wsc.ping():
                 if await wsc.identify():
                     return wsc
-        except ConnectionRefusedError:
+        except (ConnectionRefusedError, ClientConnectorError):
             logger.info("Worker manager not running. Starting new worker manager.")
-
+            # Terminate previous worker manager if any
             if p is not None:
-                # terminate previous worker manager
                 p.terminate()
-
-                # wait max 5 seconds for termination
-                for j in range(int(termination_wait * 10) + 1):
+                # Wait up to termination_wait seconds
+                for _ in range(int(termination_wait * 10) + 1):
                     if p.poll() is not None:
                         break
                     await asyncio.sleep(0.1)
-
                 if p.poll() is None:
                     p.kill()
-            # start worker manager in a new
 
-            args = [
-                sys.executable,
-                "-m",
-            ] + build_startworkermanager(host=host, port=port)
-
+            # Start worker manager in a new process or via subprocess_monitor
+            args = [sys.executable, "-m"] + build_startworkermanager(
+                host=host, port=port
+            )
             if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
                 resp = await subprocess_monitor.send_spawn_request(
                     args[0],
@@ -1301,9 +1256,7 @@ async def assert_worker_manager_running(
                     callback=lambda x: logger.info("Worker manager: %s", x["data"]),
                 )
             else:
-                run_in_new_process(
-                    *args,
-                )
+                run_in_new_process(*args)
 
             await asyncio.sleep(retry_interval)
     else:
