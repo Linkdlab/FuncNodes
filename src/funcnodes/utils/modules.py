@@ -104,7 +104,11 @@ def install_package(
 
         # If a specific version is requested, modify the install command
         if version:
-            install_cmd[-1] = f"{package_name}=={version}"
+            if version[0] in ("=", "<", ">", "!"):
+                version = version
+            else:
+                version = "==" + version
+            install_cmd[-1] = f"{package_name}{version}"
 
         try:
             subprocess.check_call(install_cmd)
