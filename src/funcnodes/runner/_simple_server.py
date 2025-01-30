@@ -205,12 +205,13 @@ class BaseServer:
                 ssl=self.worker_manager_ssl,
             )
 
-        return web.Response(
-            text=(
-                f"ws{'s' if self.worker_manager_ssl else ''}://"
-                f"{self.worker_manager_host}:{self.worker_manager_port}"
+            return web.Response(
+                text=(
+                    f"ws{'s' if self.worker_manager_ssl else ''}://"
+                    f"{self.worker_manager_host}:{self.worker_manager_port}"
+                )
             )
-        )
+        return web.Response(text="No worker manager running.", status=404)
 
     async def serve_static_file(self, request):
         if self.static_path is None:
