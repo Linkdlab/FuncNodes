@@ -1097,6 +1097,7 @@ class WorkerManager:
             c["python_path"] = sys.executable
             c["env_path"] = None
 
+        logger.debug("Write config")
         ref_cfg = None
         if reference:
             for cfg in self.get_all_workercfg():
@@ -1132,6 +1133,7 @@ class WorkerManager:
         )
 
         self._last_woker_check = 0
+        logger.debug("Worker created")
         return new_worker
 
 
