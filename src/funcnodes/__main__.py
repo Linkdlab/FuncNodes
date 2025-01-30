@@ -409,7 +409,9 @@ def task_modules(args: argparse.Namespace):
       None
     """
     if args.moduletask == "list":
-        pprint(fn.utils.plugins.get_installed_modules())
+        from funcnodes_core.utils import plugins
+
+        pprint(plugins.get_installed_modules())
     else:
         raise Exception(f"Unknown moduletask: {args.moduletask}")
 
