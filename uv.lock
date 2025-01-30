@@ -324,7 +324,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes"
-version = "0.5.20"
+version = "0.5.21"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp-cors" },
