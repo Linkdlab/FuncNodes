@@ -47,7 +47,9 @@ class BaseServer:
         start_worker_manager=True,
         static_path: Optional[str] = None,
         static_url: Optional[str] = None,
+        debug=False,
     ) -> None:
+        self.debug = debug
         if has_worker_manager:
             if worker_manager_host is None:
                 worker_manager_host = fn.config.CONFIG["worker_manager"]["host"]
@@ -203,6 +205,7 @@ class BaseServer:
                 host=self.worker_manager_host,
                 port=self.worker_manager_port,
                 ssl=self.worker_manager_ssl,
+                debug=self.debug,
             )
 
             return web.Response(
