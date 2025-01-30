@@ -1269,14 +1269,16 @@ async def assert_worker_manager_running(
                     ),
                 )
                 pid = resp["pid"]
-                await subprocess_monitor.subscribe(
-                    pid=pid,
-                    port=int(os.environ["SUBPROCESS_MONITOR_PORT"]),
-                    host=os.environ.get(
-                        "SUBPROCESS_MONITOR_HOST",
-                        subprocess_monitor.defaults.DEFAULT_HOST,
-                    ),
-                    callback=lambda x: logger.info("Worker manager: %s", x["data"]),
+                asyncio.create_task(
+                    subprocess_monitor.subscribe(
+                        pid=pid,
+                        port=int(os.environ["SUBPROCESS_MONITOR_PORT"]),
+                        host=os.environ.get(
+                            "SUBPROCESS_MONITOR_HOST",
+                            subprocess_monitor.defaults.DEFAULT_HOST,
+                        ),
+                        callback=lambda x: logger.info("Worker manager: %s", x["data"]),
+                    )
                 )
             else:
                 run_in_new_process(*args)
