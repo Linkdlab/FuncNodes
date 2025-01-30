@@ -324,7 +324,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes"
-version = "0.5.19"
+version = "0.5.20"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp-cors" },
@@ -404,15 +404,15 @@ wheels = [
 
 [[package]]
 name = "funcnodes-react-flow"
-version = "0.3.4"
+version = "0.3.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "funcnodes" },
     { name = "funcnodes-core" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/33/a731c10d140ee438c5e9e9376a09e8da902f8ada63db602b836dec8dfd90/funcnodes_react_flow-0.3.4.tar.gz", hash = "sha256:e8f72d6ed47af6a7fbb08d9c6213323c7937f58f8db40a55d2c7dc26c744010f", size = 1052917 }
+sdist = { url = "https://files.pythonhosted.org/packages/82/e6/4d9900300c64968051145ce28abb792a959e3f4562e0ca84bcc63a2f0f5a/funcnodes_react_flow-0.3.5.tar.gz", hash = "sha256:0e1704bb1f5cebceeb913df707c923f76dbf2e4fb1efe18b60494f852a7ebb67", size = 1053007 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/68/fd/b9777be076f54234b6aa1d4fc47b47cbff325f6b32347feb15e34577d5ce/funcnodes_react_flow-0.3.4-py3-none-any.whl", hash = "sha256:5f29e47adf64877397b9083e84c6a88bc4f59c352970c221d9a28d6e3484d669", size = 1060578 },
+    { url = "https://files.pythonhosted.org/packages/3c/b8/cefe82419c70caefe4621a9e3b373f4f36998e2c0aea7ae9f77571233767/funcnodes_react_flow-0.3.5-py3-none-any.whl", hash = "sha256:c4293b0f802e3d2b04d10e74d0ed9be85e08a7220bad25afd9d86be6fc7849d4", size = 1060694 },
 ]
 
 [[package]]
