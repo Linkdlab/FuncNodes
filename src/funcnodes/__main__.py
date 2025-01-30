@@ -600,7 +600,7 @@ def main():
                 await subprocess_monitor.subscribe(
                     pid=resp["pid"], callback=lambda x: print(x["data"])
                 )
-                while True:
+                while len(monitor.process_ownership) > 0:
                     await asyncio.sleep(1)
 
             asyncio.run(via_subprocess_monitor())
