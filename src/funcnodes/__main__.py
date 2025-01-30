@@ -94,7 +94,7 @@ def start_new_worker(args: argparse.Namespace):
     """
 
     fn.FUNCNODES_LOGGER.info(
-        f"Starting new worker of type {args.workertype or 'WSWorker'}"
+        "Starting new worker of type %s", args.workertype or "WSWorker"
     )
 
     mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
@@ -165,7 +165,7 @@ def start_existing_worker(args: argparse.Namespace):
         workertype = cfg.get("type", "WSWorker")
 
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
-    fn.FUNCNODES_LOGGER.info(f"Starting existing worker of type {workertype}")
+    fn.FUNCNODES_LOGGER.info("Starting existing worker of type %s", workertype)
     worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
     setproctitle("worker " + worker.uuid())
@@ -607,11 +607,13 @@ def main():
         if args.dir:
             fn.config.reload(os.path.abspath(args.dir))
             # try:
+        if args.debug:
+            fn.FUNCNODES_LOGGER.setLevel("DEBUG")
 
         if os.environ.get("SUBPROCESS_MONITOR_PID") is None and int(
             os.environ.get("USE_SUBPROCESS_MONITOR", "1")
         ):
-            print("Starting subprocess via monitor")
+            fn.FUNCNODES_LOGGER.info("Starting subprocess via monitor")
 
             async def via_subprocess_monitor():
                 monitor = subprocess_monitor.SubprocessMonitor()
@@ -621,15 +623,21 @@ def main():
                     sys.executable,
                     [os.path.abspath(__file__)] + sys.argv[1:],
                 )
+                if "pid" not in resp:
+                    raise Exception(f"Subprocess failed: {resp}")
+                fn.FUNCNODES_LOGGER.debug("Subprocess started: %s", resp["pid"])
                 await subprocess_monitor.subscribe(
                     pid=resp["pid"], callback=lambda x: print(x["data"])
                 )
+                fn.FUNCNODES_LOGGER.debug("Subprocess ended:  %s", resp["pid"])
+                await asyncio.sleep(1)
                 while len(monitor.process_ownership) > 0:
                     await asyncio.sleep(1)
 
             asyncio.run(via_subprocess_monitor())
             return
 
+        fn.FUNCNODES_LOGGER.debug("Running funcnodes with args: %s", args)
         if args.task == "runserver":
             task_run_server(args)
         elif args.task == "worker":
