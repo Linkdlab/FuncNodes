@@ -1,5 +1,5 @@
 from typing import Type
-from funcnodes_react_flow import run_server
+
 import funcnodes as fn
 import argparse
 from pprint import pprint
@@ -11,6 +11,10 @@ from funcnodes.utils.cmd import build_worker_start
 import asyncio
 import venvmngr
 import subprocess_monitor
+import dotenv
+
+dotenv.load_dotenv()
+
 
 try:
     from setproctitle import setproctitle
@@ -33,6 +37,12 @@ def task_run_server(args: argparse.Namespace):
       None
     """
     setproctitle("funcnodes_server")
+    frontend = args.frontend
+    if frontend == "react_flow":
+        from funcnodes_react_flow import run_server
+    else:
+        raise Exception(f"Unknown frontend: {frontend}")
+
     run_server(
         port=args.port,
         host=args.host,
@@ -457,6 +467,13 @@ def add_runserver_parser(subparsers):
         help="Use SSL for the worker manager",
     )
 
+    parser.add_argument(
+        "--frontend",
+        default="react_flow",
+        help="The frontend to use (e.g. react_flow)",
+        choices=["react_flow"],
+    )
+
 
 def _add_worker_identifiers(parser):
     parser.add_argument(
@@ -591,7 +608,9 @@ def main():
             fn.config.reload(os.path.abspath(args.dir))
             # try:
 
-        if os.environ.get("SUBPROCESS_MONITOR_PID") is None:
+        if os.environ.get("SUBPROCESS_MONITOR_PID") is None and int(
+            os.environ.get("USE_SUBPROCESS_MONITOR", "1")
+        ):
             print("Starting subprocess via monitor")
 
             async def via_subprocess_monitor():
