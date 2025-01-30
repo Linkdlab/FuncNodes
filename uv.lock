@@ -324,7 +324,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes"
-version = "0.5.21"
+version = "0.5.22"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp-cors" },
@@ -360,7 +360,7 @@ requires-dist = [
     { name = "setproctitle" },
     { name = "subprocess-monitor", specifier = ">=0.2.0" },
     { name = "uv", specifier = ">=0.5.21" },
-    { name = "venvmngr", specifier = ">=0.1.10" },
+    { name = "venvmngr", specifier = ">=0.1.13" },
     { name = "virtualenv" },
 ]
 

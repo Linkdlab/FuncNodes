@@ -41,6 +41,7 @@ def task_run_server(args: argparse.Namespace):
         worker_manager_port=args.worker_manager_port,
         worker_manager_ssl=args.worker_manager_ssl,
         start_worker_manager=args.no_manager,
+        debug=args.debug,
     )
 
 
@@ -58,7 +59,7 @@ def list_workers(args: argparse.Namespace):
       >>> list_workers(args)
       None
     """
-    mng = fn.worker.worker_manager.WorkerManager()
+    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
     if args.full:
         pprint(mng.get_all_workercfg())
     else:
@@ -82,9 +83,11 @@ def start_new_worker(args: argparse.Namespace):
       None
     """
 
-    fn.FUNCNODES_LOGGER.info(f"Starting new worker of type {args.workertype}")
+    fn.FUNCNODES_LOGGER.info(
+        f"Starting new worker of type {args.workertype or 'WSWorker'}"
+    )
 
-    mng = fn.worker.worker_manager.WorkerManager()
+    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
 
     new_worker_routine = mng.new_worker(
         name=args.name,
@@ -161,7 +164,7 @@ def start_existing_worker(args: argparse.Namespace):
 
 def stop_worker(args: argparse.Namespace):
     cfg = _worker_conf_from_args(args)
-    mng = fn.worker.worker_manager.WorkerManager()
+    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
     asyncio.run(mng.stop_worker(cfg["uuid"]))
 
 
@@ -183,7 +186,7 @@ def _worker_conf_from_args(args: argparse.Namespace):
         if args.name is None:
             raise Exception("uuid or name is required to start an existing worker")
 
-    mng = fn.worker.worker_manager.WorkerManager()
+    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
     cfg = None
     if args.uuid:
         for cf in mng.get_all_workercfg():
