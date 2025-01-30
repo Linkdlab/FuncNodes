@@ -1,5 +1,5 @@
 from typing import Type
-from funcnodes_react_flow import run_server
+
 import funcnodes as fn
 import argparse
 from pprint import pprint
@@ -11,6 +11,10 @@ from funcnodes.utils.cmd import build_worker_start
 import asyncio
 import venvmngr
 import subprocess_monitor
+import dotenv
+
+dotenv.load_dotenv()
+
 
 try:
     from setproctitle import setproctitle
@@ -33,6 +37,12 @@ def task_run_server(args: argparse.Namespace):
       None
     """
     setproctitle("funcnodes_server")
+    frontend = args.frontend
+    if frontend == "react_flow":
+        from funcnodes_react_flow import run_server
+    else:
+        raise Exception(f"Unknown frontend: {frontend}")
+
     run_server(
         port=args.port,
         host=args.host,
@@ -41,6 +51,7 @@ def task_run_server(args: argparse.Namespace):
         worker_manager_port=args.worker_manager_port,
         worker_manager_ssl=args.worker_manager_ssl,
         start_worker_manager=args.no_manager,
+        debug=args.debug,
     )
 
 
@@ -58,7 +69,7 @@ def list_workers(args: argparse.Namespace):
       >>> list_workers(args)
       None
     """
-    mng = fn.worker.worker_manager.WorkerManager()
+    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
     if args.full:
         pprint(mng.get_all_workercfg())
     else:
@@ -82,9 +93,11 @@ def start_new_worker(args: argparse.Namespace):
       None
     """
 
-    fn.FUNCNODES_LOGGER.info(f"Starting new worker of type {args.workertype}")
+    fn.FUNCNODES_LOGGER.info(
+        f"Starting new worker of type {args.workertype or 'WSWorker'}"
+    )
 
-    mng = fn.worker.worker_manager.WorkerManager()
+    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
 
     new_worker_routine = mng.new_worker(
         name=args.name,
@@ -161,7 +174,7 @@ def start_existing_worker(args: argparse.Namespace):
 
 def stop_worker(args: argparse.Namespace):
     cfg = _worker_conf_from_args(args)
-    mng = fn.worker.worker_manager.WorkerManager()
+    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
     asyncio.run(mng.stop_worker(cfg["uuid"]))
 
 
@@ -183,7 +196,7 @@ def _worker_conf_from_args(args: argparse.Namespace):
         if args.name is None:
             raise Exception("uuid or name is required to start an existing worker")
 
-    mng = fn.worker.worker_manager.WorkerManager()
+    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
     cfg = None
     if args.uuid:
         for cf in mng.get_all_workercfg():
@@ -409,7 +422,9 @@ def task_modules(args: argparse.Namespace):
       None
     """
     if args.moduletask == "list":
-        pprint(fn.utils.plugins.get_installed_modules())
+        from funcnodes_core.utils import plugins
+
+        pprint(plugins.get_installed_modules())
     else:
         raise Exception(f"Unknown moduletask: {args.moduletask}")
 
@@ -450,6 +465,13 @@ def add_runserver_parser(subparsers):
         "--worker_manager_ssl",
         action="store_true",
         help="Use SSL for the worker manager",
+    )
+
+    parser.add_argument(
+        "--frontend",
+        default="react_flow",
+        help="The frontend to use (e.g. react_flow)",
+        choices=["react_flow"],
     )
 
 
@@ -586,7 +608,9 @@ def main():
             fn.config.reload(os.path.abspath(args.dir))
             # try:
 
-        if os.environ.get("SUBPROCESS_MONITOR_PID") is None:
+        if os.environ.get("SUBPROCESS_MONITOR_PID") is None and int(
+            os.environ.get("USE_SUBPROCESS_MONITOR", "1")
+        ):
             print("Starting subprocess via monitor")
 
             async def via_subprocess_monitor():

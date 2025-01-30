@@ -1103,14 +1103,14 @@ class Worker(ABC):
 
     @exposed_method()
     def get_plugin_keys(self, type: Literal["react"]) -> List[str]:
-        if type == "react":
+        if type == "react" and FUNCNODES_REACT:
             return list(FUNCNODES_REACT_PLUGIN.keys())
 
         raise ValueError(f"Plugin type {type} not found")
 
     @exposed_method()
     def get_plugin(self, key: str, type: Literal["react"]) -> Any:
-        if type == "react":
+        if type == "react" and FUNCNODES_REACT:
             return get_react_plugin_content(key)
 
         raise ValueError(f"Plugin type {type} not found")

@@ -1047,11 +1047,15 @@ class WorkerManager:
           >>> await new_worker("MyWorker", "1234", True, False)
           None
         """
-
+        logger.info("Creating new worker.")
         worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
+        logger.debug("Init Worker class: %s", worker_class)
         new_worker = worker_class(name=name, uuid=uuid)
+        logger.debug("Init Worker config")
         await new_worker.ini_config()
+        logger.debug("Stopping Worker")
         new_worker.stop()
+        logger.debug("Write Worker config")
         c = new_worker.write_config()
         if name:
             c["name"] = name
@@ -1067,6 +1071,7 @@ class WorkerManager:
             ]
 
         if in_venv:
+            logger.debug("using worker with venv")
             await self.set_progress_state(
                 message="Making virtual environment.",
                 progress=0.1,
@@ -1088,6 +1093,7 @@ class WorkerManager:
             c["python_path"] = str(workerenv.python_exe)
             c["env_path"] = str(workerenv.env_path)
         else:
+            logger.debug("using worker global venv")
             c["python_path"] = sys.executable
             c["env_path"] = None
 
@@ -1147,6 +1153,7 @@ def start_worker_manager(
       >>> start_worker_manager()
       None
     """
+
     wm = WorkerManager(host=host, port=port, debug=debug)
     asyncio.run(wm.run_forever())
 
@@ -1227,6 +1234,7 @@ async def assert_worker_manager_running(
     host: Optional[str] = None,
     port: Optional[int] = None,
     ssl: Optional[bool] = None,
+    debug: bool = False,
 ) -> WorkerManagerConnection:
     """
     Build a connection to the worker manager and assert that it is running.
@@ -1241,7 +1249,7 @@ async def assert_worker_manager_running(
             if await wsc.ping():
                 if await wsc.identify():
                     return wsc
-        except (ConnectionRefusedError, ClientConnectorError):
+        except (ConnectionRefusedError, ClientConnectorError, ValueError):
             logger.info("Worker manager not running. Starting new worker manager.")
             # Terminate previous worker manager if any
             if p is not None:
@@ -1256,7 +1264,7 @@ async def assert_worker_manager_running(
 
             # Start worker manager in a new process or via subprocess_monitor
             args = [sys.executable, "-m"] + build_startworkermanager(
-                host=host, port=port
+                host=host, port=port, debug=debug
             )
             if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
                 resp = await subprocess_monitor.send_spawn_request(
