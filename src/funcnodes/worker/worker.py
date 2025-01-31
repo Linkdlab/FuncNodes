@@ -898,7 +898,16 @@ class Worker(ABC):
             state = json.loads(zip_file.read("state").decode("utf-8"))
             if "pyproject.toml" in zip_file.namelist() and self.venvmanager:
                 with zip_file.open("pyproject.toml") as f:
-                    toml = f.read()
+                    tomllines = f.readlines()
+
+                toml = b""
+                for line in list(tomllines):
+                    if "requires-python =" in line:
+                        # if the toml was created with a higher python version,
+                        # we need to update the requires-python to the minimum
+                        line = b'requires-python = ">=3.11"'
+                    toml += line + b"\n"
+
                 with open(self.data_path / "pyproject.toml", "wb") as f:
                     f.write(toml)
 

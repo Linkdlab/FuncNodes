@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "0.5.25"
+version = "0.5.26"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -21,7 +21,7 @@ dependencies = [
     "funcnodes-react-flow>=0.3.4",
     "requests",
     "subprocess-monitor>=0.2.0",
-    "venvmngr>=0.1.13",
+    "venvmngr>=0.1.14",
     "aiohttp-cors",
     "uv>=0.5.21",
     "pip>=24.2",
