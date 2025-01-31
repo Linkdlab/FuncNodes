@@ -818,7 +818,7 @@ class Worker(ABC):
                         self.logger.exception(e)
 
     @exposed_method()
-    def export_worker(self) -> bytes:
+    def export_worker(self, with_files=True) -> bytes:
         """packs all the required data for the worker to be exported into a custom zip file format"""
 
         self.save()
@@ -840,6 +840,20 @@ class Worker(ABC):
                 tomlpath = self.data_path / "pyproject.toml"
                 if os.path.exists(tomlpath):
                     zip_file.write(tomlpath, "pyproject.toml")
+
+            if with_files:
+                # add all files in the files directory
+                for root, _, files in os.walk(self.files_path):
+                    for file in files:
+                        zip_file.write(
+                            os.path.join(root, file),
+                            os.path.join(
+                                "files",
+                                os.path.relpath(
+                                    os.path.join(root, file), self.files_path
+                                ),
+                            ),
+                        )
 
         zip_bytes = zip_buffer.getvalue()
         zip_buffer.close()
@@ -887,6 +901,11 @@ class Worker(ABC):
                     toml = f.read()
                 with open(self.data_path / "pyproject.toml", "wb") as f:
                     f.write(toml)
+
+            # extract files
+            for file in zip_file.namelist():
+                if file.startswith("files/"):
+                    zip_file.extract(file, self.data_path)
 
         await self.update(config=config, state=state)
 
@@ -1342,8 +1361,15 @@ class Worker(ABC):
                 )
 
                 repo = install_repo(
-                    name, version=dep.get("version", None), env_manager=self.venvmanager
+                    name,
+                    version=dep.get("version", None),
+                    env_manager=self.venvmanager,
+                    logger=self.logger,
                 )
+                if not repo:
+                    raise ValueError(
+                        f"Package {name} could not be installed with version {dep.get('version', None)}"
+                    )
             elif version:
                 if repo.version != subversion:
                     await self.set_progress_state(
@@ -1358,6 +1384,10 @@ class Worker(ABC):
                         upgrade=True,
                         env_manager=self.venvmanager,
                     )
+                    if not repo:
+                        raise ValueError(
+                            f"Package {name} could not be updated with version {dep.get('version', None)}"
+                        )
 
             if not repo:
                 _name = name
@@ -1421,7 +1451,7 @@ class Worker(ABC):
             )
         except Exception as exc:
             await self.set_progress_state(
-                message=f"Could not install {name}",
+                message=f"Could not install {name}: {exc}",
                 status="error",
                 progress=0.0,
                 blocking=True,
