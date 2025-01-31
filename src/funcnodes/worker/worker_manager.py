@@ -1080,7 +1080,9 @@ class WorkerManager:
             )
 
             workerenv, _ = venvmngr.UVVenvManager.get_or_create_virtual_env(
-                new_worker.data_path / "pyproject.toml"
+                new_worker.data_path / "pyproject.toml",
+                python="3.11",
+                description="A Funcnodes worker environment",
             )
             await self.set_progress_state(
                 message="Adding funcnodes",
