@@ -818,7 +818,7 @@ class Worker(ABC):
                         self.logger.exception(e)
 
     @exposed_method()
-    def export_worker(self) -> bytes:
+    def export_worker(self, with_files=True) -> bytes:
         """packs all the required data for the worker to be exported into a custom zip file format"""
 
         self.save()
@@ -840,6 +840,20 @@ class Worker(ABC):
                 tomlpath = self.data_path / "pyproject.toml"
                 if os.path.exists(tomlpath):
                     zip_file.write(tomlpath, "pyproject.toml")
+
+            if with_files:
+                # add all files in the files directory
+                for root, _, files in os.walk(self.files_path):
+                    for file in files:
+                        zip_file.write(
+                            os.path.join(root, file),
+                            os.path.join(
+                                "files",
+                                os.path.relpath(
+                                    os.path.join(root, file), self.files_path
+                                ),
+                            ),
+                        )
 
         zip_bytes = zip_buffer.getvalue()
         zip_buffer.close()
@@ -887,6 +901,11 @@ class Worker(ABC):
                     toml = f.read()
                 with open(self.data_path / "pyproject.toml", "wb") as f:
                     f.write(toml)
+
+            # extract files
+            for file in zip_file.namelist():
+                if file.startswith("files/"):
+                    zip_file.extract(file, self.data_path)
 
         await self.update(config=config, state=state)
 
