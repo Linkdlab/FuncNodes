@@ -1342,8 +1342,15 @@ class Worker(ABC):
                 )
 
                 repo = install_repo(
-                    name, version=dep.get("version", None), env_manager=self.venvmanager
+                    name,
+                    version=dep.get("version", None),
+                    env_manager=self.venvmanager,
+                    logger=self.logger,
                 )
+                if not repo:
+                    raise ValueError(
+                        f"Package {name} could not be installed with version {dep.get('version', None)}"
+                    )
             elif version:
                 if repo.version != subversion:
                     await self.set_progress_state(
@@ -1358,6 +1365,10 @@ class Worker(ABC):
                         upgrade=True,
                         env_manager=self.venvmanager,
                     )
+                    if not repo:
+                        raise ValueError(
+                            f"Package {name} could not be updated with version {dep.get('version', None)}"
+                        )
 
             if not repo:
                 _name = name
@@ -1421,7 +1432,7 @@ class Worker(ABC):
             )
         except Exception as exc:
             await self.set_progress_state(
-                message=f"Could not install {name}",
+                message=f"Could not install {name}: {exc}",
                 status="error",
                 progress=0.0,
                 blocking=True,

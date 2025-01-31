@@ -10,6 +10,7 @@ from funcnodes_core._setup import setup_module
 from funcnodes_core.utils.plugins import InstalledModule
 from dataclasses import dataclass, field
 import venvmngr
+import logging
 
 
 @dataclass
@@ -69,6 +70,7 @@ def install_package(
     version=None,
     upgrade=False,
     env_manager: Optional[venvmngr.VenvManager] = None,
+    logger: Optional[logging.Logger] = None,
 ):
     """
     Install a Python package using pip.
@@ -86,7 +88,14 @@ def install_package(
             # Check if the package is already installed
             pkg_resources.get_distribution(package_name)
             if upgrade:
-                print(f"Package '{package_name}' is already installed. Upgrading...")
+                if logger:
+                    logger.info(
+                        f"Package '{package_name}' is already installed. Upgrading..."
+                    )
+                else:
+                    print(
+                        f"Package '{package_name}' is already installed. Upgrading..."
+                    )
                 install_cmd = [
                     sys.executable,
                     "-m",
@@ -96,7 +105,10 @@ def install_package(
                     package_name,
                 ]
             else:
-                print(f"Package '{package_name}' is already installed.")
+                if logger:
+                    logger.info(f"Package '{package_name}' is already installed.")
+                else:
+                    print(f"Package '{package_name}' is already installed.")
                 return True
         except pkg_resources.DistributionNotFound:
             # Package is not installed; proceed to install
@@ -115,16 +127,36 @@ def install_package(
             return True
         except subprocess.CalledProcessError:
             return False
+    lines = []
     try:
+
+        def cb(line):
+            lines.append(line)
+
         env_manager.install_package(
             package_name=package_name,
             version=version,
             upgrade=upgrade,
-            stderr_callback=print,
-            stdout_callback=print,
+            stderr_callback=cb,
+            stdout_callback=cb,
         )
+        if len(lines) > 0:
+            lines = "\n".join(lines)
+            if logger:
+                logger.info(lines)
+            else:
+                print(lines)
         return True
-    except Exception:
+    except Exception as e:
+        if logger:
+            logger.error(e)
+        if len(lines) > 0:
+            lines = "\n".join(lines)
+            if logger:
+                logger.error(lines)
+            else:
+                print(lines)
+
         return False
 
 
@@ -133,11 +165,14 @@ def install_repo(
     upgrade: bool = False,
     version=None,
     env_manager: Optional[venvmngr.VenvManager] = None,
+    logger: Optional[logging.Logger] = None,
 ) -> Optional[AvailableRepo]:
     if package_name not in AVAILABLE_REPOS:
         return False
 
-    if not install_package(package_name, version, upgrade, env_manager=env_manager):
+    if not install_package(
+        package_name, version, upgrade, env_manager=env_manager, logger=logger
+    ):
         return None
 
     # reload imports
