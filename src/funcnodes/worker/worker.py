@@ -902,7 +902,7 @@ class Worker(ABC):
 
                 toml = b""
                 for line in list(tomllines):
-                    if "requires-python =" in line:
+                    if b"requires-python =" in line:
                         # if the toml was created with a higher python version,
                         # we need to update the requires-python to the minimum
                         line = b'requires-python = ">=3.11"'
