@@ -1,5 +1,7 @@
-import cProfile
-import pstats
+# import cProfile
+import yappi
+
+# import pstats
 import threading
 from typing import Type
 
@@ -669,22 +671,22 @@ def main():
                 def periodic_dump(profiler, interval=10):
                     """Periodically dumps the profiler stats to a file."""
                     # counter = 0
-                    while profiler.running:
+                    while profiler.custom_running:
                         time.sleep(interval)
-                        if not profiler.running:
+                        if not profiler.custom_running:
                             break
                         # counter += 1
                         filename = "funcnodesprofile.prof"
-                        stats = pstats.Stats(profiler)
-                        stats.dump_stats(filename)
+                        yappi.get_func_stats().save("funcnodesprofile.pstat", "pstat")
                         print(f"Profile dumped to {filename}")
 
-                profiler = cProfile.Profile()
-                profiler.running = True  # Custom flag to control the thread
-                profiler.enable()
+                yappi.set_clock_type("WALL")
+
+                yappi.custom_running = True  # Custom flag to control the thread
+                yappi.start()
                 # Start the background thread for periodic dumps
                 dump_thread = threading.Thread(
-                    target=periodic_dump, args=(profiler, 10), daemon=True
+                    target=periodic_dump, args=(yappi, 10), daemon=True
                 )
                 dump_thread.start()
 
@@ -692,10 +694,13 @@ def main():
 
         finally:
             if args.profile:
-                profiler.disable()
-                profiler.running = False  # Stop the background thread
-                stats = pstats.Stats(profiler)
-                stats.dump_stats("funcnodesprofile.prof")
+                yappi.stop()
+                # yappi.get_thread_stats()
+                yappi.get_func_stats().save("funcnodesprofile.pstat", "pstat")
+                # profiler.disable()
+                # profiler.running = False  # Stop the background thread
+                # stats = pstats.Stats(profiler)
+                # stats.dump_stats("funcnodesprofile.prof")
 
     except Exception as exc:
         fn.FUNCNODES_LOGGER.exception(exc)
