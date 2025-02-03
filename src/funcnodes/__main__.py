@@ -1,3 +1,6 @@
+import cProfile
+import pstats
+import threading
 from typing import Type
 
 import funcnodes as fn
@@ -565,6 +568,23 @@ def add_modules_parser(subparsers):
     parser.add_argument("moduletask", help="Task to perform on modules")
 
 
+def _submain(args):
+    fn.FUNCNODES_LOGGER.debug("Running funcnodes with args: %s", args)
+    if args.task == "runserver":
+        task_run_server(args)
+    elif args.task == "worker":
+        task_worker(args)
+    elif args.task == "startworkermanager":
+        start_worker_manager(args)
+    elif args.task == "modules":
+        task_modules(args)
+    else:
+        raise Exception(f"Unknown task: {args.task}")
+    # except Exception as exc:
+    #     fn.FUNCNODES_LOGGER.exception(exc)
+    #     raise
+
+
 def main():
     """
     The main function.
@@ -584,6 +604,12 @@ def main():
             "--dir",
             default=None,
             help="Funcnodes project directory",
+        )
+
+        parser.add_argument(
+            "--profile",
+            action="store_true",
+            help="Profile the code",
         )
 
         subparsers = parser.add_subparsers(dest="task", required=True)
@@ -637,20 +663,40 @@ def main():
             asyncio.run(via_subprocess_monitor())
             return
 
-        fn.FUNCNODES_LOGGER.debug("Running funcnodes with args: %s", args)
-        if args.task == "runserver":
-            task_run_server(args)
-        elif args.task == "worker":
-            task_worker(args)
-        elif args.task == "startworkermanager":
-            start_worker_manager(args)
-        elif args.task == "modules":
-            task_modules(args)
-        else:
-            raise Exception(f"Unknown task: {args.task}")
-        # except Exception as exc:
-        #     fn.FUNCNODES_LOGGER.exception(exc)
-        #     raise
+        try:
+            if args.profile:
+
+                def periodic_dump(profiler, interval=10):
+                    """Periodically dumps the profiler stats to a file."""
+                    # counter = 0
+                    while profiler.running:
+                        time.sleep(interval)
+                        if not profiler.running:
+                            break
+                        # counter += 1
+                        filename = "funcnodesprofile.prof"
+                        stats = pstats.Stats(profiler)
+                        stats.dump_stats(filename)
+                        print(f"Profile dumped to {filename}")
+
+                profiler = cProfile.Profile()
+                profiler.running = True  # Custom flag to control the thread
+                profiler.enable()
+                # Start the background thread for periodic dumps
+                dump_thread = threading.Thread(
+                    target=periodic_dump, args=(profiler, 10), daemon=True
+                )
+                dump_thread.start()
+
+            _submain(args)
+
+        finally:
+            if args.profile:
+                profiler.disable()
+                profiler.running = False  # Stop the background thread
+                stats = pstats.Stats(profiler)
+                stats.dump_stats("funcnodesprofile.prof")
+
     except Exception as exc:
         fn.FUNCNODES_LOGGER.exception(exc)
         raise

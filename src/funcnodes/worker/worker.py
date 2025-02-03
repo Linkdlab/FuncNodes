@@ -627,6 +627,7 @@ class Worker(ABC):
 
     def load_config(self) -> WorkerJson | None:
         """loads the config from the config file"""
+        self.logger.debug("Loading config")
         cfile = self._config_file
         oldc = None
         if os.path.exists(cfile):
@@ -650,6 +651,7 @@ class Worker(ABC):
 
     def generate_config(self) -> WorkerJson:
         """generates a new config"""
+        self.logger.debug("Generate config")
         uuid = self.uuid()
         name = self.name()
         data_path = self.data_path
@@ -675,6 +677,7 @@ class Worker(ABC):
 
     def update_config(self, conf: WorkerJson) -> WorkerJson:
         """Updates a configuration dictionary for the Worker."""
+        self.logger.debug("Updating config")
         conf["uuid"] = self.uuid()
         conf["name"] = self.name()
         conf["data_path"] = self.data_path
@@ -720,6 +723,7 @@ class Worker(ABC):
         If opt_conf is not None, it will write the opt_conf to the config file
         otherwise it will write the current config to the config file.
         """
+        self.logger.debug("Write config")
         if opt_conf is None:
             c = self.update_config(self.config)
         else:
@@ -735,7 +739,9 @@ class Worker(ABC):
 
     async def ini_config(self):
         """initializes the worker from the config file"""
+        self.logger.debug("Init config")
         if os.path.exists(self._process_file):
+            self.logger.debug("Found process file, wait and try again")
             await asyncio.sleep(
                 1
             )  # wait for at least 1 second to make sure the process file is written
@@ -758,6 +764,7 @@ class Worker(ABC):
 
     async def update_from_config(self, config: dict):
         """updates the worker from a config dict"""
+        self.logger.debug("Update from config")
         reload_base(with_repos=True)
         if "package_dependencies" in config:
             for name, dep in config["package_dependencies"].items():
@@ -1871,6 +1878,7 @@ class Worker(ABC):
                 )
 
     def run_forever(self):
+        self.logger.debug("Starting worker forever")
         self._prerun()
         try:
             self.loop_manager.run_forever()
@@ -1878,6 +1886,7 @@ class Worker(ABC):
             self.stop()
 
     async def run_forever_async(self):
+        self.logger.debug("Starting worker forever async")
         self._prerun()
         try:
             await self.loop_manager.run_forever_async()
@@ -1885,6 +1894,7 @@ class Worker(ABC):
             self.stop()
 
     def run_forever_threaded(self, wait_for_running=True):
+        self.logger.debug("Starting worker forever in sub thread")
         runthread = threading.Thread(target=self.run_forever, daemon=True)
         runthread.start()
         if wait_for_running:
@@ -1919,7 +1929,9 @@ class Worker(ABC):
                 f"Unknown command {cmd} , available commands: {', '.join(self._exposed_methods.keys())}"
             )
         kwargs = json_msg.get("kwargs", {})
-        func = self._exposed_methods[cmd][0]
+        exp_method = self._exposed_methods[cmd]
+        func = exp_method[0]
+        self.logger.debug("Calling %s with %s", cmd, kwargs)
         if asyncio.iscoroutinefunction(func):
             result = await func(**kwargs)
         else:
