@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "0.5.27"
+version = "0.5.28"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -45,6 +45,7 @@ build-backend = "setuptools.build_meta"
 dev = [
     "coverage>=7.6.10",
     "pre-commit>=4.1.0",
+    "py-spy>=0.4.0",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
     "vulture>=2.14",
