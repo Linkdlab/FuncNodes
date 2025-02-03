@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "0.5.28"
+version = "0.5.29"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -25,7 +25,8 @@ dependencies = [
     "aiohttp-cors",
     "uv>=0.5.21",
     "pip>=24.2",
-    ]
+    "yappi>=1.6.10",
+]
 
 [project.license]
 text = "AGPL-3.0"

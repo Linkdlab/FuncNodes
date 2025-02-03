@@ -324,7 +324,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes"
-version = "0.5.28"
+version = "0.5.29"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp-cors" },
@@ -338,6 +338,7 @@ dependencies = [
     { name = "uv" },
     { name = "venvmngr" },
     { name = "virtualenv" },
+    { name = "yappi" },
 ]
 
 [package.dev-dependencies]
@@ -363,6 +364,7 @@ requires-dist = [
     { name = "uv", specifier = ">=0.5.21" },
     { name = "venvmngr", specifier = ">=0.1.14" },
     { name = "virtualenv" },
+    { name = "yappi", specifier = ">=1.6.10" },
 ]
 
 [package.metadata.requires-dev]
@@ -889,6 +891,35 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/8e/25/925f35db758a0f9199113aaf61d703de891676b082bd7cf73ea01d6000f7/vulture-2.14.tar.gz", hash = "sha256:cb8277902a1138deeab796ec5bef7076a6e0248ca3607a3f3dee0b6d9e9b8415", size = 58823 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/56/0cc15b8ff2613c1d5c3dc1f3f576ede1c43868c1bc2e5ccaa2d4bcd7974d/vulture-2.14-py2.py3-none-any.whl", hash = "sha256:d9a90dba89607489548a49d557f8bac8112bd25d3cbc8aeef23e860811bd5ed9", size = 28915 },
+]
+
+[[package]]
+name = "yappi"
+version = "1.6.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/02/5b/cfde09baf28f7046194b98f1c4907e172c48e7c1b2db35a918fc8a57727a/yappi-1.6.10.tar.gz", hash = "sha256:463b822727658937bd95a7d80ca9758605b8cd0014e004e9e520ec9cb4db0c92", size = 59379 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/fb/afc324765f910a4d06f3064eeb7d7f3c593f47102b1def4dbef1a57344de/yappi-1.6.10-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:20b8289e8cca781e948f72d86c03b308e077abeec53ec60080f77319041e0511", size = 32882 },
+    { url = "https://files.pythonhosted.org/packages/5f/1d/1d86bfbb756db33cf9d42489190b73ffe16a36c25afb394f2645e42c795b/yappi-1.6.10-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:4bc9a30b162cb0e13d6400476fa05c272992bd359592e9bba1a570878d9e155c", size = 76393 },
+    { url = "https://files.pythonhosted.org/packages/e7/88/d4261df64a57378c7c99fe5949c27990e3aee7cbc2f8dee840dbbdeaa4c1/yappi-1.6.10-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:40aa421ea7078795ed2f0e6bae3f8f64f6cd5019c885a12c613b44dd1fc598b4", size = 79793 },
+    { url = "https://files.pythonhosted.org/packages/48/01/775412e17e5192f6268c4ad13de498aad7a34e1fc83002d5be4eedf1f7c2/yappi-1.6.10-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:0d62741c0ac883067e40481ab89ddd9e004292dbd22ac5992cf45745bf28ccc3", size = 74817 },
+    { url = "https://files.pythonhosted.org/packages/a7/68/d0b6e4af43352f568d390858357e2d67a7f8172b6250daf0bc4846ef17aa/yappi-1.6.10-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:1cf46ebe43ac95f8736618a5f0ac763c7502a3aa964a1dda083d9e9c1bf07b12", size = 77201 },
+    { url = "https://files.pythonhosted.org/packages/94/f1/bb9d3074245eeba621dffa0715de53cd3adacfe3e49b565efddcd5a8a8e6/yappi-1.6.10-cp311-cp311-win32.whl", hash = "sha256:ff3688aa99b08ee10ced478b7255ac03865a8b5c0677482056acfe4d4f56e45f", size = 31893 },
+    { url = "https://files.pythonhosted.org/packages/9f/7d/0f20ed8deaa675481071d0f7821756eaa716ba36ca6da9c68e44a6866d6e/yappi-1.6.10-cp311-cp311-win_amd64.whl", hash = "sha256:4bd4f820e84d823724b8de4bf6857025e9e6c953978dd32485e054cf7de0eda7", size = 34390 },
+    { url = "https://files.pythonhosted.org/packages/50/01/1823649d33aee627440939d7247e1fa7ef64bd907ca4ea88438274d392fc/yappi-1.6.10-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:32c6d928604d7a236090bc36d324f309fe8344c91123bb84e37c43f6677adddc", size = 32914 },
+    { url = "https://files.pythonhosted.org/packages/54/c5/85852db160c93ee3190741a4fff25075518ad97dea1e2ad47ca6eab31d2f/yappi-1.6.10-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9683c40de7e4ddff225068032cd97a6d928e4beddd9c7cf6515325be8ac28036", size = 77223 },
+    { url = "https://files.pythonhosted.org/packages/38/01/b03a2bc47fbb2d9bcad072fc2e08730f814defaac2ffbf76ef785fdff5d0/yappi-1.6.10-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:733a212014f2b44673ed62be53b3d4dd458844cd2008ba107f27a3293e42f43a", size = 81250 },
+    { url = "https://files.pythonhosted.org/packages/39/44/a3c64e0de45a0fc0bf327af95465a94cb8340a64e5abb7bb8af1cfd76f7f/yappi-1.6.10-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:7d80938e566ac6329daa3b036fdf7bd34488010efcf0a65169a44603878daa4e", size = 76118 },
+    { url = "https://files.pythonhosted.org/packages/0c/68/6806060eaec421a21554c2f7ee8b1379ff02b059e0c753eb55e5b7b701a4/yappi-1.6.10-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:01705971b728a4f95829b723d08883c7623ec275f4066f4048b28dc0151fe0af", size = 78522 },
+    { url = "https://files.pythonhosted.org/packages/af/4f/0afcacc683f3c34570effc78e6d4c154dea9d6cc8549c2535fb75441be30/yappi-1.6.10-cp312-cp312-win32.whl", hash = "sha256:8dd13a430b046e2921ddf63d992da97968724b41a03e68292f06a2afa11c9d6e", size = 32020 },
+    { url = "https://files.pythonhosted.org/packages/cb/45/17f50baed4a886fab2c34a040cefefe6623abcaaadf23f851207da9cd5e6/yappi-1.6.10-cp312-cp312-win_amd64.whl", hash = "sha256:a50eb3aec893c40554f8f811d3341af266d844e7759f7f7abfcdba2744885ea3", size = 34471 },
+    { url = "https://files.pythonhosted.org/packages/2c/33/9ca066f48c7fb21e0ab16fd5e1c99771275a8cec435ef7ac1840d13252f0/yappi-1.6.10-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:944df9ebc6b283d6591a6b5f4c586d0eb9c6131c915f1b20fb36127ade83720d", size = 32924 },
+    { url = "https://files.pythonhosted.org/packages/cc/ef/a81fac59ca7a13fd26321d59a54841f70f76ce91b5884c001d77f534b3b1/yappi-1.6.10-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:3736ea6458edbabd96918d88e2963594823e4ab4c58d62a52ef81f6b5839ec19", size = 77308 },
+    { url = "https://files.pythonhosted.org/packages/62/59/8fdcb2a660388a7778c52cdfa0c52654955cf7953f85efacd8fd771f8da0/yappi-1.6.10-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f27bbc3311a3662231cff395d38061683fac5c538f3bab6796ff05511d2cce43", size = 81347 },
+    { url = "https://files.pythonhosted.org/packages/f5/28/62d8f97a62eafc443bb057442ae75b7f4741230c2dd774c5b7002bc05a4e/yappi-1.6.10-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:354cf94d659302b421b13c03487f2f1bce969b97b85fba88afb11f2ef83c35f3", size = 76239 },
+    { url = "https://files.pythonhosted.org/packages/5d/aa/ea0dbf6e00c7dcb81b4d84d35f6e0584c448674fc19533ddb3198533d41b/yappi-1.6.10-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:1d82839835ae2c291b88fb56d82f80c88c00d76df29f3c1ed050db73b553bef0", size = 78712 },
+    { url = "https://files.pythonhosted.org/packages/88/72/81acfc73b5d66031284c7b4d384200d016f96e26038466269ed139114e98/yappi-1.6.10-cp313-cp313-win32.whl", hash = "sha256:fc84074575afcc5a2a712e132c0b51541b7434b3099be99f573964ef3b6064a8", size = 32026 },
+    { url = "https://files.pythonhosted.org/packages/23/71/47f12130412703a6816dba27ebd0aa853612ea6fbe3f93f7698c3520ea92/yappi-1.6.10-cp313-cp313-win_amd64.whl", hash = "sha256:334b31dfefae02bc28b7cd50953aaaae3292e40c15efb613792e4a587281a161", size = 34471 },
 ]
 
 [[package]]
