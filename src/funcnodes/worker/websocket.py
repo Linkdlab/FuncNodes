@@ -42,6 +42,9 @@ ENDPORT = int(os.environ.get("FUNCNODES_WS_WORKER_ENDPORT", 9582))
 MESSAGE_SIZE_BEFORE_REQUEST = int(
     os.environ.get("FUNCNODES_WS_WORKER_MAX_SIZE", 1024 * 1024 * 1)  # default 1MB
 )
+MAX_DATA_SIZE = int(
+    os.environ.get("FUNCNODES_WS_WORKER_MAX_DATA_SIZE", 1024 * 1024 * 1024 * 10)
+)  # default 10GB
 LARGE_MESSAGE_MEMORY_TIMEOUT = 60  # 1 minute
 
 
@@ -65,7 +68,7 @@ class WSLoop(CustomLoop):
         self._use_ssl: bool = False
         self._worker = worker
         self.clients: List[web.WebSocketResponse] = []
-        self.app = web.Application(client_max_size=MESSAGE_SIZE_BEFORE_REQUEST)
+        self.app = web.Application(client_max_size=MAX_DATA_SIZE)
         # A store for large messages that cannot be sent directly over WebSocket
         self.message_store: Dict[str, Tuple[str, float]] = {}
 
