@@ -39,7 +39,9 @@ class WSWorkerJson(RemoteWorkerJson):
 STARTPORT = int(os.environ.get("FUNCNODES_WS_WORKER_STARTPORT", 9382))
 ENDPORT = int(os.environ.get("FUNCNODES_WS_WORKER_ENDPORT", 9582))
 
-MESSAGE_SIZE_BEFORE_REQUEST = 1024 * 1024 * 1  # 1MB
+MESSAGE_SIZE_BEFORE_REQUEST = int(
+    os.environ.get("FUNCNODES_WS_WORKER_MAX_SIZE", 1024 * 1024 * 1)  # default 1MB
+)
 LARGE_MESSAGE_MEMORY_TIMEOUT = 60  # 1 minute
 
 
@@ -63,7 +65,7 @@ class WSLoop(CustomLoop):
         self._use_ssl: bool = False
         self._worker = worker
         self.clients: List[web.WebSocketResponse] = []
-        self.app = web.Application(client_max_size=1 * 1024 * 1024 * 1024)
+        self.app = web.Application(client_max_size=MESSAGE_SIZE_BEFORE_REQUEST)
         # A store for large messages that cannot be sent directly over WebSocket
         self.message_store: Dict[str, Tuple[str, float]] = {}
 
@@ -101,9 +103,7 @@ class WSLoop(CustomLoop):
         """
         Handles a new client connection.
         """
-        websocket = web.WebSocketResponse(
-            max_msg_size=int(os.environ.get("FUNCNODES_WS_WORKER_MAX_SIZE", 2**32 - 1))
-        )
+        websocket = web.WebSocketResponse(max_msg_size=MESSAGE_SIZE_BEFORE_REQUEST)
         await websocket.prepare(request)
         self.clients.append(websocket)
         self._worker.logger.debug("Client connected")
@@ -136,6 +136,7 @@ class WSLoop(CustomLoop):
         """
         Handle GET requests to retrieve large messages that were previously stored.
         """
+        self._worker.logger.debug("Retrieving large message")
         msg_id = request.match_info["msg_id"]
         if msg_id in self.message_store:
             msg = self.message_store[msg_id][
@@ -151,6 +152,7 @@ class WSLoop(CustomLoop):
         Clients can use this endpoint to upload large messages, and the server
         will return a unique ID that can be shared over WebSocket.
         """
+        self._worker.logger.debug("Storing large message")
         try:
             data = await request.read()
             # Here we assume the incoming data is JSON text.
@@ -171,6 +173,7 @@ class WSLoop(CustomLoop):
 
         The request must include a multipart form with a file field.
         """
+        self._worker.logger.debug("Uploading file")
         try:
             reader = await request.multipart()
             files_uploaded = []
@@ -243,6 +246,9 @@ class WSLoop(CustomLoop):
             return
 
         while True:
+            self._worker.logger.info(
+                f"Try starting WebSocket server on {self._host}:{self._port}"
+            )
             try:
                 self.runner = web.AppRunner(self.app)
                 await self.runner.setup()
@@ -263,12 +269,14 @@ class WSLoop(CustomLoop):
         """
         Changes the port number for the WebSocket server.
         """
+
         if port is not None:
             self._port = port
         else:
             self._port += 1
             if self._port > ENDPORT:
                 self._port = STARTPORT
+        self._worker.logger.info(f"Changing port to {self._port}")
         if self.site is not None:
             await self.site.stop()
             self.site = None
@@ -359,7 +367,10 @@ class WSWorker(RemoteWorker):
         if not msg:
             return
 
-        if len(msg) > MESSAGE_SIZE_BEFORE_REQUEST:
+        if (
+            len(msg.encode("utf8")) * 1.1  # include 10% overhead
+            > MESSAGE_SIZE_BEFORE_REQUEST
+        ):
             msg_id = str(uuid.uuid4())
             self.ws_loop.message_store[msg_id] = (msg, time.time())
             # Construct a URL for the client to retrieve the message
