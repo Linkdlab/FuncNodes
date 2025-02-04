@@ -155,10 +155,16 @@ def start_existing_worker(args: argparse.Namespace):
         # run the worker with the same python executable
         if not os.path.exists(cfg["python_path"]):
             raise Exception(f"Python executable not found: {cfg['python_path']}")
+
+        kwargs = {}
+        if args.debug:
+            kwargs["debug"] = args.debug
+        if args.profile:
+            kwargs["profile"] = args.profile
         calllist = [
             cfg["python_path"],
             "-m",
-        ] + build_worker_start(uuid=cfg["uuid"], workertype=args.workertype)
+        ] + build_worker_start(uuid=cfg["uuid"], workertype=args.workertype, **kwargs)
 
         return os.execv(
             cfg["python_path"],
@@ -667,11 +673,16 @@ def main():
 
         try:
             if args.profile:
+                print("Profiling the run to", os.path.abspath("funcnodesprofile.prof"))
 
                 def periodic_dump(profiler, interval=10):
                     """Periodically dumps the profiler stats to a file."""
                     # counter = 0
                     while profiler.custom_running:
+                        print(
+                            "Profiling the run to",
+                            os.path.abspath("funcnodesprofile.prof"),
+                        )
                         time.sleep(interval)
                         if not profiler.custom_running:
                             break
@@ -679,6 +690,7 @@ def main():
                         filename = "funcnodesprofile.prof"
                         yappi.get_func_stats().save("funcnodesprofile.pstat", "pstat")
                         print(f"Profile dumped to {filename}")
+                    print("Profiler stopped")
 
                 yappi.set_clock_type("WALL")
 
