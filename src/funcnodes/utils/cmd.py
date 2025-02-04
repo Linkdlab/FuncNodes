@@ -1,10 +1,12 @@
 from typing import Optional, List
 
 
-def _build_fn_base(debug=False, **kwargs):
+def _build_fn_base(debug=False, profile=False, **kwargs):
     cmd = ["funcnodes"]
     if debug:
         cmd.append("--debug")
+    if profile:
+        cmd.append("--profile")
     return cmd
 
 
@@ -24,7 +26,7 @@ def _build_worker_base_cmd(
         List[str]: The base command-line string as a list.
     """
     cmd = _build_fn_base(**kwargs)
-    cmd = ["funcnodes", "worker"]
+    cmd += ["worker"]
     if uuid is not None:
         cmd.extend(["--uuid", uuid])
     if name is not None:

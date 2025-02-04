@@ -543,10 +543,10 @@ class Worker(ABC):
         self.data_path = self._data_path
         funcnodes.logging.set_logging_dir(self.data_path)
         self.logger = funcnodes.get_logger(self.uuid(), propagate=False)
-
-        self.logger.info("Init Worker %s", self.__class__.__name__)
         if debug:
             self.logger.setLevel("DEBUG")
+        self.logger.info("Init Worker %s", self.__class__.__name__)
+
         self.logger.addHandler(
             RotatingFileHandler(
                 os.path.join(self.data_path, "worker.log"),
@@ -1160,6 +1160,7 @@ class Worker(ABC):
     def save(self):
         if self._save_disabled:
             return
+        self.logger.debug("Saving worker")
         data: WorkerState = self.get_save_state()
         write_json_secure(data, self.local_nodespace, cls=JSONEncoder)
         self.write_config()
@@ -1171,6 +1172,7 @@ class Worker(ABC):
 
     async def load(self, data: WorkerState | str | None = None):
         self.clear()
+        self.logger.debug("Loading worker")
         if data is None:
             if not os.path.exists(self.local_nodespace):
                 return
@@ -1656,6 +1658,7 @@ class Worker(ABC):
     # region nodes
     @exposed_method()
     def clear(self):
+        self.logger.debug("Clearing worker")
         self.nodespace.clear()
         self.nodespace.set_property("files_dir", self.files_path.as_posix())
 
