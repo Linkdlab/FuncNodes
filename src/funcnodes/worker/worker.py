@@ -1337,8 +1337,7 @@ class Worker(ABC):
         await self.set_progress_state(
             message="Add package dependency", status="info", progress=0.0, blocking=True
         )
-        ser_nodespace = self.nodespace.serialize()
-        self.nodespace.clear()
+
         try:
             if name not in AVAILABLE_REPOS:
                 try_import_module(name)
@@ -1476,7 +1475,6 @@ class Worker(ABC):
             )
             raise exc
         finally:
-            self.nodespace.deserialize(ser_nodespace)
             await self.worker_event("fullsync")
 
     @exposed_method()
