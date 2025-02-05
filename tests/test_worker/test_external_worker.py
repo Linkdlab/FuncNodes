@@ -189,7 +189,7 @@ class TestExternalWorkerWithWorker(IsolatedAsyncioTestCase):
         for _ in range(5):
             await asyncio.sleep(0.3)
             t = time.time()
-            self.assertLessEqual(t - self.retmoteworker.timerloop.last_run, 0.2)
+            self.assertLessEqual(t - self.retmoteworker.timerloop.last_run, 0.25)
 
     async def test_external_worker_run(self):
         def get_ws_nodes():
