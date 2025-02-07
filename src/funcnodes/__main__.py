@@ -411,10 +411,14 @@ def py_in_worker_env(args: argparse.Namespace):
     cfg = _worker_conf_from_args(args)
 
     # Run the command in the worker environment
-    print(f"{cfg['python_path']} {' '.join(args.command)}")
-    os.system(
-        f"{cfg['python_path']} {' '.join(args.command)}"
-    )  # Run the command in the worker environment
+    if args.command[0] == "--":
+        args.command = args.command[1:]
+    command = [cfg["python_path"]] + args.command
+    fn.FUNCNODES_LOGGER.debug("Executing: %s", command)
+
+    import subprocess
+
+    subprocess.run(command)
 
 
 def task_modules(args: argparse.Namespace):
