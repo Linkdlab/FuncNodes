@@ -351,3 +351,4 @@ funcnodesDjango/funcnodes/static/funcnodes/funcnodes.zip
 requirements.txt
 /.licensecheck
 /.funcnodes
+/docs/site
