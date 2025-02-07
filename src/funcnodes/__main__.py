@@ -449,7 +449,7 @@ def task_modules(args: argparse.Namespace):
         from funcnodes_core.utils import plugins
 
         for k, v in plugins.get_installed_modules().items():
-            value_str = str(v)  # Convert the value to a string
+            value_str = repr(v)  # Convert the value to a string
             indented_value = textwrap.indent(
                 textwrap.fill(value_str, subsequent_indent="\t", width=80), "\t"
             )
