@@ -17,6 +17,8 @@ import asyncio
 import venvmngr
 import subprocess_monitor
 import dotenv
+import subprocess
+
 
 dotenv.load_dotenv()
 
@@ -320,6 +322,8 @@ def task_worker(args: argparse.Namespace):
             return activate_worker_env(args)
         elif workertask == "py":
             return py_in_worker_env(args)
+        elif workertask == "modules":
+            return worker_modules_task(args)
         else:
             raise Exception(f"Unknown workertask: {workertask}")
     except Exception as exc:
@@ -416,7 +420,12 @@ def py_in_worker_env(args: argparse.Namespace):
     command = [cfg["python_path"]] + args.command
     fn.FUNCNODES_LOGGER.debug("Executing: %s", command)
 
-    import subprocess
+    subprocess.run(command)
+
+
+def worker_modules_task(args: argparse.Namespace):
+    cfg = _worker_conf_from_args(args)
+    command = [cfg["python_path"], "-m", "funcnodes", "modules", args.moduletask]
 
     subprocess.run(command)
 
@@ -564,6 +573,8 @@ def add_worker_parser(subparsers):
     stop_worker_parser = worker_subparsers.add_parser(  # noqa: F841
         "stop", help="Stops an existing worker"
     )
+
+    add_modules_parser(worker_subparsers)
 
 
 def add_worker_manager_parser(subparsers):
