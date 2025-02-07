@@ -83,9 +83,22 @@ nav:
   - Home: index.md
   - Getting Started:
       - Installation: getting-started/installation.md
+      - Use FuncNodes: getting-started/basic_usage.md
     #   - First Workflow: getting-started/first-workflow.md
     #   - Configuration: getting-started/configuration.md
-  #   - Core Concepts:
+  - Core Components:
+      - Nodes: components/node.md
+      - Node IOs: components/inputs-outputs.md
+      - Node Inputs: components/nodeinput.md
+      - Node Outputs: components/nodeoutput.md
+      - Nodespace: components/nodespace.md
+      - Libraries: components/lib.md
+      - Shelfes: components/shelf.md
+      - Worker: components/worker.md
+      - Workermanager: components/workermanager.md
+      - Funcnodes Config: components/config.md
+      - Worker Config: components/worker_config.md
+
   #       - Nodes: core-concepts/nodes.md
   #       - Node Inputs & Outputs: core-concepts/inputs-outputs.md
   #       - Triggers & Events: core-concepts/triggers-events.md
@@ -95,8 +108,8 @@ nav:
   #       - FuncNodes Worker: architecture/worker-components.md
   #       - FuncNodes Runner: architecture/runner.md
   - UI Guide:
-      - Web-based UI: ui-guide/web-ui.md
-  #       - React Flow Integration: ui-guide/react-flow.md
+      - Web-based UI: ui-guide/react_flow/web-ui.md
+
   #   - Deployment & Integration:
   #       - Docker Deployment: deployment/docker.md
   #       - API Integration: deployment/api-integration.md
@@ -117,11 +130,17 @@ nav:
   #       - Setting Up Development: contributing/setup.md
   #       - Making a Pull Request: contributing/pull-request.md
   #       - Running Tests: contributing/testing.md
+  - Examples:
+      - Overview: examples/index.md
+
+  - Modules:
+      - Overview: modules/index.md
+
   - API Reference:
       - CLI Commands: api/cli.md
       #       - FuncNodes Core API: api/core.md
       #       - FuncNodes Worker API: api/worker.md
-#   - FAQ & Troubleshooting:
-#       - Common Issues: faq/common-issues.md
+  - FAQ & Troubleshooting:
+      - Common Issues: faq/common-issues.md
 #       - Debugging Workers: faq/debugging-workers.md
 #       - Handling Serialization: faq/serialization.md

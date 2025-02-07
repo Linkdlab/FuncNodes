@@ -53,14 +53,14 @@ For development purposes we recomment setting `--dir .funcnodes` (1) which will 
 
 The `funcnodes` command expects a specific task, which can be one of the following:
 
-- runserver → Runs the [browser interface](../ui-guide/web-ui.md) with various [options][runserver]
+- runserver → Runs the [browser interface](../ui-guide/react_flow/web-ui.md) with various [options][runserver]
 - worker → Allows running and management of a [Worker](../components/worker.md)([options][worker])
 - startworkermanager → Starts the [Workermanager](../components/workermanager.md)([options][workermanager])
 - modules → Gives access to the installed funcnodes modules ([options][modules])
 
 #### runserver { #runserver}
 
-To start the [FuncNodes web UI](../ui-guide/web-ui.md), use:
+To start the [FuncNodes web UI](../ui-guide/react_flow/web-ui.md), use:
 
 ```bash
 funcnodes [common_options] runserver [server_options]
@@ -77,7 +77,7 @@ Optional argument to the command are:
 | --no-manager                        | The server does not automatically spawns a [Workermanager](../components/workermanager.md)                                                                                                                                                |
 | <nobr>--worker_manager_host </nobr> | The host adress of the [Workermanager](../components/workermanager.md) the server tries to rach or under which a new one will be spawned, defaults to the [config](../components/config.md)["worker_manager"]["host"] (default:localhost) |
 | <nobr>--worker_manager_port</nobr>  | The port of the [Workermanager](../components/workermanager.md) the server tries to rach or under which a new one will be spawned, defaults to the [config](../components/config.md)["worker_manager"]["port"] (default:9380)             |
-| --frontend                          | Which frontend to use in the UI (currently only [`react_flow`](../fontend/react_flow.md) is supported)                                                                                                                                    |
+| --frontend                          | Which frontend to use in the UI (currently only [`react_flow`](../ui-guide/react_flow/web-ui.md) is supported)                                                                                                                            |
 
 #### worker { #worker}
 

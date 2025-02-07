@@ -35,14 +35,3 @@ funcnodes --version
 This should display the installed version of FuncNodes. If you encounter any issues, check the [troubleshooting guide](../faq/common-issues.md).
 
 ---
-
-## Next Steps
-
-Now that FuncNodes is installed, you can:
-
-- **[Run the web based frontend](../ui-guide/web-ui.md)**
-- **[Create Your First Workflow](first-workflow.md)**
-- **[Configure Environment Settings](configuration.md)**
-- **[Explore Core Concepts](../core-concepts/nodes.md)**
-
-For further assistance, visit the [FuncNodes GitHub repository](https://github.com/Linkdlab/funcnodes).
