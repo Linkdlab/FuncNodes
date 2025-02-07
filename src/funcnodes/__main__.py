@@ -8,6 +8,7 @@ from typing import Type
 import funcnodes as fn
 import argparse
 from pprint import pprint
+import textwrap
 import sys
 import os
 import time
@@ -447,7 +448,13 @@ def task_modules(args: argparse.Namespace):
     if args.moduletask == "list":
         from funcnodes_core.utils import plugins
 
-        pprint(plugins.get_installed_modules())
+        for k, v in plugins.get_installed_modules().items():
+            value_str = str(v)  # Convert the value to a string
+            indented_value = textwrap.indent(
+                textwrap.fill(value_str, subsequent_indent="\t", width=80), "\t"
+            )
+            print(f"{k}:\n{indented_value}")
+
     else:
         raise Exception(f"Unknown moduletask: {args.moduletask}")
 
