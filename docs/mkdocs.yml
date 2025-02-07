@@ -82,6 +82,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started:
+      - Introduction: getting-started/introduction.md
       - Installation: getting-started/installation.md
       - Use FuncNodes: getting-started/basic_usage.md
     #   - First Workflow: getting-started/first-workflow.md

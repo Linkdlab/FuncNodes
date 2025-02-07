@@ -14,6 +14,7 @@
 
 ## 🔥 Getting Started
 
+- **[Understanding FuncNodes](getting-started/introduction.md)** - Learn how FuncNodes processes workflows
 - **[Installation Guide](getting-started/installation.md)** - Set up FuncNodes in your environment
 - **[Using the UI](getting-started/basic_usage.md)** - Learn how to use the FuncNodes UI
 
