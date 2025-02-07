@@ -27,4 +27,4 @@ jobs:
             mkdocs-material-
       - run: pip install uv
       - run: uv sync --group docs --upgrade
-      - run: mkdocs gh-deploy --force
+      - run: uv run mkdocs gh-deploy --force
