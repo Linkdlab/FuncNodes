@@ -80,7 +80,6 @@ def list_workers(args: argparse.Namespace):
     else:
         for cf in mng.get_all_workercfg():
             print(f"{cf['uuid']}\t{cf.get('name')}")
-            print(f"  {cf['python_path']}")
 
 
 def start_new_worker(args: argparse.Namespace):
@@ -485,6 +484,8 @@ def add_runserver_parser(subparsers):
         choices=["react_flow"],
     )
 
+    parser.set_defaults(long_running=True)
+
 
 def _add_worker_identifiers(parser):
     parser.add_argument(
@@ -535,6 +536,7 @@ def add_worker_parser(subparsers):
 
     # Start a new worker
     new_worker_parser = worker_subparsers.add_parser("new", help="Start a new worker")
+    new_worker_parser.set_defaults(long_running=True)
     new_worker_parser.add_argument(
         "--workertype", default=None, help="The type of worker to start"
     )
@@ -549,6 +551,7 @@ def add_worker_parser(subparsers):
     start_worker_parser = worker_subparsers.add_parser(
         "start", help="Start an existing worker"
     )
+    start_worker_parser.set_defaults(long_running=True)
     start_worker_parser.add_argument(
         "--workertype", default=None, help="The type of worker to start"
     )
@@ -569,6 +572,7 @@ def add_worker_manager_parser(subparsers):
     parser.add_argument(
         "--port", default=None, type=int, help="The port to run the worker manager on"
     )
+    parser.set_defaults(long_running=True)
 
 
 def add_modules_parser(subparsers):
@@ -644,8 +648,10 @@ def main():
         if args.debug:
             fn.FUNCNODES_LOGGER.setLevel("DEBUG")
 
-        if os.environ.get("SUBPROCESS_MONITOR_PID") is None and int(
-            os.environ.get("USE_SUBPROCESS_MONITOR", "1")
+        if (
+            getattr(args, "long_running", False)
+            and os.environ.get("SUBPROCESS_MONITOR_PID") is None
+            and int(os.environ.get("USE_SUBPROCESS_MONITOR", "1"))
         ):
             fn.FUNCNODES_LOGGER.info("Starting subprocess via monitor")
 
