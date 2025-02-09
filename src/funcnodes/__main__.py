@@ -8,6 +8,7 @@ from typing import Type
 import funcnodes as fn
 import argparse
 from pprint import pprint
+import textwrap
 import sys
 import os
 import time
@@ -17,6 +18,8 @@ import asyncio
 import venvmngr
 import subprocess_monitor
 import dotenv
+import subprocess
+
 
 dotenv.load_dotenv()
 
@@ -80,7 +83,6 @@ def list_workers(args: argparse.Namespace):
     else:
         for cf in mng.get_all_workercfg():
             print(f"{cf['uuid']}\t{cf.get('name')}")
-            print(f"  {cf['python_path']}")
 
 
 def start_new_worker(args: argparse.Namespace):
@@ -321,6 +323,8 @@ def task_worker(args: argparse.Namespace):
             return activate_worker_env(args)
         elif workertask == "py":
             return py_in_worker_env(args)
+        elif workertask == "modules":
+            return worker_modules_task(args)
         else:
             raise Exception(f"Unknown workertask: {workertask}")
     except Exception as exc:
@@ -412,10 +416,19 @@ def py_in_worker_env(args: argparse.Namespace):
     cfg = _worker_conf_from_args(args)
 
     # Run the command in the worker environment
-    print(f"{cfg['python_path']} {' '.join(args.command)}")
-    os.system(
-        f"{cfg['python_path']} {' '.join(args.command)}"
-    )  # Run the command in the worker environment
+    if args.command[0] == "--":
+        args.command = args.command[1:]
+    command = [cfg["python_path"]] + args.command
+    fn.FUNCNODES_LOGGER.debug("Executing: %s", command)
+
+    subprocess.run(command)
+
+
+def worker_modules_task(args: argparse.Namespace):
+    cfg = _worker_conf_from_args(args)
+    command = [cfg["python_path"], "-m", "funcnodes", "modules", args.moduletask]
+
+    subprocess.run(command)
 
 
 def task_modules(args: argparse.Namespace):
@@ -435,7 +448,13 @@ def task_modules(args: argparse.Namespace):
     if args.moduletask == "list":
         from funcnodes_core.utils import plugins
 
-        pprint(plugins.get_installed_modules())
+        for k, v in plugins.get_installed_modules().items():
+            value_str = repr(v)  # Convert the value to a string
+            indented_value = textwrap.indent(
+                textwrap.fill(value_str, subsequent_indent="\t", width=80), "\t"
+            )
+            print(f"{k}:\n{indented_value}")
+
     else:
         raise Exception(f"Unknown moduletask: {args.moduletask}")
 
@@ -484,6 +503,8 @@ def add_runserver_parser(subparsers):
         help="The frontend to use (e.g. react_flow)",
         choices=["react_flow"],
     )
+
+    parser.set_defaults(long_running=True)
 
 
 def _add_worker_identifiers(parser):
@@ -535,6 +556,7 @@ def add_worker_parser(subparsers):
 
     # Start a new worker
     new_worker_parser = worker_subparsers.add_parser("new", help="Start a new worker")
+    new_worker_parser.set_defaults(long_running=True)
     new_worker_parser.add_argument(
         "--workertype", default=None, help="The type of worker to start"
     )
@@ -549,6 +571,7 @@ def add_worker_parser(subparsers):
     start_worker_parser = worker_subparsers.add_parser(
         "start", help="Start an existing worker"
     )
+    start_worker_parser.set_defaults(long_running=True)
     start_worker_parser.add_argument(
         "--workertype", default=None, help="The type of worker to start"
     )
@@ -557,6 +580,8 @@ def add_worker_parser(subparsers):
     stop_worker_parser = worker_subparsers.add_parser(  # noqa: F841
         "stop", help="Stops an existing worker"
     )
+
+    add_modules_parser(worker_subparsers)
 
 
 def add_worker_manager_parser(subparsers):
@@ -569,6 +594,7 @@ def add_worker_manager_parser(subparsers):
     parser.add_argument(
         "--port", default=None, type=int, help="The port to run the worker manager on"
     )
+    parser.set_defaults(long_running=True)
 
 
 def add_modules_parser(subparsers):
@@ -644,8 +670,10 @@ def main():
         if args.debug:
             fn.FUNCNODES_LOGGER.setLevel("DEBUG")
 
-        if os.environ.get("SUBPROCESS_MONITOR_PID") is None and int(
-            os.environ.get("USE_SUBPROCESS_MONITOR", "1")
+        if (
+            getattr(args, "long_running", False)
+            and os.environ.get("SUBPROCESS_MONITOR_PID") is None
+            and int(os.environ.get("USE_SUBPROCESS_MONITOR", "1"))
         ):
             fn.FUNCNODES_LOGGER.info("Starting subprocess via monitor")
 

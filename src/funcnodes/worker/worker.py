@@ -1335,7 +1335,10 @@ class Worker(ABC):
         if dep and "path" in dep:
             raise NotImplementedError("Local package dependencies not implemented")
         await self.set_progress_state(
-            message="Add package dependency", status="info", progress=0.0, blocking=True
+            message=f"Add package dependency {name}",
+            status="info",
+            progress=0.0,
+            blocking=True,
         )
 
         try:
@@ -1371,7 +1374,7 @@ class Worker(ABC):
 
             if not repo.installed:
                 await self.set_progress_state(
-                    message="Install dependency " + name,
+                    message=f"Install dependency {name}",
                     status="info",
                     progress=0.40,
                     blocking=True,
@@ -1390,7 +1393,7 @@ class Worker(ABC):
             elif version:
                 if repo.version != subversion:
                     await self.set_progress_state(
-                        message="Upgrade dependency " + name,
+                        message=f"Upgrade dependency {name}",
                         status="info",
                         progress=0.40,
                         blocking=True,
@@ -1419,7 +1422,7 @@ class Worker(ABC):
                 raise ValueError(f"Module {name} not found")
 
             await self.set_progress_state(
-                message="Adding dependency",
+                message=f"Adding dependency {name}",
                 status="info",
                 progress=0.80,
                 blocking=True,
@@ -1461,7 +1464,7 @@ class Worker(ABC):
             if save:
                 self.request_save()
             await self.set_progress_state(
-                message="Package dependency added",
+                message=f"Package dependency added {name}",
                 status="success",
                 progress=1,
                 blocking=False,
