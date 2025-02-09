@@ -1,13 +1,10 @@
-# import cProfile
-import yappi
-
-# import pstats
 import threading
 from typing import Type
 
 import funcnodes as fn
 import argparse
 from pprint import pprint
+import textwrap
 import sys
 import os
 import time
@@ -17,14 +14,17 @@ import asyncio
 import venvmngr
 import subprocess_monitor
 import dotenv
-
-dotenv.load_dotenv()
-
+import subprocess
+import warnings
 
 try:
-    from setproctitle import setproctitle
-except ModuleNotFoundError:
-    setproctitle = print
+    # yappi is an optional dependency
+    import yappi
+except (ImportError, ModuleNotFoundError):
+    yappi = None
+
+
+dotenv.load_dotenv()
 
 
 def task_run_server(args: argparse.Namespace):
@@ -41,7 +41,6 @@ def task_run_server(args: argparse.Namespace):
       >>> task_run_server(args)
       None
     """
-    setproctitle("funcnodes_server")
     frontend = args.frontend
     if frontend == "react_flow":
         from funcnodes_react_flow import run_server
@@ -80,7 +79,6 @@ def list_workers(args: argparse.Namespace):
     else:
         for cf in mng.get_all_workercfg():
             print(f"{cf['uuid']}\t{cf.get('name')}")
-            print(f"  {cf['python_path']}")
 
 
 def start_new_worker(args: argparse.Namespace):
@@ -179,7 +177,6 @@ def start_existing_worker(args: argparse.Namespace):
     fn.FUNCNODES_LOGGER.info("Starting existing worker of type %s", workertype)
     worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
-    setproctitle("worker " + worker.uuid())
     worker.run_forever()
 
 
@@ -321,6 +318,8 @@ def task_worker(args: argparse.Namespace):
             return activate_worker_env(args)
         elif workertask == "py":
             return py_in_worker_env(args)
+        elif workertask == "modules":
+            return worker_modules_task(args)
         else:
             raise Exception(f"Unknown workertask: {workertask}")
     except Exception as exc:
@@ -342,7 +341,6 @@ def start_worker_manager(args: argparse.Namespace):
       >>> start_worker_manager(args)
       None
     """
-    setproctitle("worker_manager")
 
     fn.worker.worker_manager.start_worker_manager(
         host=args.host, port=args.port, debug=args.debug
@@ -412,10 +410,19 @@ def py_in_worker_env(args: argparse.Namespace):
     cfg = _worker_conf_from_args(args)
 
     # Run the command in the worker environment
-    print(f"{cfg['python_path']} {' '.join(args.command)}")
-    os.system(
-        f"{cfg['python_path']} {' '.join(args.command)}"
-    )  # Run the command in the worker environment
+    if args.command[0] == "--":
+        args.command = args.command[1:]
+    command = [cfg["python_path"]] + args.command
+    fn.FUNCNODES_LOGGER.debug("Executing: %s", command)
+
+    subprocess.run(command)
+
+
+def worker_modules_task(args: argparse.Namespace):
+    cfg = _worker_conf_from_args(args)
+    command = [cfg["python_path"], "-m", "funcnodes", "modules", args.moduletask]
+
+    subprocess.run(command)
 
 
 def task_modules(args: argparse.Namespace):
@@ -435,7 +442,13 @@ def task_modules(args: argparse.Namespace):
     if args.moduletask == "list":
         from funcnodes_core.utils import plugins
 
-        pprint(plugins.get_installed_modules())
+        for k, v in plugins.get_installed_modules().items():
+            value_str = repr(v)  # Convert the value to a string
+            indented_value = textwrap.indent(
+                textwrap.fill(value_str, subsequent_indent="\t", width=80), "\t"
+            )
+            print(f"{k}:\n{indented_value}")
+
     else:
         raise Exception(f"Unknown moduletask: {args.moduletask}")
 
@@ -484,6 +497,8 @@ def add_runserver_parser(subparsers):
         help="The frontend to use (e.g. react_flow)",
         choices=["react_flow"],
     )
+
+    parser.set_defaults(long_running=True)
 
 
 def _add_worker_identifiers(parser):
@@ -535,6 +550,7 @@ def add_worker_parser(subparsers):
 
     # Start a new worker
     new_worker_parser = worker_subparsers.add_parser("new", help="Start a new worker")
+    new_worker_parser.set_defaults(long_running=True)
     new_worker_parser.add_argument(
         "--workertype", default=None, help="The type of worker to start"
     )
@@ -549,6 +565,7 @@ def add_worker_parser(subparsers):
     start_worker_parser = worker_subparsers.add_parser(
         "start", help="Start an existing worker"
     )
+    start_worker_parser.set_defaults(long_running=True)
     start_worker_parser.add_argument(
         "--workertype", default=None, help="The type of worker to start"
     )
@@ -557,6 +574,8 @@ def add_worker_parser(subparsers):
     stop_worker_parser = worker_subparsers.add_parser(  # noqa: F841
         "stop", help="Stops an existing worker"
     )
+
+    add_modules_parser(worker_subparsers)
 
 
 def add_worker_manager_parser(subparsers):
@@ -569,6 +588,7 @@ def add_worker_manager_parser(subparsers):
     parser.add_argument(
         "--port", default=None, type=int, help="The port to run the worker manager on"
     )
+    parser.set_defaults(long_running=True)
 
 
 def add_modules_parser(subparsers):
@@ -644,8 +664,10 @@ def main():
         if args.debug:
             fn.FUNCNODES_LOGGER.setLevel("DEBUG")
 
-        if os.environ.get("SUBPROCESS_MONITOR_PID") is None and int(
-            os.environ.get("USE_SUBPROCESS_MONITOR", "1")
+        if (
+            getattr(args, "long_running", False)
+            and os.environ.get("SUBPROCESS_MONITOR_PID") is None
+            and int(os.environ.get("USE_SUBPROCESS_MONITOR", "1"))
         ):
             fn.FUNCNODES_LOGGER.info("Starting subprocess via monitor")
 
@@ -672,7 +694,7 @@ def main():
             return
 
         try:
-            if args.profile:
+            if args.profile and yappi is not None:
                 print("Profiling the run to", os.path.abspath("funcnodesprofile.prof"))
 
                 def periodic_dump(profiler, interval=10):
@@ -701,11 +723,17 @@ def main():
                     target=periodic_dump, args=(yappi, 10), daemon=True
                 )
                 dump_thread.start()
+            elif args.profile:
+                warnings.warn(
+                    "profiling is not available without yappi installed, "
+                    "add funcnodes[profile] to your requirements or "
+                    "install yappi manually"
+                )
 
             _submain(args)
 
         finally:
-            if args.profile:
+            if args.profile and yappi is not None:
                 yappi.stop()
                 # yappi.get_thread_stats()
                 yappi.get_func_stats().save("funcnodesprofile.pstat", "pstat")
