@@ -8,6 +8,8 @@
 
 Funcnodes is a flexible and modular framework designed for building and managing computational graphs, particularly suited for tasks involving data processing, machine learning, and scientific computations but also capable of hardware controll and arbitarty other functions. The core of Funcnodes revolves around "nodes," which are individual units of computation that can be connected to form complex workflows. Each node performs specific operations, and users can dynamically create and manage these nodes through a web interface or programmatically via an API. The project includes a variety of built-in nodes for common operations and supports custom nodes for specialized tasks.
 
+For more information, visit the [official Funcnodes documentation](https://linkdlab.github.io/FuncNodes).
+
 ## Table of Contents
 
 1. [Installation Instructions](#installation-instructions)
