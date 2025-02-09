@@ -380,6 +380,10 @@ dev = [
     { name = "snakeviz" },
     { name = "vulture" },
 ]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -409,6 +413,10 @@ dev = [
     { name = "snakeviz", specifier = ">=2.2.2" },
     { name = "vulture", specifier = ">=2.14" },
 ]
+docs = [
+    { name = "mkdocs", specifier = ">=1.6.1" },
+    { name = "mkdocs-material", specifier = ">=9.6.2" },
+]
 
 [[package]]
 name = "funcnodes-basic"
@@ -426,6 +434,7 @@ wheels = [
 [[package]]
 name = "funcnodes-core"
 version = "0.3.21"
+
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dill" },

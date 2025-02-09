@@ -1,0 +1,154 @@
+site_name: FuncNodes Documentation
+site_url: https://yourdomain.com/
+site_description: "Comprehensive documentation for FuncNodes - a modular workflow automation system."
+repo_url: https://github.com/Linkdlab/funcnodes
+repo_name: Linkdlab/funcnodes
+edit_uri: "edit/main/docs/content"
+docs_dir: content
+
+theme:
+  name: material
+  features:
+    - announce.dismiss
+    # - content.action.edit
+    # - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tooltips
+    - navigation.tabs
+    - navigation.sections
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+
+  icon:
+    annotation: material/arrow-right-circle
+    repo: fontawesome/brands/github
+
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+extra_javascript:
+  - js/node_buildermain.js
+  - js/noderenderer.js
+
+extra_css:
+  - css/node_builder.css
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.emoji
+  - pymdownx.details
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Introduction: getting-started/introduction.md
+      - Installation: getting-started/installation.md
+      - Use FuncNodes: getting-started/basic_usage.md
+    #   - First Workflow: getting-started/first-workflow.md
+    #   - Configuration: getting-started/configuration.md
+  - Core Components:
+      - Nodes: components/node.md
+      - Node IOs: components/inputs-outputs.md
+      - Node Inputs: components/nodeinput.md
+      - Node Outputs: components/nodeoutput.md
+      - Nodespace: components/nodespace.md
+      - Libraries: components/lib.md
+      - Shelfes: components/shelf.md
+      - Worker: components/worker.md
+      - Workermanager: components/workermanager.md
+      - Funcnodes Config: components/config.md
+      - Worker Config: components/worker_config.md
+
+  #       - Nodes: core-concepts/nodes.md
+  #       - Node Inputs & Outputs: core-concepts/inputs-outputs.md
+  #       - Triggers & Events: core-concepts/triggers-events.md
+  #       - Libraries & Plugins: core-concepts/libraries-plugins.md
+  #   - Architecture:
+  #       - FuncNodes Core: architecture/core-components.md
+  #       - FuncNodes Worker: architecture/worker-components.md
+  #       - FuncNodes Runner: architecture/runner.md
+  - UI Guide:
+      - Web-based UI: ui-guide/react_flow/web-ui.md
+
+  #   - Deployment & Integration:
+  #       - Docker Deployment: deployment/docker.md
+  #       - API Integration: deployment/api-integration.md
+  #       - Machine Learning Pipelines: deployment/ml-pipelines.md
+  #   - Advanced Topics:
+  #       - Custom Execution Flow: advanced/custom-execution.md
+  #       - Debugging & Logging: advanced/debugging-logging.md
+  #       - Performance Optimization: advanced/performance.md
+  #   - Common Workflows:
+  #       - Example Pipelines: workflows/example-pipelines.md
+  #       - Task Automation: workflows/task-automation.md
+  #       - Using External Workers: workflows/external-workers.md
+  #   - Extending FuncNodes:
+  #       - Writing Plugins: extending/writing-plugins.md
+  #       - Custom UI Components: extending/custom-ui.md
+  #       - Third-Party Integration: extending/third-party.md
+  #   - Contribution Guide:
+  #       - Setting Up Development: contributing/setup.md
+  #       - Making a Pull Request: contributing/pull-request.md
+  #       - Running Tests: contributing/testing.md
+  - Examples:
+      - Overview: examples/index.md
+
+  - Modules:
+      - Overview: modules/index.md
+
+  - API Reference:
+      - CLI Commands: api/cli.md
+      #       - FuncNodes Core API: api/core.md
+      #       - FuncNodes Worker API: api/worker.md
+  - FAQ & Troubleshooting:
+      - Common Issues: faq/common-issues.md
+#       - Debugging Workers: faq/debugging-workers.md
+#       - Handling Serialization: faq/serialization.md

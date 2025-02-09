@@ -60,6 +60,11 @@ docs = [
     "mkdocs-material>=9.6.2",
 ]
 
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.6.2",
+]
+
 [tool.setuptools.package-dir]
 "" = "src"
 
