@@ -1,7 +1,3 @@
-# import cProfile
-import yappi
-
-# import pstats
 import threading
 from typing import Type
 
@@ -19,15 +15,17 @@ import venvmngr
 import subprocess_monitor
 import dotenv
 import subprocess
-
-
-dotenv.load_dotenv()
+import warnings
 
 
 try:
-    from setproctitle import setproctitle
-except ModuleNotFoundError:
-    setproctitle = print
+    # yappi is an optional dependency
+    import yappi
+except (ImportError, ModuleNotFoundError):
+    yappi = None
+
+
+dotenv.load_dotenv()
 
 
 def task_run_server(args: argparse.Namespace):
@@ -44,7 +42,6 @@ def task_run_server(args: argparse.Namespace):
       >>> task_run_server(args)
       None
     """
-    setproctitle("funcnodes_server")
     frontend = args.frontend
     if frontend == "react_flow":
         from funcnodes_react_flow import run_server
@@ -181,7 +178,6 @@ def start_existing_worker(args: argparse.Namespace):
     fn.FUNCNODES_LOGGER.info("Starting existing worker of type %s", workertype)
     worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
-    setproctitle("worker " + worker.uuid())
     worker.run_forever()
 
 
@@ -346,7 +342,6 @@ def start_worker_manager(args: argparse.Namespace):
       >>> start_worker_manager(args)
       None
     """
-    setproctitle("worker_manager")
 
     fn.worker.worker_manager.start_worker_manager(
         host=args.host, port=args.port, debug=args.debug
@@ -700,7 +695,7 @@ def main():
             return
 
         try:
-            if args.profile:
+            if args.profile and yappi is not None:
                 print("Profiling the run to", os.path.abspath("funcnodesprofile.prof"))
 
                 def periodic_dump(profiler, interval=10):
@@ -729,11 +724,17 @@ def main():
                     target=periodic_dump, args=(yappi, 10), daemon=True
                 )
                 dump_thread.start()
+            elif args.profile:
+                warnings.warn(
+                    "profiling is not available without yappi installed, "
+                    "add funcnodes[profile] to your requirements or "
+                    "install yappi manually"
+                )
 
             _submain(args)
 
         finally:
-            if args.profile:
+            if args.profile and yappi is not None:
                 yappi.stop()
                 # yappi.get_thread_stats()
                 yappi.get_func_stats().save("funcnodesprofile.pstat", "pstat")

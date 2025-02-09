@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "0.5.32"
+version = "0.5.33"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -15,17 +15,15 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "virtualenv",
-    "setproctitle",
     "funcnodes-basic>=0.2.1",
-    "funcnodes-core>=0.3.18",
+    "funcnodes-core>=0.3.21",
     "funcnodes-react-flow>=0.3.4",
     "requests",
     "subprocess-monitor>=0.2.0",
     "venvmngr>=0.1.14",
     "aiohttp-cors",
     "uv>=0.5.21",
-    "pip>=24.2",
-    "yappi>=1.6.10",
+    "pip>=24.2"
 ]
 
 [project.license]
@@ -51,6 +49,15 @@ dev = [
     "pytest-asyncio>=0.25.3",
     "snakeviz>=2.2.2",
     "vulture>=2.14",
+    "funcnodes[profiling]",
+]
+
+[project.optional-dependencies]
+    profiling = ["yappi>=1.6.10"]
+
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.6.2",
 ]
 
 docs = [
