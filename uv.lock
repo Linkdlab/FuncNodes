@@ -361,10 +361,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-]
 profiling = [
     { name = "yappi" },
 ]
@@ -391,8 +387,6 @@ requires-dist = [
     { name = "funcnodes-basic", specifier = ">=0.2.1" },
     { name = "funcnodes-core", specifier = ">=0.3.21" },
     { name = "funcnodes-react-flow", specifier = ">=0.3.4" },
-    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6.1" },
-    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.6.2" },
     { name = "pip", specifier = ">=24.2" },
     { name = "requests" },
     { name = "subprocess-monitor", specifier = ">=0.2.0" },
@@ -434,7 +428,6 @@ wheels = [
 [[package]]
 name = "funcnodes-core"
 version = "0.3.21"
-
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dill" },
