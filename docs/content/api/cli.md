@@ -41,10 +41,10 @@ where {task} specifies an operation. The shared common options for all tasks are
 <div class="annotate" markdown>
 - `--version` → Prints the current version of FuncNodes.
 - ` -h, --help ` →  Displays CLI help.
-- `--dir <path>` → Specifies a custom base directory where workflow data is stored (default: `~/.funcnodes`). In this directory all configurations, logs, worker data, worker environments etc. is stored. So by defining a custom path it is possible to completly seperate instances of funcnodes.
+- `--dir <path>` → Specifies a custom base directory where workflow data is stored (default: `~/.funcnodes`). In this directory all configurations, logs, worker data, worker environments etc. is stored. So by defining a custom path it is possible to completly seperate instances of FuncNodes.
 For development purposes we recomment setting `--dir .funcnodes` (1) which will create a respective folder in your current worspace.
 - `--debug` →  Enables debugging logs for all processes (and child processes).
-- `--profile` → RRuns the task under profiling mode using [yappi](https://github.com/sumerc/yappi){target="_blank"}, generating a *funcnodesprofile.pstat* file in your current directory. This file than can be opened with different profiling views such as [snakeviz](https://jiffyclub.github.io/snakeviz/){target="_blank"}
+- `--profile` → Only available if FuncNodes was installed with the optional dependency `fundnodes[profiling]` Runs the task under profiling mode using [yappi](https://github.com/sumerc/yappi){target="_blank"}, generating a *funcnodesprofile.pstat* file in your current directory. This file than can be opened with different profiling views such as [snakeviz](https://jiffyclub.github.io/snakeviz/){target="_blank"}
 </div>
 
 1. This is also what `--funcnodes-module demoworker` does.
@@ -56,7 +56,7 @@ The `funcnodes` command expects a specific task, which can be one of the followi
 - runserver → Runs the [browser interface](../ui-guide/react_flow/web-ui.md) with various [options][runserver]
 - worker → Allows running and management of a [Worker](../components/worker.md)([options][worker])
 - startworkermanager → Starts the [Workermanager](../components/workermanager.md)([options][workermanager])
-- modules → Gives access to the installed funcnodes modules ([options][modules])
+- modules → Gives access to the installed FuncNodes modules ([options][modules])
 
 #### runserver { #runserver}
 
@@ -81,7 +81,7 @@ Optional argument to the command are:
 
 #### worker { #worker}
 
-The task command `worker` allows to create, start, stop and interact with the [Worker](../components/worker.md) instances of funcnodes. The command is build up as:
+The task command `worker` allows to create, start, stop and interact with the [Worker](../components/worker.md) instances of FuncNodes. The command is build up as:
 
 ```bash
 funcnodes [common_options] worker [worker_options] workertask
