@@ -52,6 +52,13 @@ theme:
         icon: material/brightness-4
         name: Switch to system preference
 
+extra_javascript:
+  - js/node_buildermain.js
+  - js/noderenderer.js
+
+extra_css:
+  - css/node_builder.css
+
 markdown_extensions:
   - abbr
   - admonition
