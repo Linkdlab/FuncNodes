@@ -348,12 +348,11 @@ name = "funcnodes"
 version = "0.5.33"
 source = { editable = "." }
 dependencies = [
-    { name = "aiohttp-cors" },
     { name = "funcnodes-basic" },
     { name = "funcnodes-core" },
     { name = "funcnodes-react-flow" },
+    { name = "funcnodes-worker", extra = ["all"] },
     { name = "pip" },
-    { name = "requests" },
     { name = "subprocess-monitor" },
     { name = "uv" },
     { name = "venvmngr" },
@@ -370,7 +369,6 @@ dev = [
     { name = "coverage" },
     { name = "funcnodes", extra = ["profiling"] },
     { name = "pre-commit" },
-    { name = "py-spy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "snakeviz" },
@@ -383,12 +381,11 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp-cors" },
     { name = "funcnodes-basic", specifier = ">=0.2.1" },
     { name = "funcnodes-core", specifier = ">=0.3.21" },
     { name = "funcnodes-react-flow", specifier = ">=0.3.4" },
+    { name = "funcnodes-worker", extras = ["all"] },
     { name = "pip", specifier = ">=24.2" },
-    { name = "requests" },
     { name = "subprocess-monitor", specifier = ">=0.2.0" },
     { name = "uv", specifier = ">=0.5.21" },
     { name = "venvmngr", specifier = ">=0.1.14" },
@@ -401,7 +398,6 @@ dev = [
     { name = "coverage", specifier = ">=7.6.10" },
     { name = "funcnodes", extras = ["profiling"] },
     { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "py-spy", specifier = ">=0.4.0" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-asyncio", specifier = ">=0.25.3" },
     { name = "snakeviz", specifier = ">=2.2.2" },
@@ -427,7 +423,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes-core"
-version = "0.3.21"
+version = "0.3.22"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dill" },
@@ -436,9 +432,9 @@ dependencies = [
     { name = "setuptools" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1c/3c/454db91579d301884a10b68d012418c7962b54e65ef5554ebc9ce6a6faad/funcnodes_core-0.3.21.tar.gz", hash = "sha256:c99da11ffc4ce42cc7cedc0d3b771449359b51fa3714d4b47f564ee6dabc6fe5", size = 62016 }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/04/a30970ec3cf167522fd6634d8afab0ab6d9cdbc3230f96dc485ea6cb93ac/funcnodes_core-0.3.22.tar.gz", hash = "sha256:459c78ce6f1dec2632355c50ce585f30565b122ad35265eff81f213c01cdeda0", size = 62481 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/2b/7c36008754e6cc5267633ac6a5461e13204b97c73b012241d15620d4b455/funcnodes_core-0.3.21-py3-none-any.whl", hash = "sha256:c1b130ec0566f8bfd425a825d935cbb9b53a092c2c5deac3a7aad1d3de483570", size = 73031 },
+    { url = "https://files.pythonhosted.org/packages/9a/4c/f3b33ae39a57b3c5bb7a12d06f0bc0718694abe6d38e6aa81b394b86652d/funcnodes_core-0.3.22-py3-none-any.whl", hash = "sha256:1d0bafd3e5f37833bf3fada0e8ca513541df8e7ec5108e0e0b48bd0c1ca4d207", size = 73713 },
 ]
 
 [[package]]
@@ -452,6 +448,27 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6a/1f/a9737d4a34a7e67af9cab5de0e642d449d2b261780657e67686d963f928a/funcnodes_react_flow-0.3.7.tar.gz", hash = "sha256:1315ecd74918927c806a4d167d45c5b36d9f410fa8fda1a4cf0d45153917c742", size = 1053182 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e6/bf/29b16480d0ce2f6fd64f5939f234a577844c91c8e3a357fa8777f6830e32/funcnodes_react_flow-0.3.7-py3-none-any.whl", hash = "sha256:7397b195df8cc139277040f75694f02cbcb77db48f6af08a3dbfdc005f73b5d6", size = 1060932 },
+]
+
+[[package]]
+name = "funcnodes-worker"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "funcnodes-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5e/36/b52422c035aaef6561c56d61256da746bcfbc90578e0add6ed8f5ba740a9/funcnodes_worker-0.1.0.tar.gz", hash = "sha256:88f5cc0ce977fd03cb9154ca518ca0b797b0024c3c2b045df84d7340de78d09a", size = 42050 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d4/11/0d91d8db24dd23fe678f6e060794e754b72bb4c87a3c29d1e393b3932483/funcnodes_worker-0.1.0-py3-none-any.whl", hash = "sha256:9f96f313a9eca0a4a83d46a3cad3997255dedd23461b9f076fd636a5275f746c", size = 43874 },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "aiohttp" },
+    { name = "aiohttp-cors" },
+    { name = "requests" },
+    { name = "subprocess-monitor" },
+    { name = "venvmngr" },
 ]
 
 [[package]]
@@ -843,21 +860,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/47/da/99f4345d4ddf2845cb5b5bd0d93d554e84542d116934fde07a0c50bd4e9f/psutil-6.1.1-cp36-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:33431e84fee02bc84ea36d9e2c4a6d395d479c9dd9bba2376c1f6ee8f3a4e0b3", size = 289017 },
     { url = "https://files.pythonhosted.org/packages/38/53/bd755c2896f4461fd4f36fa6a6dcb66a88a9e4b9fd4e5b66a77cf9d4a584/psutil-6.1.1-cp37-abi3-win32.whl", hash = "sha256:eaa912e0b11848c4d9279a93d7e2783df352b082f40111e078388701fd479e53", size = 250602 },
     { url = "https://files.pythonhosted.org/packages/7b/d7/7831438e6c3ebbfa6e01a927127a6cb42ad3ab844247f3c5b96bea25d73d/psutil-6.1.1-cp37-abi3-win_amd64.whl", hash = "sha256:f35cfccb065fff93529d2afb4a2e89e363fe63ca1e4a5da22b603a85833c2649", size = 254444 },
-]
-
-[[package]]
-name = "py-spy"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7c/cd/9dacc04604dc4398ce5bed77ed59918ad0940f15165954d4aaa651cc640c/py_spy-0.4.0.tar.gz", hash = "sha256:806602ce7972782cc9c1e383f339bfc27bfb822d42485e6a3e0530ae5040e1f0", size = 253236 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/7e/02ca3ee68507db47afce769504060d71b4dc1455f0f9faa8d32fc7762221/py_spy-0.4.0-py2.py3-none-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:f2cf3f7130e7d780471faa5957441d3b4e0ec39a79b2c00f4c33d494f7728428", size = 3617847 },
-    { url = "https://files.pythonhosted.org/packages/65/7c/d9e26cc4c8e91f96a3a65de04d2e2e4131fbcaf6830d10917d4fab9d6788/py_spy-0.4.0-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:47cdda4c34d9b6cb01f3aaeceb2e88faf57da880207fe72ff6ff97e9bb6cc8a9", size = 1761955 },
-    { url = "https://files.pythonhosted.org/packages/d2/e4/8fbfd219b7f282b80e6b2e74c9197850d2c51db8555705567bb65507b060/py_spy-0.4.0-py2.py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:eee3d0bde85ca5cf4f01f012d461180ca76c24835a96f7b5c4ded64eb6a008ab", size = 2059471 },
-    { url = "https://files.pythonhosted.org/packages/a7/1d/79a94a5ace810c13b730ce96765ca465c171b4952034f1be7402d8accbc1/py_spy-0.4.0-py2.py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:c5f06ffce4c9c98b7fc9f5e67e5e7db591173f1351837633f3f23d9378b1d18a", size = 2067486 },
-    { url = "https://files.pythonhosted.org/packages/6d/90/fbbb038f826a83ed15ebc4ae606815d6cad6c5c6399c86c7ab96f6c60817/py_spy-0.4.0-py2.py3-none-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:87573e64dbfdfc89ba2e0f5e2f525aa84e0299c7eb6454b47ea335fde583a7a0", size = 2141433 },
-    { url = "https://files.pythonhosted.org/packages/c9/c1/5e012669ebb687e546dc99fcfc4861ebfcf3a337b7a41af945df23140bb5/py_spy-0.4.0-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:8bf2f3702cef367a489faa45177b41a6c31b2a3e5bd78c978d44e29340152f5a", size = 2732951 },
-    { url = "https://files.pythonhosted.org/packages/74/8b/dd8490660019a6b0be28d9ffd2bf1db967604b19f3f2719c0e283a16ac7f/py_spy-0.4.0-py2.py3-none-win_amd64.whl", hash = "sha256:77d8f637ade38367d944874776f45b703b7ac5938b1f7be8891f3a5876ddbb96", size = 1810770 },
 ]
 
 [[package]]
