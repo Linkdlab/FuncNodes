@@ -20,13 +20,13 @@ from aiohttp import (
     ClientConnectorError,
 )
 
-from funcnodes.worker.worker import WorkerJson, WorkerState
+from funcnodes_worker.worker import WorkerJson, WorkerState
 import subprocess_monitor
 import venvmngr
 
-from funcnodes.utils.messages import make_progress_message_string
+from funcnodes_worker.utils.messages import make_progress_message_string
 from funcnodes.utils.cmd import build_worker_start, build_startworkermanager
-from funcnodes.utils.files import write_json_secure
+from funcnodes_core.utils.files import write_json_secure
 
 DEVMODE = int(os.environ.get("DEVELOPMENT_MODE", "0")) >= 1
 if DEVMODE:
