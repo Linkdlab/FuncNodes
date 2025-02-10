@@ -20,4 +20,4 @@ __all__ = [
 __all__ += worker_all + core_all
 
 
-__version__ = "0.5.33"
+__version__ = "0.5.34"
