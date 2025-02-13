@@ -148,6 +148,8 @@ def start_existing_worker(args: argparse.Namespace):
             workerenv.install_package("funcnodes", upgrade=True)
         if update_on_startup.get("funcnodes-core", True):
             workerenv.install_package("funcnodes-core", upgrade=True)
+        if update_on_startup.get("funcnodes-core", True):
+            workerenv.install_package("funcnodes-worker", upgrade=True)
         cfg["python_path"] = str(workerenv.python_exe)
 
     if cfg.get("python_path", sys.executable) != sys.executable:
