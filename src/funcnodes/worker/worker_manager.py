@@ -137,17 +137,6 @@ def create_worker_env(workerconfig: WorkerJson):
     )
 
 
-def update_worker_env(workerconfig: WorkerJson):
-    if workerconfig["env_path"] is None:
-        return
-    workerenv = venvmngr.UVVenvManager.get_virtual_env(workerconfig["env_path"])
-    update_on_startup = workerconfig.get("update_on_startup", {})
-    if update_on_startup.get("funcnodes", True):
-        workerenv.install_package("funcnodes", upgrade=True)
-    if update_on_startup.get("funcnodes-core", True):
-        workerenv.install_package("funcnodes-core", upgrade=True)
-
-
 def start_worker(workerconfig: WorkerJson, debug=False):
     """
     Starts the worker process.
@@ -159,7 +148,7 @@ def start_worker(workerconfig: WorkerJson, debug=False):
       None
     """
     args = [
-        workerconfig.get("python_path", sys.executable),
+        sys.executable,
         "-m",
     ]
     args += build_worker_start(uuid=workerconfig["uuid"], debug=debug)
