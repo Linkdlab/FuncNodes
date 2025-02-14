@@ -148,7 +148,7 @@ def start_worker(workerconfig: WorkerJson, debug=False):
       None
     """
     args = [
-        workerconfig.get("python_path", sys.executable),
+        sys.executable,
         "-m",
     ]
     args += build_worker_start(uuid=workerconfig["uuid"], debug=debug)
