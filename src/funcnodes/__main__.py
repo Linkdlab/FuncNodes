@@ -11,12 +11,18 @@ import time
 import shutil
 from funcnodes.utils.cmd import build_worker_start
 import asyncio
-import venvmngr
-import subprocess_monitor
 import dotenv
-import subprocess
+
 import warnings
 
+if sys.platform != "emscripten":
+    import venvmngr
+    import subprocess_monitor
+    import subprocess
+else:
+    venvmngr = None
+    subprocess_monitor = None
+    subprocess = None
 
 try:
     # yappi is an optional dependency
@@ -140,7 +146,7 @@ def start_existing_worker(args: argparse.Namespace):
     """
 
     cfg = _worker_conf_from_args(args)
-    if cfg["env_path"]:
+    if cfg["env_path"] and venvmngr:
         workerenv = venvmngr.UVVenvManager.get_virtual_env(cfg["env_path"])
 
         update_on_startup = cfg.get("update_on_startup", {})
@@ -361,7 +367,11 @@ def activate_worker_env(args: argparse.Namespace):
       >>> activate_fn_env()
       None
     """
-    import subprocess
+
+    if not subprocess:
+        raise Exception(
+            "This command is only available on system with subprocess support"
+        )
 
     cfg = _worker_conf_from_args(args)
 
@@ -671,6 +681,7 @@ def main():
             getattr(args, "long_running", False)
             and os.environ.get("SUBPROCESS_MONITOR_PID") is None
             and int(os.environ.get("USE_SUBPROCESS_MONITOR", "1"))
+            and subprocess_monitor
         ):
             fn.FUNCNODES_LOGGER.info("Starting subprocess via monitor")
 
