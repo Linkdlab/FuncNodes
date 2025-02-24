@@ -53,11 +53,11 @@ theme:
         name: Switch to system preference
 
 extra_javascript:
-  - js/node_buildermain.js
-  - js/noderenderer.js
+  - static/js/noderenderer.js
+  - static/nodebuilder/index.js
 
 extra_css:
-  - css/node_builder.css
+  - static/nodebuilder/style.css
 
 markdown_extensions:
   - abbr
@@ -102,6 +102,7 @@ nav:
       - Nodespace: components/nodespace.md
       - Libraries: components/lib.md
       - Shelfes: components/shelf.md
+      - Serialization: components/serialization.md
       - Worker: components/worker.md
       - Workermanager: components/workermanager.md
       - Funcnodes Config: components/config.md
