@@ -12,6 +12,98 @@
   stroke: #11ff00;
 }
 
+.dialogoverlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  inset: 0;
+  animation: overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2000;
+}
+
+.dialogconent {
+  background-color: var(--funcnodesbackground1);
+  border-radius: 6px;
+  box-shadow: var(--funheadercolor) 0px 10px 38px -10px, var(--funheadercolor) 0px 10px 20px -15px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  max-width: 85vw;
+  max-height: 85vh;
+  padding: 25px;
+  animation: contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--funcnodestextcolor1);
+  border: 1px solid var(--funheadercolor);
+  display: flex;
+  flex-direction: column;
+  z-index: 2001;
+}
+
+.dialogtitle {
+  margin: 0;
+  font-weight: 500;
+  color: var(--funheadercolor);
+  font-size: 17px;
+}
+
+.dialogdescription {
+  margin: 10px 0 20px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.dialogclosebutton {
+  border-radius: 100%;
+  height: 25px;
+  width: 25px;
+  display: inline-flex;
+  background-color: inherit;
+  align-items: center;
+  justify-content: center;
+  color: var(--funheadercolor);
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+}
+
+.dialogclosebutton:hover {
+  background-color: var(--funheadercolor);
+  color: var(--funcnodesbackground1);
+}
+
+.dialogclosebutton:active {
+  background-color: var(--funheadercolor);
+  color: var(--funcnodestextcolor1);
+}
+
+.dialogsendbutton {
+  background-color: var(--funcnodesbackground1);
+  color: var(--funheadercolor);
+  border: 1px solid var(--funheadercolor);
+  border-radius: 99rem;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 15px;
+  margin-top: 20px;
+}
+
+.dialogsendbutton:hover {
+  background-color: var(--funheadercolor);
+  color: var(--funcnodesbackground1);
+}
+
+.dialogsendbutton:active {
+  background-color: var(--funheadercolor);
+  color: var(--funcnodestextcolor1);
+}
+
+.dialogchildren {
+  margin-top: 20px;
+  overflow: auto;
+}
+
 :root {
   --expandtime: 0.3s;
   --libnodebgcolor: #48465f;
@@ -21,7 +113,7 @@
 .libcontainer {
   top: 0;
   left: 0;
-  height: 100%;
+  min-height: 100%;
   padding: 0.5rem;
   box-sizing: border-box;
   display: flex;
@@ -287,98 +379,6 @@
 
 .addable-module .toggle-description:hover {
   color: #0056b3;
-}
-
-.dialogoverlay {
-  background-color: rgba(0, 0, 0, 0.5);
-  position: fixed;
-  inset: 0;
-  animation: overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 2000;
-}
-
-.dialogconent {
-  background-color: var(--funcnodesbackground1);
-  border-radius: 6px;
-  box-shadow: var(--funheadercolor) 0px 10px 38px -10px, var(--funheadercolor) 0px 10px 20px -15px;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90vw;
-  max-width: 85vw;
-  max-height: 85vh;
-  padding: 25px;
-  animation: contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
-  color: var(--funcnodestextcolor1);
-  border: 1px solid var(--funheadercolor);
-  display: flex;
-  flex-direction: column;
-  z-index: 2001;
-}
-
-.dialogtitle {
-  margin: 0;
-  font-weight: 500;
-  color: var(--funheadercolor);
-  font-size: 17px;
-}
-
-.dialogdescription {
-  margin: 10px 0 20px;
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-.dialogclosebutton {
-  border-radius: 100%;
-  height: 25px;
-  width: 25px;
-  display: inline-flex;
-  background-color: inherit;
-  align-items: center;
-  justify-content: center;
-  color: var(--funheadercolor);
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  border: none;
-}
-
-.dialogclosebutton:hover {
-  background-color: var(--funheadercolor);
-  color: var(--funcnodesbackground1);
-}
-
-.dialogclosebutton:active {
-  background-color: var(--funheadercolor);
-  color: var(--funcnodestextcolor1);
-}
-
-.dialogsendbutton {
-  background-color: var(--funcnodesbackground1);
-  color: var(--funheadercolor);
-  border: 1px solid var(--funheadercolor);
-  border-radius: 99rem;
-  padding: 10px 20px;
-  cursor: pointer;
-  font-size: 15px;
-  margin-top: 20px;
-}
-
-.dialogsendbutton:hover {
-  background-color: var(--funheadercolor);
-  color: var(--funcnodesbackground1);
-}
-
-.dialogsendbutton:active {
-  background-color: var(--funheadercolor);
-  color: var(--funcnodestextcolor1);
-}
-
-.dialogchildren {
-  margin-top: 20px;
-  overflow: auto;
 }
 
 /* this gets exported as style.css and can be used for the default theming */
@@ -869,173 +869,7 @@
   top: 100%;
 }
 
-:root {
-  --funheadercolor: #00d9ff;
-  --funcnodesbackground1: hsl(243, 26%, 13%);
-  --funcnodesbackground2: hsl(245, 22%, 22%);
-  --funcnodesbackground_light: hsl(240, 22%, 38%);
-  --containerboarderradius: 1rem;
-  --funcnodestextcolor1: #ffffff;
-}
-
-.funcnodescontainer {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.funcnodescontainer code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
-}
-
-.funcnodesreactflowcontainer {
-  width: 100%;
-  height: 100%;
-  background-color: var(--funcnodesbackground1);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  color: var(--funcnodestextcolor1);
-}
-
-.funcnodesreactflowcontainer * {
-  box-sizing: border-box;
-}
-
-.funcnodesreactflowbody {
-  flex-grow: 1;
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-}
-
-.reactflowlayer {
-  flex-grow: 1;
-  position: relative;
-  overflow: hidden;
-  background-color: var(--funcnodesbackground2);
-  margin: 0.5rem;
-  border-radius: var(--containerboarderradius);
-}
-
-.vscrollcontainer {
-  overflow-y: auto;
-  overflow-x: hidden;
-  flex-grow: 1;
-  padding: 0.5rem;
-  box-sizing: border-box;
-}
-
-.workerselect {
-  max-width: 140px;
-}
-
-.workerselectoption.selected {
-  color: var(--funcnodestextcolor1);
-}
-
-.workerselectoption.active {
-  color: green;
-}
-
-.workerselectoption.inactive {
-  color: red;
-}
-
-.funcnodesflaotingmenu {
-  position: absolute;
-  right: 0;
-  padding: 10px;
-  z-index: 1001;
-  display: flex;
-  flex-direction: row;
-  margin-right: 10px;
-}
-
-.smooth-expand-expanded {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-}
-
-.funcnodesreactflowheader {
-  display: flex;
-  flex-direction: row;
-  height: 50px;
-  justify-content: flex-start;
-  position: relative;
-  top: 0;
-  left: 0;
-  z-index: 1000;
-}
-
-.funcnodesreactflowheader .headerelement {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  margin: 4px 4px 4px 4px;
-  position: relative;
-  white-space: nowrap;
-}
-
-.funcnodesreactflowheader .statusbar {
-  width: 250px;
-  height: 1.5rem;
-  background-color: var(--funcnodesbackground2);
-  display: inline-block;
-  margin: 2px 4px 0px 4px;
-  position: relative;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-.funcnodesreactflowheader .statusbar-progressbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 100%;
-  background-color: var(--funheadercolor);
-  display: inline-block;
-}
-
-.funcnodesreactflowheader .statusbar-message {
-  position: relative;
-  top: 0;
-  left: 0;
-  font-size: 0.8rem;
-  color: var(--funheadercolor);
-  mix-blend-mode: difference;
-}
-
-.headermenucontent {
-  max-height: 90vh;
-  overflow: auto;
-  padding: 5px;
-  border-radius: 0.25rem;
-}
-
-.headermenuitem {
-  padding: 0 5px;
-}
-
-.headermenuitem[data-highlighted] {
-  background-color: var(--funcnodesbackground_light);
-}
-
-.headermenuitem[data-state=open] {
-  background-color: var(--funcnodesbackground_light);
-}
-
-.headermenuitem[data-state=checked] {
-  background-color: var(--funcnodesbackground_light);
-  color: #fff;
-}
-
-.basicstyleelement, .styled-select__menu, .styleelement, .styledcheckbox, .styledinput, .styledbtn, .styleddropdown, .headermenucontent {
+.basicstyleelement, .headermenucontent, .styled-select__menu, .styleelement, .styledcheckbox, .styledinput, .styledbtn, .styleddropdown {
   background-color: var(--funcnodesbackground1);
   color: var(--funcnodestextcolor1);
   border-radius: 0.75rem;
@@ -1171,6 +1005,226 @@ input[type=number]::-webkit-outer-spin-button {
 button {
   font-family: inherit;
   font-size: inherit;
+}
+
+.smooth-expand-expanded {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+:root {
+  --funheadercolor: #00d9ff;
+  --funcnodesbackground1: hsl(243, 26%, 13%);
+  --funcnodesbackground2: hsl(245, 22%, 22%);
+  --funcnodesbackground_light: hsl(240, 22%, 38%);
+  --containerboarderradius: 1rem;
+  --funcnodestextcolor1: #ffffff;
+  --funcnodes-z-index: 1000;
+}
+
+.funcnodescontainer {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.funcnodescontainer code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+.funcnodesreactflowcontainer {
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+  z-index: var(--funcnodes-z-index);
+  background-color: var(--funcnodesbackground1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  color: var(--funcnodestextcolor1);
+}
+
+.funcnodesreactflowcontainer * {
+  box-sizing: border-box;
+}
+
+.funcnodesreactflowbody {
+  flex-grow: 1;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.reactflowlayer {
+  flex-grow: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--funcnodesbackground2);
+  margin: 0.5rem;
+  border-radius: var(--containerboarderradius);
+}
+
+.vscrollcontainer {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-grow: 1;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.workerselect {
+  max-width: 140px;
+}
+
+.workerselectoption.selected {
+  color: var(--funcnodestextcolor1);
+}
+
+.workerselectoption.active {
+  color: green;
+}
+
+.workerselectoption.inactive {
+  color: red;
+}
+
+.funcnodesflaotingmenu {
+  position: absolute;
+  right: 0;
+  padding: 10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: row;
+  margin-right: 10px;
+}
+
+.FuncnodesApp {
+  height: 100%;
+  width: 100%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.funcnodesreactflowheader {
+  display: flex;
+  flex-direction: row;
+  height: 50px;
+  justify-content: flex-start;
+  position: relative;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.funcnodesreactflowheader .headerelement {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  margin: 4px 4px 4px 4px;
+  position: relative;
+  white-space: nowrap;
+}
+
+.funcnodesreactflowheader .statusbar {
+  width: 250px;
+  height: 1.5rem;
+  background-color: var(--funcnodesbackground2);
+  display: inline-block;
+  margin: 2px 4px 0px 4px;
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.funcnodesreactflowheader .statusbar-progressbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background-color: var(--funheadercolor);
+  display: inline-block;
+}
+
+.funcnodesreactflowheader .statusbar-message {
+  position: relative;
+  top: 0;
+  left: 0;
+  font-size: 0.8rem;
+  color: var(--funheadercolor);
+  mix-blend-mode: difference;
+}
+
+.headermenucontent {
+  max-height: 90vh;
+  overflow: auto;
+  padding: 5px;
+  border-radius: 0.25rem;
+}
+
+.headermenuitem {
+  padding: 0 5px;
+}
+
+.headermenuitem[data-highlighted] {
+  background-color: var(--funcnodesbackground_light);
+}
+
+.headermenuitem[data-state=open] {
+  background-color: var(--funcnodesbackground_light);
+}
+
+.headermenuitem[data-state=checked] {
+  background-color: var(--funcnodesbackground_light);
+  color: #fff;
+}
+
+.nodesettings_container {
+  min-height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.nodesettings_expander {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 3px 3px;
+}
+
+.nodesettings_content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0 5px;
+  overflow: auto;
+  transition: width 0.5s;
+}
+
+.nodesettings_content.expanded {
+  width: 250px;
+}
+
+.nodesettings_content.collapsed {
+  width: 0;
+}
+
+.nodesettings_section {
+  margin-bottom: 10px;
+  margin-left: 0.5rem;
+}
+
+.nodesettings_component {
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 :root {
@@ -1471,6 +1525,29 @@ input.nodedatainput.styledinput,
   transition: width 0.3s ease;
 }
 
+.styled-select__control {
+  height: 100%;
+  min-height: initial;
+  min-width: 10px;
+}
+
+.styled-select__menu-list {
+  max-height: 200px;
+}
+
+.styled-select__single-value {
+  text-align: start;
+}
+
+.styled-select__option {
+  text-align: start;
+  padding: 2px 5px;
+}
+
+.styled-select__option:hover {
+  cursor: pointer;
+}
+
 .tablecontainer {
   overflow: auto;
   background-color: white;
@@ -1494,72 +1571,6 @@ input.nodedatainput.styledinput,
   color: var(--funheadercolor) !important;
   font-family: inherit !important;
   font-weight: inherit !important;
-}
-
-.nodesettings_container {
-  height: 100%;
-  display: flex;
-  flex-direction: row;
-}
-
-.nodesettings_expander {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 3px 3px;
-}
-
-.nodesettings_content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  padding: 0 5px;
-  overflow: auto;
-  transition: width 0.5s;
-}
-
-.nodesettings_content.expanded {
-  width: 250px;
-}
-
-.nodesettings_content.collapsed {
-  width: 0;
-}
-
-.nodesettings_section {
-  margin-bottom: 10px;
-  margin-left: 0.5rem;
-}
-
-.nodesettings_component {
-  margin-bottom: 0.5rem;
-  margin-left: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.styled-select__control {
-  height: 100%;
-  min-height: initial;
-  min-width: 10px;
-}
-
-.styled-select__menu-list {
-  max-height: 200px;
-}
-
-.styled-select__single-value {
-  text-align: start;
-}
-
-.styled-select__option {
-  text-align: start;
-  padding: 2px 5px;
-}
-
-.styled-select__option:hover {
-  cursor: pointer;
 }
 
 .colorspace {

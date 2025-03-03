@@ -1,13 +1,4 @@
-const baseurl = (window.__md_scope || {}).href || "/";
-
 window.noderenderer_worker = new SharedWorker(
-  baseurl + "static/nodebuilder/pyodideSharedWorker.js",
-  {
-    type: "module",
-  }
-);
-
-window.noderenderer_worker2 = new SharedWorker(
   baseurl + "static/nodebuilder/pyodideSharedWorker.js",
   {
     type: "module",

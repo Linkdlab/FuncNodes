@@ -51,13 +51,16 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
-
+  custom_dir: overrides
 extra_javascript:
-  - static/js/noderenderer.js
+  - static/js/basic_funcnodes_pyodide.js
+  # - static/js/noderenderer.js
+  - static/funcnodespyodide/index.js
   - static/nodebuilder/index.js
 
 extra_css:
   - static/nodebuilder/style.css
+  - static/funcnodespyodide/style.css
 
 markdown_extensions:
   - abbr
@@ -141,6 +144,7 @@ nav:
   #       - Running Tests: contributing/testing.md
   - Examples:
       - Overview: examples/index.md
+      - Cat: examples/cat.md
 
   - Modules:
       - Overview: modules/index.md
