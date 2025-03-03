@@ -46,7 +46,7 @@ workerfile = "{{page.title}}.fnw";
 {% endif %}
 
 
-data={id:"{{page.title}}_root",fnw_url:"../"+workerfile,};
+data={id:"{{page.title}}_root",fnw_url:"../"+workerfile.lower(),};
 if (window.inject_fn_on_div) inject_fn_on_div(data)
 else document.addEventListener("DOMContentLoaded", function(event) {
     window.inject_fn_on_div(data)
