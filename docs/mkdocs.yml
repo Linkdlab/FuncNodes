@@ -144,7 +144,9 @@ nav:
   #       - Running Tests: contributing/testing.md
   - Examples:
       - Overview: examples/index.md
-      - Cat: examples/cat.md
+      - Csv: examples/csv.md
+      - Image Analysis: examples/cat.md
+      - Plotly: examples/titanic.md
 
   - Modules:
       - Overview: modules/index.md

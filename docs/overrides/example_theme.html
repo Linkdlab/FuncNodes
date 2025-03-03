@@ -42,11 +42,11 @@
 {% if page.meta and page.meta.workerfile %}
 workerfile = "{{ page.meta.workerfile }}";
 {% else %}
-workerfile = "{{page.title}}.fnw";
+workerfile = "{{page.title}}.fnw".lower();
 {% endif %}
 
 
-data={id:"{{page.title}}_root",fnw_url:"../"+workerfile.lower(),};
+data={id:"{{page.title}}_root",fnw_url:"../"+workerfile,};
 if (window.inject_fn_on_div) inject_fn_on_div(data)
 else document.addEventListener("DOMContentLoaded", function(event) {
     window.inject_fn_on_div(data)
