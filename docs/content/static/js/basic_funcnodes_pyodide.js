@@ -111,12 +111,12 @@ window.inject_nodebuilder_into_div = ({
     if (shared_worker) {
       webworker = new SharedWorker(workerurl, {
         type: "module",
-        name: id,
+        name: worker_id,
       });
     } else {
       webworker = new Worker(workerurl, {
         type: "module",
-        name: id,
+        name: worker_id,
       });
     }
 
@@ -130,7 +130,7 @@ window.inject_nodebuilder_into_div = ({
     worker: webworker,
   });
 
-  NodeBuilder(div, {
+  fn = NodeBuilder(div, {
     python_code: python_code,
     show_python_editor: show_python_editor,
     worker: fnworker,
@@ -141,6 +141,7 @@ window.inject_nodebuilder_into_div = ({
     if (!document.getElementById(divid)) {
       observer.disconnect();
       fnworker.stop();
+      fn.root.unmount();
       window.active_workers = window.active_workers.filter(
         (w) => w !== fnworker
       );
@@ -206,15 +207,17 @@ const parse_nodebuildder_divs = () => {
     }
 
     let height = div.getAttribute("nodebuilder-height") || "300px";
-    let width = div.getAttribute("nodebuilder-width") || "800px";
+    let width = div.getAttribute("nodebuilder-width") || "300px";
 
     div.style.height = height;
     div.style.width = width;
 
+    worker_id = div.getAttribute("worker-id") || "code_nodbuilder_worker";
     inject_nodebuilder_into_div({
       id: div,
       python_code: python_code,
-      show_python_editor: true,
+      show_python_editor: false,
+      worker_id: worker_id,
     });
   });
 };
@@ -222,6 +225,6 @@ const parse_nodebuildder_divs = () => {
 const domoberserver = new MutationObserver((mutationsList, observer) => {});
 domoberserver.observe(document, { childList: true, subtree: true });
 
-window.addEventListener("load", (event) => {
+document.addEventListener("DOMContentLoaded", function (event) {
   parse_nodebuildder_divs();
 });
