@@ -213,6 +213,7 @@ To fix this, the inputs and outputs can be defined in the decorator.
 from typing import Tuple
 import funcnodes as fn
 
+
 MyFuncNode = fn.NodeDecorator(
     node_id="divmod",
     inputs=[
@@ -235,6 +236,7 @@ as a decorator, and create a wrapper function that calls the external function, 
 from typing import Tuple
 import funcnodes as fn
 
+
 @fn.NodeDecorator(
     node_id="divmod",
     outputs=[
@@ -247,8 +249,7 @@ def divmod_node(a: int=11, b: int=5) -> Tuple[int, int]:
 ```
 
 <div class="nodebuilder" code-source="prev_language-python" id="kvdjdh"></div>
-Furthermore by wrapping it in a function, it can be make sure, that the function accepts all arguments as keyword arguments. Since internally Funcnodes calls the function with all-keyword arguments.
-You can see for example in:
+Furthermore by wrapping it in a function, it can be make sure, that the function accepts all arguments as keyword arguments. Since internally Funcnodes calls the function with all-keyword arguments, which is some functions don't accept:
 
 ```python
 from typing import Tuple
@@ -284,9 +285,8 @@ class MyNode(fn.Node):
     node_name = "My Node Class"
     node_id = "my_node2"
 
-    async def func(self, input1, input2):
-        result =  input1 + input2
-        self.outputs["output1"].value = result
+    async def func(self):
+        pass
 ```
 
 <div class="nodebuilder" code-source="prev_language-python" id="sdfsgs"></div>
@@ -475,19 +475,23 @@ instance.outputs["my_id"].value == id(instance) # True
 <div>
 <div id="node-code-demo" style="width:100%;aspect-ratio : 2 / 1;" ></div>
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-  NodeBuilder(document.getElementById("node-code-demo"), {
-    python_code: `
-# Edit me
-import funcnodes as fn
-@fn.NodeDecorator(node_id="my_node")
-def my_node(input1: int, input2: int) -> int:
-    return input1 + input2
-`,
-    show_python_editor: true,
-    webworker:window.noderenderer_worker2,
-  });
+
+        (()=>{
+        if (window.inject_fn_on_div) inject_nodebuilder_into_div({
+
+id: document.getElementById("node-code-demo"),
+python_code: default_py_editor_code,
+show_python_editor: true,
 });
+else
+document.addEventListener("DOMContentLoaded", function (event) {
+window.inject_nodebuilder_into_div({
+id: document.getElementById("node-code-demo"),
+python_code: default_py_editor_code,
+show_python_editor: true,
+});
+});
+})();
 
     </script>
 

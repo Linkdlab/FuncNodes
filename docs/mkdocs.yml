@@ -53,10 +53,10 @@ theme:
         name: Switch to system preference
   custom_dir: overrides
 extra_javascript:
-  - static/js/basic_funcnodes_pyodide.js
-  # - static/js/noderenderer.js
   - static/funcnodespyodide/index.js
   - static/nodebuilder/index.js
+  - static/js/basic_funcnodes_pyodide.js
+  # - static/js/noderenderer.js
 
 extra_css:
   - static/nodebuilder/style.css

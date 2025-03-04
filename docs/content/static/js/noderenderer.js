@@ -5,6 +5,13 @@ window.noderenderer_worker = new SharedWorker(
   }
 );
 
+window.noderenderer_worker2 = new SharedWorker(
+  baseurl + "static/nodebuilder/pyodideSharedWorker.js",
+  {
+    type: "module",
+  }
+);
+
 const initalize_nodebuildernode = (node) => {
   if (!node.id) {
     console.error("NodeBuilder element does not have an id", node);
