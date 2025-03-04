@@ -179,7 +179,7 @@ funcnodes worker new --name=<otional non unique name> --uuid=<otional unique id>
 
 Where the uuid is created automatically if not provided and the name falls back to the uuid if not provided.
 
-To run a worker process, simpy activate it via the webinterface or in the cli via:
+To run a worker process, simply activate it via the webinterface or in the cli via:
 
 ```bash
 funcnodes worker start --name=<otional non unique name> --uuid=<otional unique id>
