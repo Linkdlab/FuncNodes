@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block site_nav %}{% endblock %}
+
+{% block container %}
+
+<style>
+    .md-grid{
+        max-width: unset;
+        margin-left: unset;
+        margin-right: unset;
+    }
+    .funcnodes_example_container{
+        all:initial;
+        height: 100%;
+        width: 100%;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .md-main__inner{
+        margin-top: unset;
+        flex-grow: 1;
+        flex-direction: column;
+        display: flex;
+    }
+
+    .md-main{
+        display: flex;
+        flex-direction: column;
+    }
+</style>
+
+
+<div id="{{page.title}}_root" class="funcnodes_example_container"></div>
+
+
+
+
+<script>
+{% if page.meta and page.meta.workerfile %}
+workerfile = "{{ page.meta.workerfile }}";
+{% else %}
+workerfile = "{{page.title}}.fnw".lower();
+{% endif %}
+
+
+data={id:"{{page.title}}_root",fnw_url:"../"+workerfile,};
+if (window.inject_fn_on_div) inject_fn_on_div(data)
+else document.addEventListener("DOMContentLoaded", function(event) {
+    window.inject_fn_on_div(data)
+});
+
+
+
+</script>
+
+</div>
+
+{% endblock %}
+{% block footer %}{% endblock %}
