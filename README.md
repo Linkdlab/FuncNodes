@@ -303,17 +303,7 @@ Environment variables and configuration options can be set in a `.env` file or d
 - `FUNCNODES_CONFIG_DIR`: Path to the configuration directory (defaults to `~/.funcnodes`).
 - `FUNCNODES_PORT`: Port for the web server (defaults to `8000`).
 
-## Testing
 
-To run tests:
-
-```bash
-pytest tests/
-```
-
-Ensure you have `pytest` installed, or install it using `pip install pytest`.
-
-For more detailed documentation, visit the [official Funcnodes documentation](#).
 
 ## Contributing Guidelines
 
@@ -321,4 +311,4 @@ Contributions are welcome! Please refer to `CONTRIBUTING.md` for detailed instru
 
 ## Licensing Information
 
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+This project is licensed under the AGPL-3 License - see the `LICENSE` file for details.
