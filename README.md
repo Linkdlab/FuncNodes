@@ -10,6 +10,7 @@ Funcnodes is a flexible and modular framework designed for building and managing
 
 For more information, visit the [official Funcnodes documentation](https://linkdlab.github.io/FuncNodes).
 
+![screenshot](docs/content/examples/titanic.png)
 ## Table of Contents
 
 1. [Installation Instructions](#installation-instructions)
