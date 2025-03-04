@@ -51,13 +51,16 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
-
+  custom_dir: overrides
 extra_javascript:
-  - js/node_buildermain.js
-  - js/noderenderer.js
+  - static/funcnodespyodide/index.js
+  - static/nodebuilder/index.js
+  - static/js/basic_funcnodes_pyodide.js
+  # - static/js/noderenderer.js
 
 extra_css:
-  - css/node_builder.css
+  - static/nodebuilder/style.css
+  - static/funcnodespyodide/style.css
 
 markdown_extensions:
   - abbr
@@ -102,6 +105,7 @@ nav:
       - Nodespace: components/nodespace.md
       - Libraries: components/lib.md
       - Shelfes: components/shelf.md
+      - Serialization: components/serialization.md
       - Worker: components/worker.md
       - Workermanager: components/workermanager.md
       - Funcnodes Config: components/config.md
@@ -140,6 +144,9 @@ nav:
   #       - Running Tests: contributing/testing.md
   - Examples:
       - Overview: examples/index.md
+      - Csv: examples/csv.md
+      - Image Analysis: examples/cat.md
+      - Plotly: examples/titanic.md
 
   - Modules:
       - Overview: modules/index.md

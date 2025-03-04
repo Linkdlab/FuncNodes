@@ -2,13 +2,37 @@
 
 **FuncNodes** is a modular workflow automation system designed for **data processing, AI pipelines, task automation, and more**.
 
+![example](./examples/titanic.png)
+([Plotly](./examples/titanic.md) example of a FuncNodes workflow)
+
 ## 📌 Features
 
 - **Node-based Execution** - Define workflows as interconnected nodes
 - **Asynchronous Processing** - Handle tasks efficiently with async execution
-- **Modular & Extensible** - Easily create and integrate custom nodes
 - **Web-Based UI** - Manage workflows with a browser based No-Code interface
 - **Integration-Friendly** - Connect to APIs, databases, and external services
+- **Modular & Extensible** - Easily create and integrate custom nodes, e.g. via decorators:
+<div>
+<div id="node-code-demo" style="width:100%;aspect-ratio : 2 / 1;" ></div>
+    <script>
+(()=>{
+if (window.inject_fn_on_div) inject_nodebuilder_into_div({
+  id: document.getElementById("node-code-demo"),
+  python_code: default_py_editor_code,
+show_python_editor: true,
+});
+else
+document.addEventListener("DOMContentLoaded", function (event) {
+window.inject_nodebuilder_into_div({
+  id: document.getElementById("node-code-demo"),
+  python_code: default_py_editor_code,
+show_python_editor: true,
+});
+});
+})();
+</script>
+
+</div>
 
 ---
 
