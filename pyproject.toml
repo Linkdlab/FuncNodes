@@ -49,6 +49,7 @@ dev = [
     "snakeviz>=2.2.2",
     "vulture>=2.14",
     "funcnodes[profiling]",
+    "pytest-funcnodes>=0.1.0",
 ]
 docs = [
     "mkdocs>=1.6.1",
