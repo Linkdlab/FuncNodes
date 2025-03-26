@@ -461,7 +461,7 @@ requires-dist = [
     { name = "funcnodes-basic", specifier = ">=0.2.1" },
     { name = "funcnodes-core", specifier = ">=0.3.51" },
     { name = "funcnodes-module", marker = "sys_platform != 'emscripten'" },
-    { name = "funcnodes-react-flow", marker = "sys_platform != 'emscripten'", specifier = ">=0.4.0" },
+    { name = "funcnodes-react-flow", marker = "sys_platform != 'emscripten'", specifier = ">=0.4.1" },
     { name = "funcnodes-worker", marker = "sys_platform == 'emscripten'", specifier = ">=0.3.0" },
     { name = "funcnodes-worker", extras = ["all"], marker = "sys_platform != 'emscripten'", specifier = ">=0.3.0" },
     { name = "subprocess-monitor", marker = "sys_platform != 'emscripten'", specifier = ">=0.2.6" },
@@ -532,16 +532,16 @@ wheels = [
 
 [[package]]
 name = "funcnodes-react-flow"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "funcnodes", marker = "sys_platform != 'emscripten'" },
     { name = "funcnodes-core", marker = "sys_platform != 'emscripten'" },
     { name = "funcnodes-worker", marker = "sys_platform != 'emscripten'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ce/1a/f6b77ce7dd7ad4927daaa4813ef6940f9a5cbaa9983b00d4f6c0a2657a14/funcnodes_react_flow-0.4.0.tar.gz", hash = "sha256:15ea2bc51fff1086eb449ea2950dfbc30525b7248ae8ba7a0a16793302c60286", size = 2080188 }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/c3/05daa4f6d38afcfe12d38c0d2cd3e31c8dce270dc577c972905936429719/funcnodes_react_flow-0.4.1.tar.gz", hash = "sha256:69cd8c281b4b4bdc6069e8d2acffd5a3055579c159707950a9221a3944446218", size = 2080146 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6b/ab/ac9d86549a94312f9288fb9068b88a555ad0ce4b9b06800301d96bfed6f2/funcnodes_react_flow-0.4.0-py3-none-any.whl", hash = "sha256:5bf454ffe35a30ab7f5e73dc73732efbd1e70f08b6e7b7b8d611b0af5a9615e0", size = 2090878 },
+    { url = "https://files.pythonhosted.org/packages/f5/c4/d80726e68193ff713eb7fe033a0a23eb1bfd316e2b6125c8f24519d47734/funcnodes_react_flow-0.4.1-py3-none-any.whl", hash = "sha256:1d67ef186dd134075604acd84102b523f186e38ee99c1407b84bca4aed4ce488", size = 2090856 },
 ]
 
 [[package]]
