@@ -24,4 +24,4 @@ else:
 __all__ += worker_all + core_all
 
 
-__version__ = "0.5.35"
+__version__ = "0.5.36"
