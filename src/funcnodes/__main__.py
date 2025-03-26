@@ -470,12 +470,12 @@ def add_runserver_parser(subparsers):
     parser = subparsers.add_parser("runserver", help="Run the server")
     parser.add_argument(
         "--host",
-        default=fn.config.CONFIG["frontend"].get("host", None),
+        default=fn.config.get_config().get("frontend", {}).get("host", None),
         help="Host to run the server on",
     )
     parser.add_argument(
         "--port",
-        default=fn.config.CONFIG["frontend"]["port"],
+        default=fn.config.get_config().get("frontend", {}).get("port", 8000),
         type=int,
         help="Port to run the server on",
     )
