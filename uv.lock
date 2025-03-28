@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.11"
 resolution-markers = [
     "sys_platform != 'emscripten'",
@@ -420,7 +419,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes"
-version = "0.5.36"
+version = "0.5.37"
 source = { editable = "." }
 dependencies = [
     { name = "funcnodes-basic" },
@@ -470,7 +469,6 @@ requires-dist = [
     { name = "virtualenv", marker = "sys_platform != 'emscripten'" },
     { name = "yappi", marker = "extra == 'profiling'", specifier = ">=1.6.10" },
 ]
-provides-extras = ["profiling"]
 
 [package.metadata.requires-dev]
 dev = [
