@@ -53,14 +53,16 @@ theme:
         name: Switch to system preference
   custom_dir: overrides
 extra_javascript:
-  - static/funcnodespyodide/index.js
-  - static/nodebuilder/index.js
+  - path: https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.es.js
+    type: module
+  - path: https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.es.js
+    type: module
   - static/js/basic_funcnodes_pyodide.js
   # - static/js/noderenderer.js
 
 extra_css:
-  - static/nodebuilder/style.css
-  - static/funcnodespyodide/style.css
+  - https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.css
+  - https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.css
 
 markdown_extensions:
   - abbr

@@ -56,9 +56,9 @@ window.inject_fn_on_div = ({ id, fnw_url, shared_worker = false }) => {
   }
   const fnworker = new FuncNodes.FuncnodesPyodideWorker({
     // worker_url: workerurl,
-    shared_worker: webworker instanceof SharedWorker,
+    shared_worker: shared_worker,
     uuid: divid,
-    worker: webworker,
+    // worker: webworker,
   });
   console.log("fnw_url", fnw_url);
   const fn = window.FuncNodes(div, {
@@ -100,40 +100,39 @@ window.inject_nodebuilder_into_div = ({
   // set div attribute active to true
   div.setAttribute("active", "true");
 
-  const workerurl =
-    baseurl +
-    (shared_worker
-      ? "static/nodebuilder/pyodideSharedWorker.js"
-      : "static/nodebuilder/pyodideDedicatedWorker.js");
+  // const workerurl =
+  //   baseurl +
+  //   (shared_worker
+  //     ? "static/nodebuilder/pyodideSharedWorker.js"
+  //     : "static/nodebuilder/pyodideDedicatedWorker.js");
 
-  let webworker = window.nodebuilderwebworkers[worker_id];
-  if (webworker == undefined) {
-    if (shared_worker) {
-      webworker = new SharedWorker(workerurl, {
-        type: "module",
-        name: worker_id,
-      });
-    } else {
-      webworker = new Worker(workerurl, {
-        type: "module",
-        name: worker_id,
-      });
-    }
+  // let webworker = window.nodebuilderwebworkers[worker_id];
+  // if (webworker == undefined) {
+  //   if (shared_worker) {
+  //     webworker = new SharedWorker(workerurl, {
+  //       type: "module",
+  //       name: worker_id,
+  //     });
+  //   } else {
+  //     webworker = new Worker(workerurl, {
+  //       type: "module",
+  //       name: worker_id,
+  //     });
+  //   }
 
-    window.nodebuilderwebworkers[worker_id] = webworker;
-  }
+  //   window.nodebuilderwebworkers[worker_id] = webworker;
+  // }
 
-  const fnworker = new FuncNodes.FuncnodesPyodideWorker({
-    // worker_url: workerurl,
-    shared_worker: webworker instanceof SharedWorker,
-    uuid: divid,
-    worker: webworker,
-  });
+  // const fnworker = new FuncNodes.FuncnodesPyodideWorker({
+  //   // worker_url: workerurl,
+  //   shared_worker: webworker instanceof SharedWorker,
+  //   uuid: divid,
+  //   worker: webworker,
+  // });
 
   fn = NodeBuilder(div, {
     python_code: python_code,
     show_python_editor: show_python_editor,
-    worker: fnworker,
   });
 
   const observer = new MutationObserver((mutationsList, observer) => {
