@@ -63,6 +63,7 @@ extra_javascript:
 extra_css:
   - https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.css
   - https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.css
+  - static/css/style.css
 
 markdown_extensions:
   - abbr
