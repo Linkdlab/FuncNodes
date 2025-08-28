@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "1.0.0a0"
+version = "1.0.0a1"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -18,7 +18,7 @@ dependencies = [
     "funcnodes-basic>=0.2.1",
     "funcnodes-core>=1.0.0a0",
     "funcnodes-react-flow>=1.0.0a0; sys_platform != 'emscripten'",
-    "subprocess-monitor>=0.2.6; sys_platform != 'emscripten'",
+    "subprocess-monitor>=0.3.0; sys_platform != 'emscripten'",
     "funcnodes-module; sys_platform != 'emscripten'",
     "funcnodes_worker[all]>=0.3.0; sys_platform != 'emscripten'",
     "funcnodes_worker>=0.3.0; sys_platform == 'emscripten'",
