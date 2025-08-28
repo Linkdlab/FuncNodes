@@ -686,7 +686,9 @@ def main():
             fn.FUNCNODES_LOGGER.info("Starting subprocess via monitor")
 
             async def via_subprocess_monitor():
-                monitor = subprocess_monitor.SubprocessMonitor()
+                monitor = subprocess_monitor.SubprocessMonitor(
+                    logger=fn.FUNCNODES_LOGGER,
+                )
                 asyncio.create_task(monitor.run())
                 await asyncio.sleep(1)
                 resp = await subprocess_monitor.send_spawn_request(
@@ -759,6 +761,8 @@ def main():
     except Exception as exc:
         fn.FUNCNODES_LOGGER.exception(exc)
         raise
+    finally:
+        fn.FUNCNODES_LOGGER.info("Funcnodes finished")
 
 
 if __name__ == "__main__":
