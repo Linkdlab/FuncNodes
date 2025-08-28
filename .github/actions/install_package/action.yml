@@ -26,5 +26,5 @@ runs:
     - name: Install Dependencies
       shell: bash
       run: |
-        uv sync
+        uv sync --refresh
         echo "python-version=${{ steps.setup_python.outputs.python-version }}" >> "$GITHUB_OUTPUT"
