@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "0.5.37"
+version = "1.0.0a0"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -16,8 +16,8 @@ requires-python = ">=3.11"
 dependencies = [
     "virtualenv; sys_platform != 'emscripten'",
     "funcnodes-basic>=0.2.1",
-    "funcnodes-core>=0.3.51",
-    "funcnodes-react-flow>=0.4.1; sys_platform != 'emscripten'",
+    "funcnodes-core>=1.0.0a0",
+    "funcnodes-react-flow>=1.0.0a0; sys_platform != 'emscripten'",
     "subprocess-monitor>=0.2.6; sys_platform != 'emscripten'",
     "funcnodes-module; sys_platform != 'emscripten'",
     "funcnodes_worker[all]>=0.3.0; sys_platform != 'emscripten'",
@@ -37,8 +37,8 @@ download = "https://pypi.org/project/funcnodes/#files"
 
 
 [build-system]
-requires = ["setuptools>=42"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
@@ -63,11 +63,8 @@ docs = [
 
 
 
-[tool.setuptools.package-dir]
-"" = "src"
-
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/funcnodes"]
 
 [project.scripts]
 funcnodes = 'funcnodes.__main__:main'
