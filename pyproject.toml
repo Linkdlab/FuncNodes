@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "1.0.0a2"
+version = "1.0.0"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -16,12 +16,12 @@ requires-python = ">=3.11"
 dependencies = [
     "virtualenv; sys_platform != 'emscripten'",
     "funcnodes-basic>=0.2.1",
-    "funcnodes-core>=1.0.0a0",
+    "funcnodes-core>=1.0.0",
     "funcnodes-react-flow>=1.0.0a0; sys_platform != 'emscripten'",
     "subprocess-monitor>=0.3.0; sys_platform != 'emscripten'",
     "funcnodes-module; sys_platform != 'emscripten'",
-    "funcnodes_worker[all]>=1.0.0a0; sys_platform != 'emscripten'",
-    "funcnodes_worker>=1.0.0a0; sys_platform == 'emscripten'",
+    "funcnodes_worker[all]>=1.0.0; sys_platform != 'emscripten'",
+    "funcnodes_worker>=1.0.0; sys_platform == 'emscripten'",
     "venvmngr>=0.1.14; sys_platform != 'emscripten'",
     "uv>=0.5.21; sys_platform != 'emscripten'"
 ]

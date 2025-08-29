@@ -1,3 +1,4 @@
+import os
 from typing import Optional, List
 
 
@@ -7,6 +8,9 @@ def _build_fn_base(debug=False, profile=False, **kwargs):
         cmd.append("--debug")
     if profile:
         cmd.append("--profile")
+
+    if os.environ.get("FUNCNODES_CONFIG_DIR"):
+        cmd.extend(["--dir", os.environ.get("FUNCNODES_CONFIG_DIR")])
     return cmd
 
 
