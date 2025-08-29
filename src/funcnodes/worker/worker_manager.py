@@ -1085,7 +1085,7 @@ class WorkerManager:
             c["env_path"] = str(workerenv.env_path)
         else:
             logger.debug("using worker global venv")
-            c["python_path"] = sys.executable
+            c["python_path"] = None
             c["env_path"] = None
 
         logger.debug("Write config")

@@ -158,10 +158,11 @@ def start_existing_worker(args: argparse.Namespace):
             workerenv.install_package("funcnodes-worker", upgrade=True)
         cfg["python_path"] = str(workerenv.python_exe)
 
-    if cfg.get("python_path", sys.executable) != sys.executable:
+    pypath=cfg.get("python_path", sys.executable) or sys.executable
+    if pypath != sys.executable:
         # run the worker with the same python executable
-        if not os.path.exists(cfg["python_path"]):
-            raise Exception(f"Python executable not found: {cfg['python_path']}")
+        if not os.path.exists(pypath):
+            raise Exception(f"Python executable not found: {pypath}")
 
         kwargs = {}
         if args.debug:
@@ -169,12 +170,12 @@ def start_existing_worker(args: argparse.Namespace):
         if args.profile:
             kwargs["profile"] = args.profile
         calllist = [
-            cfg["python_path"],
+            pypath,
             "-m",
         ] + build_worker_start(uuid=cfg["uuid"], workertype=args.workertype, **kwargs)
 
         return os.execv(
-            cfg["python_path"],
+            pypath,
             calllist,
         )
 
