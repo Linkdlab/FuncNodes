@@ -51,9 +51,10 @@ dev = [
     "funcnodes[profiling]",
     "pytest-funcnodes>=0.1.0",
 ]
+
 docs = [
     "mkdocs>=1.6.1",
-    "mkdocs-material>=9.6.2",
+    "mkdocs-material>=9.6.9",
 ]
 
 
