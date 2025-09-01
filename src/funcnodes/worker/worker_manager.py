@@ -919,17 +919,14 @@ class WorkerManager:
             workerconfigfile = os.path.join(
                 self.worker_dir, f"worker_{active_worker['uuid']}.json"
             )
-            runstatefile=os.path.join(
+            runstatefile = os.path.join(
                 self.worker_dir, f"worker_{active_worker['uuid']}.runstate"
             )
             pfile = os.path.join(self.worker_dir, f"worker_{active_worker['uuid']}.p")
-            
-                
-            starttime=time.time()
-            connect_timeout=120
-            file_timeout=10
-            
 
+            starttime = time.time()
+            connect_timeout = 120
+            file_timeout = 10
 
             await self.set_progress_state(
                 message="Contacting worker.",
@@ -939,13 +936,15 @@ class WorkerManager:
                 websocket=websocket,
             )
             while True:
-                if (time.time()>starttime+connect_timeout) and not os.path.exists(pfile):
-                    raise TimeoutError("timeout reaching worker") 
+                if (time.time() > starttime + connect_timeout) and not os.path.exists(
+                    pfile
+                ):
+                    raise TimeoutError("timeout reaching worker")
                 if os.path.exists(runstatefile):
-                    with open(runstatefile,"r") as f:
-                        runstate=f.read()
+                    with open(runstatefile, "r") as f:
+                        runstate = f.read()
                     await self.set_progress_state(
-                        message=runstate.replace("\n"," - "),
+                        message=runstate.replace("\n", " - "),
                         progress=0.5,
                         blocking=True,
                         status="info",
@@ -956,16 +955,15 @@ class WorkerManager:
                     await asyncio.sleep(0.5)
                     continue
 
-                
-
                 with open(workerconfigfile, "r", encoding="utf-8") as file:
                     workerconfig = json.load(file)
-                
+
                 protocol = (
-                    "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
+                    "wss"
+                    if fn.config.CONFIG["worker_manager"].get("ssl", False)
+                    else "ws"
                 )
                 url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
-            
 
                 if workerconfig["uuid"] != active_worker["uuid"]:
                     raise KeyError(

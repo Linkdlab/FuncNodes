@@ -17,6 +17,7 @@ from funcnodes_basic.logic import IfNode, WhileNode
 from funcnodes_core import get_deep_connected_nodeset
 import funcnodes_core
 
+
 class TestExamples(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         funcnodes_core.config.set_in_test(fail_on_warnings=[DeprecationWarning])

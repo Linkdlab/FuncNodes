@@ -158,7 +158,7 @@ def start_existing_worker(args: argparse.Namespace):
             workerenv.install_package("funcnodes-worker", upgrade=True)
         cfg["python_path"] = str(workerenv.python_exe)
 
-    pypath=cfg.get("python_path", sys.executable) or sys.executable
+    pypath = cfg.get("python_path", sys.executable) or sys.executable
     if pypath != sys.executable:
         # run the worker with the same python executable
         if not os.path.exists(pypath):
