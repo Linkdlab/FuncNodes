@@ -916,17 +916,25 @@ class WorkerManager:
                 )
 
             # Try to contact the new worker
+
+            # the config file created by a running Worker contains the Worker's configuration
+            # including the Worker's contact information
             workerconfigfile = os.path.join(
                 self.worker_dir, f"worker_{active_worker['uuid']}.json"
             )
+
+            # the runstate file created by a running Worker 
+            # contains information about the current state of the Worker
             runstatefile = os.path.join(
                 self.worker_dir, f"worker_{active_worker['uuid']}.runstate"
             )
+
+            # the procerss file created by a running Worker
+            # contains the worksers pid
             pfile = os.path.join(self.worker_dir, f"worker_{active_worker['uuid']}.p")
 
             starttime = time.time()
             connect_timeout = 120
-            file_timeout = 10
 
             await self.set_progress_state(
                 message="Contacting worker.",
@@ -936,10 +944,13 @@ class WorkerManager:
                 websocket=websocket,
             )
             while True:
+                # if the worker has not started yet, wait for the process file to be created
                 if (time.time() > starttime + connect_timeout) and not os.path.exists(
                     pfile
                 ):
                     raise TimeoutError("timeout reaching worker")
+                
+                # if the runstate file exists, read the runstate and set the progress state accordingly
                 if os.path.exists(runstatefile):
                     with open(runstatefile, "r") as f:
                         runstate = f.read()
@@ -951,28 +962,37 @@ class WorkerManager:
                         websocket=websocket,
                     )
 
+                # if the config file exists, read the config and set the worker config accordingly
+                # otherwise loop again
                 if not os.path.exists(workerconfigfile):
                     await asyncio.sleep(0.5)
                     continue
 
+                # read the config file and set the worker config accordingly
                 with open(workerconfigfile, "r", encoding="utf-8") as file:
                     workerconfig = json.load(file)
 
+                # get the protocol and url from the config
                 protocol = (
                     "wss"
                     if fn.config.CONFIG["worker_manager"].get("ssl", False)
                     else "ws"
                 )
+                # get the url from the config to connect to the worker
                 url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
 
+                # check if the uuid in the config matches the active worker, which it should 
+                # under normal circumstances
                 if workerconfig["uuid"] != active_worker["uuid"]:
                     raise KeyError(
                         f"UUID mismatch: {workerconfig['uuid']} != {active_worker['uuid']}"
                     )
 
                 try:
+                    # connect to the worker via the websocket
                     async with aiohttp.ClientSession() as session:
                         async with session.ws_connect(url) as wsc:
+                            # send a command to the worker to get the uuid
                             await asyncio.wait_for(
                                 wsc.send_str(
                                     json.dumps({"type": "cmd", "cmd": "uuid"})
@@ -983,11 +1003,14 @@ class WorkerManager:
                             if rmsg.type == WSMsgType.TEXT:
                                 resp = json.loads(rmsg.data)
                                 if resp["type"] == "result":
+                                    # check if the uuid in the config matches the uuid in the response
                                     if workerconfig["uuid"] != resp["result"]:
                                         raise KeyError(
                                             f"UUID mismatch: "
                                             f"{workerconfig['uuid']} != {resp['result']}"
                                         )
+                                    # if the uuid matches, send the worker config frontend that activates the worker
+                                    # and return
                                     return await websocket.send_str(
                                         json.dumps(
                                             {
