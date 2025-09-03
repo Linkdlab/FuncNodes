@@ -929,7 +929,7 @@ class WorkerManager:
                 self.worker_dir, f"worker_{active_worker['uuid']}.runstate"
             )
 
-            # the procerss file created by a running Worker
+            # the process file created by a running Worker
             # contains the worksers pid
             pfile = os.path.join(self.worker_dir, f"worker_{active_worker['uuid']}.p")
 
