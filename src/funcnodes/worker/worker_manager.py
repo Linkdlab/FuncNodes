@@ -916,9 +916,28 @@ class WorkerManager:
                 )
 
             # Try to contact the new worker
+
+            # the config file created by a running Worker contains the Worker's configuration
+            # including the Worker's contact information
             workerconfigfile = os.path.join(
                 self.worker_dir, f"worker_{active_worker['uuid']}.json"
             )
+
+            # the runstate file created by a running Worker 
+            # contains information about the current state of the Worker
+            runstatefile = os.path.join(
+                self.worker_dir, f"worker_{active_worker['uuid']}.runstate"
+            )
+
+            # the process file created by a running Worker
+            # contains the worker's pid
+            pfile = os.path.join(self.worker_dir, f"worker_{active_worker['uuid']}.p")
+
+            starttime = time.time()
+            connect_timeout = 120
+
+            maximum_wait_time = connect_timeout + 5*60
+
             await self.set_progress_state(
                 message="Contacting worker.",
                 progress=0.5,
@@ -926,34 +945,60 @@ class WorkerManager:
                 status="info",
                 websocket=websocket,
             )
+            while True:
+                await asyncio.sleep(0.5)
+                # if the maximum wait time has been reached, raise a timeout error
+                if time.time() > starttime + maximum_wait_time:
+                    raise TimeoutError("Maximum wait time exceeded while reaching worker")
 
-            protocol = (
-                "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
-            )
-            for i in range(20):
-                await self.set_progress_state(
-                    message="Contacting worker.",
-                    progress=0.5 + i * 0.02,
-                    blocking=True,
-                    status="info",
-                    websocket=websocket,
-                )
+                # if the worker has not started yet, wait for the process file to be created
+                if (time.time() > starttime + connect_timeout) and not (os.path.exists(
+                    pfile
+                ) and os.path.exists(workerconfigfile)):
+                    raise TimeoutError("Connect timeout while waiting for worker process to start")
+                
+                # if the runstate file exists, read the runstate and set the progress state accordingly
+                if os.path.exists(runstatefile):
+                    with open(runstatefile, "r") as f:
+                        runstate = f.read()
+                    await self.set_progress_state(
+                        message=runstate.replace("\n", " - "),
+                        progress=0.5,
+                        blocking=True,
+                        status="info",
+                        websocket=websocket,
+                    )
+
+                # if the config file exists, read the config and set the worker config accordingly
+                # otherwise loop again
                 if not os.path.exists(workerconfigfile):
-                    await asyncio.sleep(0.5)
                     continue
 
+                # read the config file and set the worker config accordingly
                 with open(workerconfigfile, "r", encoding="utf-8") as file:
                     workerconfig = json.load(file)
 
+                # get the protocol and url from the config
+                protocol = (
+                    "wss"
+                    if fn.config.CONFIG["worker_manager"].get("ssl", False)
+                    else "ws"
+                )
+                # get the url from the config to connect to the worker
+                url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
+
+                # check if the uuid in the config matches the active worker, which it should 
+                # under normal circumstances
                 if workerconfig["uuid"] != active_worker["uuid"]:
                     raise KeyError(
                         f"UUID mismatch: {workerconfig['uuid']} != {active_worker['uuid']}"
                     )
 
-                url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
                 try:
+                    # connect to the worker via the websocket
                     async with aiohttp.ClientSession() as session:
                         async with session.ws_connect(url) as wsc:
+                            # send a command to the worker to get the uuid
                             await asyncio.wait_for(
                                 wsc.send_str(
                                     json.dumps({"type": "cmd", "cmd": "uuid"})
@@ -964,11 +1009,14 @@ class WorkerManager:
                             if rmsg.type == WSMsgType.TEXT:
                                 resp = json.loads(rmsg.data)
                                 if resp["type"] == "result":
+                                    # check if the uuid in the config matches the uuid in the response
                                     if workerconfig["uuid"] != resp["result"]:
                                         raise KeyError(
                                             f"UUID mismatch: "
                                             f"{workerconfig['uuid']} != {resp['result']}"
                                         )
+                                    # if the uuid matches, send the worker config frontend that activates the worker
+                                    # and return
                                     return await websocket.send_str(
                                         json.dumps(
                                             {
@@ -984,19 +1032,10 @@ class WorkerManager:
                     json.JSONDecodeError,
                     ClientConnectorError,
                 ):
-                    await asyncio.sleep(0.5)
                     continue
                 except Exception as e:
                     logger.exception(e)
 
-            return await websocket.send_str(
-                json.dumps(
-                    {
-                        "type": "error",
-                        "message": f"Could not activate worker with id {workerid}.",
-                    }
-                )
-            )
         except Exception as e:
             logger.exception(e)
             return await websocket.send_str(
