@@ -930,7 +930,7 @@ class WorkerManager:
             )
 
             # the process file created by a running Worker
-            # contains the worksers pid
+            # contains the worker's pid
             pfile = os.path.join(self.worker_dir, f"worker_{active_worker['uuid']}.p")
 
             starttime = time.time()
