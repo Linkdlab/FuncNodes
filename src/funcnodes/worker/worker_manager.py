@@ -945,9 +945,9 @@ class WorkerManager:
             )
             while True:
                 # if the worker has not started yet, wait for the process file to be created
-                if (time.time() > starttime + connect_timeout) and not os.path.exists(
+                if (time.time() > starttime + connect_timeout) and not (os.path.exists(
                     pfile
-                ):
+                ) and os.path.exists(workerconfigfile)):
                     raise TimeoutError("timeout reaching worker")
                 
                 # if the runstate file exists, read the runstate and set the progress state accordingly
