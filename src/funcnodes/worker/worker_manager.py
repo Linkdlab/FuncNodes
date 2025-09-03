@@ -946,6 +946,7 @@ class WorkerManager:
                 websocket=websocket,
             )
             while True:
+                await asyncio.sleep(0.5)
                 # if the maximum wait time has been reached, raise a timeout error
                 if time.time() > starttime + maximum_wait_time:
                     raise TimeoutError("Maximum wait time exceeded while reaching worker")
@@ -971,7 +972,6 @@ class WorkerManager:
                 # if the config file exists, read the config and set the worker config accordingly
                 # otherwise loop again
                 if not os.path.exists(workerconfigfile):
-                    await asyncio.sleep(0.5)
                     continue
 
                 # read the config file and set the worker config accordingly
@@ -1032,7 +1032,6 @@ class WorkerManager:
                     json.JSONDecodeError,
                     ClientConnectorError,
                 ):
-                    await asyncio.sleep(0.5)
                     continue
                 except Exception as e:
                     logger.exception(e)
