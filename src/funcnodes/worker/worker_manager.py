@@ -936,6 +936,8 @@ class WorkerManager:
             starttime = time.time()
             connect_timeout = 120
 
+            maximum_wait_time = connect_timeout + 5*60
+
             await self.set_progress_state(
                 message="Contacting worker.",
                 progress=0.5,
@@ -944,6 +946,10 @@ class WorkerManager:
                 websocket=websocket,
             )
             while True:
+                # if the maximum wait time has been reached, raise a timeout error
+                if time.time() > starttime + maximum_wait_time:
+                    raise TimeoutError("timeout reaching worker")
+
                 # if the worker has not started yet, wait for the process file to be created
                 if (time.time() > starttime + connect_timeout) and not (os.path.exists(
                     pfile
