@@ -948,13 +948,13 @@ class WorkerManager:
             while True:
                 # if the maximum wait time has been reached, raise a timeout error
                 if time.time() > starttime + maximum_wait_time:
-                    raise TimeoutError("timeout reaching worker")
+                    raise TimeoutError("Maximum wait time exceeded while reaching worker")
 
                 # if the worker has not started yet, wait for the process file to be created
                 if (time.time() > starttime + connect_timeout) and not (os.path.exists(
                     pfile
                 ) and os.path.exists(workerconfigfile)):
-                    raise TimeoutError("timeout reaching worker")
+                    raise TimeoutError("Connect timeout while waiting for worker process to start")
                 
                 # if the runstate file exists, read the runstate and set the progress state accordingly
                 if os.path.exists(runstatefile):
