@@ -201,7 +201,7 @@ async def check_worker(workerconfig: WorkerJson):
         # request uuid
         logger.debug(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
         protocol = (
-            "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
+            "wss" if fn.config.get_config()["worker_manager"].get("ssl", False) else "ws"
         )
         url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
         try:
@@ -264,12 +264,13 @@ class WorkerManager:
         Returns:
           None
         """
+        config = fn.config.get_config()
         if host is not None:
-            fn.config.CONFIG["worker_manager"]["host"] = host
+            config["worker_manager"]["host"] = host
         if port is not None:
-            fn.config.CONFIG["worker_manager"]["port"] = port
+            config["worker_manager"]["port"] = port
 
-        self._worker_dir = os.path.join(fn.config.CONFIG_DIR, "workers")
+        self._worker_dir = os.path.join(fn.config.get_config_dir(), "workers")
         if not os.path.exists(self._worker_dir):
             os.makedirs(self._worker_dir)
 
@@ -305,12 +306,12 @@ class WorkerManager:
 
         self._runner = web.AppRunner(self.app)
         await self._runner.setup()
-
+        config = fn.config.get_config()
         protocol = (
-            "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
+            "wss" if config["worker_manager"].get("ssl", False) else "ws"
         )
-        host = fn.config.CONFIG["worker_manager"]["host"]
-        port = fn.config.CONFIG["worker_manager"]["port"]
+        host = config["worker_manager"]["host"]
+        port = config["worker_manager"]["port"]
 
         self._site = web.TCPSite(self._runner, host, port)
         await self._site.start()
@@ -433,6 +434,8 @@ class WorkerManager:
                 elif msg["type"] == "restart_worker":
                     await self.stop_worker(msg["workerid"], ws)
                     return await self.activate_worker(msg["workerid"], ws)
+                elif msg["type"] == "delete_worker":
+                    return await self.delete_worker(msg["workerid"], ws)
                 elif msg["type"] == "new_worker":
                     # Extra kwargs for creation
                     new_w = await self.new_worker(**msg.get("kwargs", {}))
@@ -531,9 +534,10 @@ class WorkerManager:
         Examples:
           >>> await check_shutdown()
         """
-        if os.path.exists(os.path.join(fn.config.CONFIG_DIR, "kill_worker_manager")):
+        config_dir = fn.config.get_config_dir()
+        if os.path.exists(os.path.join(config_dir, "kill_worker_manager")):
             await self.stop()
-            os.remove(os.path.join(fn.config.CONFIG_DIR, "kill_worker_manager"))
+            os.remove(os.path.join(config_dir, "kill_worker_manager"))
 
     def get_all_worker_files(self):
         jsonbases = set()
@@ -718,6 +722,133 @@ class WorkerManager:
             )
         )
 
+    async def delete_worker(self, workerid: str, websocket: web.WebSocketResponse = None):
+        """
+        Delete a worker completely, including config, process files, data and env.
+
+        Args:
+          workerid (str): UUID of the worker to delete
+          websocket (WebSocketResponse): optional websocket to send progress updates
+
+        Returns:
+          None
+        """
+        logger.info("Deleting worker %s", workerid)
+
+        # Find worker config from active or inactive lists
+        target_worker = None
+        for worker in self._active_workers:
+            if worker.get("uuid") == workerid:
+                target_worker = worker
+                break
+        if target_worker is None:
+            for worker in self._inactive_workers:
+                if worker.get("uuid") == workerid:
+                    target_worker = worker
+                    break
+
+        # If not found via cached lists, try reading from disk
+        if target_worker is None:
+            try:
+                jsonfilepath = os.path.join(self.worker_dir, f"worker_{workerid}.json")
+                if os.path.exists(jsonfilepath):
+                    with open(jsonfilepath, "r", encoding="utf-8") as f:
+                        target_worker = json.load(f)
+            except Exception:
+                target_worker = None
+
+        if target_worker is None:
+            # Nothing to delete
+            if websocket is not None:
+                await websocket.send_str(
+                    json.dumps(
+                        {
+                            "type": "error",
+                            "message": f"Worker {workerid} not found",
+                        }
+                    )
+                )
+            return
+
+        try:
+            await self.set_progress_state(
+                message="Deleting worker...",
+                progress=0.1,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+
+            # Stop if active
+            if any(w.get("uuid") == workerid for w in self._active_workers):
+                await self.stop_worker(workerid, websocket)
+
+            await self.set_progress_state(
+                message="Removing files...",
+                progress=0.6,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+
+            # Remove known files
+            jsonfilepath = os.path.join(self.worker_dir, f"worker_{workerid}.json")
+            pfile = os.path.join(self.worker_dir, f"worker_{workerid}.p")
+            rsfile = os.path.join(self.worker_dir, f"worker_{workerid}.runstate")
+
+            for fp in [pfile, rsfile, jsonfilepath]:
+                try:
+                    if os.path.exists(fp):
+                        os.remove(fp)
+                except Exception:
+                    pass
+
+            # Remove data directory
+            data_path = target_worker.get("data_path")
+            if data_path and os.path.exists(data_path):
+                try:
+                    import shutil
+
+                    shutil.rmtree(data_path, ignore_errors=True)
+                except Exception:
+                    pass
+
+            # Remove env directory if present
+            env_path = target_worker.get("env_path")
+            if env_path and os.path.exists(env_path):
+                try:
+                    import shutil
+
+                    shutil.rmtree(env_path, ignore_errors=True)
+                except Exception:
+                    pass
+
+            # Update caches
+            self._active_workers = [w for w in self._active_workers if w.get("uuid") != workerid]
+            self._inactive_workers = [w for w in self._inactive_workers if w.get("uuid") != workerid]
+            self._last_woker_check = 0
+
+            await self.set_progress_state(
+                message="Worker deleted.",
+                progress=1.0,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+
+            if websocket is not None:
+                try:
+                    await websocket.send_str(
+                        json.dumps({"type": "worker_deleted", "uuid": workerid})
+                    )
+                except Exception:
+                    pass
+
+        finally:
+            await self.reset_progress_state(websocket=websocket)
+            # Let the periodic loop pick up changes; still broadcast a status update
+            await self.broadcast_worker_status()
+
     async def broadcast(self, message: str):
         """
         Broadcasts a message to all connected WebSocket clients.
@@ -766,6 +897,7 @@ class WorkerManager:
             return
 
         try:
+            config = fn.config.get_config()
             await self.set_progress_state(
                 message="Stopping worker.",
                 progress=0.1,
@@ -774,7 +906,7 @@ class WorkerManager:
                 websocket=websocket,
             )
             protocol = (
-                "wss" if fn.config.CONFIG["worker_manager"].get("ssl", False) else "ws"
+                "wss" if config["worker_manager"].get("ssl", False) else "ws"
             )
             url = f"{protocol}://{target_worker['host']}:{target_worker['port']}"
 
@@ -978,10 +1110,12 @@ class WorkerManager:
                 with open(workerconfigfile, "r", encoding="utf-8") as file:
                     workerconfig = json.load(file)
 
+                config = fn.config.get_config()
+
                 # get the protocol and url from the config
                 protocol = (
                     "wss"
-                    if fn.config.CONFIG["worker_manager"].get("ssl", False)
+                    if config["worker_manager"].get("ssl", False)
                     else "ws"
                 )
                 # get the url from the config to connect to the worker
@@ -1111,7 +1245,10 @@ class WorkerManager:
                 new_worker.data_path / "pyproject.toml",
                 python="3.11",
                 description="A Funcnodes worker environment",
+                stdout_callback=print,
+                stderr_callback=print,
             )
+            logger.debug("venv created")
             await self.set_progress_state(
                 message="Adding funcnodes",
                 progress=0.5,
@@ -1201,12 +1338,13 @@ class WorkerManagerConnection:
         port: Optional[int] = None,
         ssl: Optional[bool] = None,
     ):
+        config = fn.config.get_config()
         if host is None:
-            host = fn.config.CONFIG["worker_manager"]["host"]
+            host = config["worker_manager"]["host"]
         if port is None:
-            port = fn.config.CONFIG["worker_manager"]["port"]
+            port = config["worker_manager"]["port"]
         if ssl is None:
-            ssl = fn.config.CONFIG["worker_manager"].get("ssl", False)
+            ssl = config["worker_manager"].get("ssl", False)
 
         self.protocol = "wss" if ssl else "ws"
         self.host = host
