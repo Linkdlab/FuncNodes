@@ -528,7 +528,7 @@ requires-dist = [
     { name = "funcnodes-worker", extras = ["all"], marker = "sys_platform != 'emscripten'", specifier = ">=1.1.0" },
     { name = "subprocess-monitor", marker = "sys_platform != 'emscripten'", specifier = ">=0.3.0" },
     { name = "uv", marker = "sys_platform != 'emscripten'", specifier = ">=0.5.21" },
-    { name = "venvmngr", marker = "sys_platform != 'emscripten'", specifier = ">=0.1.15" },
+    { name = "venvmngr", marker = "sys_platform != 'emscripten'", specifier = ">=0.2.0" },
     { name = "virtualenv", marker = "sys_platform != 'emscripten'" },
     { name = "yappi", marker = "extra == 'profiling'", specifier = ">=1.6.10" },
 ]
@@ -1546,17 +1546,18 @@ wheels = [
 
 [[package]]
 name = "venvmngr"
-version = "0.1.15"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging", marker = "sys_platform != 'emscripten'" },
+    { name = "psutil", marker = "sys_platform != 'emscripten'" },
     { name = "requests", marker = "sys_platform != 'emscripten'" },
     { name = "subprocess-monitor", marker = "sys_platform != 'emscripten'" },
     { name = "uv", marker = "sys_platform != 'emscripten'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/1b/a3d59dddb87007b04f3d8bbc7f12e7b13e7ba03b96b06040050d4b3dcd45/venvmngr-0.1.15.tar.gz", hash = "sha256:1e7b6f9aabb747f01c356a49082315de8ab24b228d2f20be9594c9c17ffaa3aa", size = 94878, upload-time = "2025-09-11T07:32:22.787Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/67/6b/eb6f900a5c319c8728326fddfd39297be59fb429c3d6fa213922385b23e0/venvmngr-0.2.0.tar.gz", hash = "sha256:3edd4d31a068a23fa081542b3d0ce53d2f92d95e0eee5881e4c95b25d074f8d5", size = 125610, upload-time = "2025-10-18T13:03:11.971Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/42/25b49bcdd29258eb4bb096fe7a602ef256cadfa4e18c6fecbfa14eabb35d/venvmngr-0.1.15-py3-none-any.whl", hash = "sha256:35f59623ab062ee23cb8e08c57909a4130421dd3f1b1d19d410070bda33c17da", size = 18857, upload-time = "2025-09-11T07:32:21.414Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/01/a71620f0d11ab4a715f0265c554d98d44553be99ce7bb5a90db31def9328/venvmngr-0.2.0-py3-none-any.whl", hash = "sha256:c4858b3d07137e8ef65b055034a92011c053b7a55c169e10e6c8d7b17b730669", size = 20607, upload-time = "2025-10-18T13:03:10.337Z" },
 ]
 
 [[package]]
