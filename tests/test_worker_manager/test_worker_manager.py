@@ -214,14 +214,18 @@ if sys.platform != "emscripten":
                         if os.path.exists(json_file):
                             break
                         await asyncio.sleep(0.1)
-                    self.assertTrue(os.path.exists(json_file), "Worker config file missing")
+                    self.assertTrue(
+                        os.path.exists(json_file), "Worker config file missing"
+                    )
                     with open(json_file, "r", encoding="utf-8") as f:
                         cfg = json.load(f)
                     data_path = cfg.get("data_path")
                     env_path = cfg.get("env_path")
 
                     # Request deletion
-                    await ws.send_str(json.dumps({"type": "delete_worker", "workerid": uuid}))
+                    await ws.send_str(
+                        json.dumps({"type": "delete_worker", "workerid": uuid})
+                    )
 
                     # Consume messages until we see confirmation or timeout
                     t = time.time()
@@ -238,7 +242,10 @@ if sys.platform != "emscripten":
                                 if data.get("type") in {"progress", "worker_status"}:
                                     # continue waiting
                                     pass
-                                elif data.get("type") == "worker_deleted" and data.get("uuid") == uuid:
+                                elif (
+                                    data.get("type") == "worker_deleted"
+                                    and data.get("uuid") == uuid
+                                ):
                                     deleted = True
                                     break
 
@@ -253,7 +260,9 @@ if sys.platform != "emscripten":
                                 deleted = True
                                 break
 
-                    self.assertTrue(deleted, "Did not receive deletion confirmation in time")
+                    self.assertTrue(
+                        deleted, "Did not receive deletion confirmation in time"
+                    )
 
                     # Final assertions that everything is removed
                     self.assertFalse(os.path.exists(json_file))

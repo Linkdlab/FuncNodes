@@ -18,6 +18,7 @@ from aiohttp import (
     WSMsgType,
     ClientWebSocketResponse,
     ClientConnectorError,
+    ClientConnectionError,
 )
 
 from funcnodes_worker.worker import WorkerJson, WorkerState
@@ -201,7 +202,9 @@ async def check_worker(workerconfig: WorkerJson):
         # request uuid
         logger.debug(f"Checking worker {workerconfig['host']}:{workerconfig['port']}")
         protocol = (
-            "wss" if fn.config.get_config()["worker_manager"].get("ssl", False) else "ws"
+            "wss"
+            if fn.config.get_config()["worker_manager"].get("ssl", False)
+            else "ws"
         )
         url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
         try:
@@ -307,9 +310,7 @@ class WorkerManager:
         self._runner = web.AppRunner(self.app)
         await self._runner.setup()
         config = fn.config.get_config()
-        protocol = (
-            "wss" if config["worker_manager"].get("ssl", False) else "ws"
-        )
+        protocol = "wss" if config["worker_manager"].get("ssl", False) else "ws"
         host = config["worker_manager"]["host"]
         port = config["worker_manager"]["port"]
 
@@ -722,7 +723,9 @@ class WorkerManager:
             )
         )
 
-    async def delete_worker(self, workerid: str, websocket: web.WebSocketResponse = None):
+    async def delete_worker(
+        self, workerid: str, websocket: web.WebSocketResponse = None
+    ):
         """
         Delete a worker completely, including config, process files, data and env.
 
@@ -824,8 +827,12 @@ class WorkerManager:
                     pass
 
             # Update caches
-            self._active_workers = [w for w in self._active_workers if w.get("uuid") != workerid]
-            self._inactive_workers = [w for w in self._inactive_workers if w.get("uuid") != workerid]
+            self._active_workers = [
+                w for w in self._active_workers if w.get("uuid") != workerid
+            ]
+            self._inactive_workers = [
+                w for w in self._inactive_workers if w.get("uuid") != workerid
+            ]
             self._last_woker_check = 0
 
             await self.set_progress_state(
@@ -905,9 +912,7 @@ class WorkerManager:
                 status="info",
                 websocket=websocket,
             )
-            protocol = (
-                "wss" if config["worker_manager"].get("ssl", False) else "ws"
-            )
+            protocol = "wss" if config["worker_manager"].get("ssl", False) else "ws"
             url = f"{protocol}://{target_worker['host']}:{target_worker['port']}"
 
             async with aiohttp.ClientSession() as session:
@@ -979,7 +984,7 @@ class WorkerManager:
                                 status="info",
                                 websocket=websocket,
                             )
-                            workerenv = venvmngr.UVVenvManager.get_virtual_env(
+                            workerenv = await venvmngr.UVVenvManager.aget_virtual_env(
                                 worker["env_path"]
                             )
                             update_on_startup = worker.get("update_on_startup", {})
@@ -992,7 +997,9 @@ class WorkerManager:
                                     status="info",
                                     websocket=websocket,
                                 )
-                                workerenv.install_package("funcnodes", upgrade=True)
+                                await workerenv.ainstall_package(
+                                    "funcnodes", upgrade=True
+                                )
                             if update_on_startup.get("funcnodes-core", True):
                                 logger.info(
                                     "Updating worker %s - funcnodes-core", workerid
@@ -1004,7 +1011,7 @@ class WorkerManager:
                                     status="info",
                                     websocket=websocket,
                                 )
-                                workerenv.install_package(
+                                await workerenv.ainstall_package(
                                     "funcnodes-core", upgrade=True
                                 )
 
@@ -1023,7 +1030,7 @@ class WorkerManager:
                                             status="info",
                                             websocket=websocket,
                                         )
-                                        workerenv.install_package(
+                                        await workerenv.ainstall_package(
                                             dep["package"], upgrade=True
                                         )
 
@@ -1055,7 +1062,7 @@ class WorkerManager:
                 self.worker_dir, f"worker_{active_worker['uuid']}.json"
             )
 
-            # the runstate file created by a running Worker 
+            # the runstate file created by a running Worker
             # contains information about the current state of the Worker
             runstatefile = os.path.join(
                 self.worker_dir, f"worker_{active_worker['uuid']}.runstate"
@@ -1068,7 +1075,7 @@ class WorkerManager:
             starttime = time.time()
             connect_timeout = 120
 
-            maximum_wait_time = connect_timeout + 5*60
+            maximum_wait_time = connect_timeout + 5 * 60
 
             await self.set_progress_state(
                 message="Contacting worker.",
@@ -1081,14 +1088,18 @@ class WorkerManager:
                 await asyncio.sleep(0.5)
                 # if the maximum wait time has been reached, raise a timeout error
                 if time.time() > starttime + maximum_wait_time:
-                    raise TimeoutError("Maximum wait time exceeded while reaching worker")
+                    raise TimeoutError(
+                        "Maximum wait time exceeded while reaching worker"
+                    )
 
                 # if the worker has not started yet, wait for the process file to be created
-                if (time.time() > starttime + connect_timeout) and not (os.path.exists(
-                    pfile
-                ) and os.path.exists(workerconfigfile)):
-                    raise TimeoutError("Connect timeout while waiting for worker process to start")
-                
+                if (time.time() > starttime + connect_timeout) and not (
+                    os.path.exists(pfile) and os.path.exists(workerconfigfile)
+                ):
+                    raise TimeoutError(
+                        "Connect timeout while waiting for worker process to start"
+                    )
+
                 # if the runstate file exists, read the runstate and set the progress state accordingly
                 if os.path.exists(runstatefile):
                     with open(runstatefile, "r") as f:
@@ -1113,15 +1124,11 @@ class WorkerManager:
                 config = fn.config.get_config()
 
                 # get the protocol and url from the config
-                protocol = (
-                    "wss"
-                    if config["worker_manager"].get("ssl", False)
-                    else "ws"
-                )
+                protocol = "wss" if config["worker_manager"].get("ssl", False) else "ws"
                 # get the url from the config to connect to the worker
                 url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
 
-                # check if the uuid in the config matches the active worker, which it should 
+                # check if the uuid in the config matches the active worker, which it should
                 # under normal circumstances
                 if workerconfig["uuid"] != active_worker["uuid"]:
                     raise KeyError(
@@ -1165,6 +1172,7 @@ class WorkerManager:
                     KeyError,
                     json.JSONDecodeError,
                     ClientConnectorError,
+                    ClientConnectionError,
                 ):
                     continue
                 except Exception as e:
@@ -1172,14 +1180,17 @@ class WorkerManager:
 
         except Exception as e:
             logger.exception(e)
-            return await websocket.send_str(
-                json.dumps(
-                    {
-                        "type": "error",
-                        "message": f"Could not activate worker with id {workerid}.",
-                    }
+            try:
+                return await websocket.send_str(
+                    json.dumps(
+                        {
+                            "type": "error",
+                            "message": f"Could not activate worker with id {workerid}.",
+                        }
+                    )
                 )
-            )
+            except Exception:
+                pass
         finally:
             await self.reset_progress_state(websocket=websocket)
 
@@ -1241,7 +1252,7 @@ class WorkerManager:
                 blocking=True,
             )
 
-            workerenv, _ = venvmngr.UVVenvManager.get_or_create_virtual_env(
+            workerenv, _ = await venvmngr.UVVenvManager.aget_or_create_virtual_env(
                 new_worker.data_path / "pyproject.toml",
                 python="3.11",
                 description="A Funcnodes worker environment",
@@ -1256,12 +1267,10 @@ class WorkerManager:
                 blocking=True,
             )
 
-            workerenv.install_package("funcnodes", upgrade=True)
-            c["python_path"] = str(workerenv.python_exe)
+            await workerenv.ainstall_package("funcnodes", upgrade=True)
             c["env_path"] = str(workerenv.env_path)
         else:
             logger.debug("using worker global venv")
-            c["python_path"] = None
             c["env_path"] = None
 
         logger.debug("Write config")
@@ -1371,12 +1380,18 @@ class WorkerManagerConnection:
         Send a ping/pong test.
         """
         async with self as ws:
+            logger.debug("Sending ping to worker manager")
             await ws.send_str("ping")
             try:
+                logger.debug("Waiting for pong from worker manager")
                 resp = await asyncio.wait_for(ws.receive(), timeout=timeout)
                 if resp.type == WSMsgType.TEXT and resp.data == "pong":
+                    logger.debug("Pong received from worker manager")
                     return True
             except (asyncio.TimeoutError, ClientConnectorError):
+                logger.debug(
+                    "Timeout or ClientConnectorError while waiting for pong from worker manager"
+                )
                 pass
         return False
 
@@ -1385,12 +1400,15 @@ class WorkerManagerConnection:
         Identify that we're talking to the WorkerManager.
         """
         async with self as ws:
+            logger.debug("Sending identify to worker manager")
             await ws.send_str("identify")
             try:
+                logger.debug("Waiting for identify response from worker manager")
                 resp = await asyncio.wait_for(ws.receive(), timeout=timeout)
                 if resp.type == WSMsgType.TEXT:
                     data = json.loads(resp.data)
                     if data.get("class") == "WorkerManager":
+                        logger.debug("Identify response received from worker manager")
                         return data
             except (asyncio.TimeoutError, ClientConnectorError):
                 pass
