@@ -119,14 +119,13 @@ def start_new_worker(args: argparse.Namespace):
     )
     import asyncio
 
-    new_worker = asyncio.run(new_worker_routine)
+    new_worker_config = asyncio.run(new_worker_routine)
 
-    args.uuid = new_worker.uuid()
-    args.name = new_worker.name()
-
+    args.uuid = new_worker_config["uuid"]
+    args.name = new_worker_config.get("name", None)
     if args.create_only:
         return
-    return start_existing_worker(args)
+    return start_existing_worker(args, new_worker_config)
 
 
 def start_existing_worker(args: argparse.Namespace):
@@ -186,6 +185,7 @@ def start_existing_worker(args: argparse.Namespace):
 
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
     fn.FUNCNODES_LOGGER.info("Starting existing worker of type %s", workertype)
+    fn.logging.set_logging_dir(cfg["data_path"])
     worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
     worker.run_forever()

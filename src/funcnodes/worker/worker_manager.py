@@ -11,6 +11,7 @@ from typing import List, Optional, Type, Any
 from collections.abc import Callable
 import threading
 import weakref
+import shutil
 
 import aiohttp
 from aiohttp import (
@@ -417,10 +418,10 @@ class WorkerManager:
             )
         elif message == "new_worker":
             # Create a new worker with default arguments
-            new_w = await self.new_worker()
-            if new_w:
+            new_w_config = await self.new_worker()
+            if new_w_config:
                 return await ws.send_str(
-                    json.dumps({"type": "worker_created", "uuid": new_w.uuid()})
+                    json.dumps({"type": "worker_created", "uuid": new_w_config["uuid"]})
                 )
             else:
                 return
@@ -439,13 +440,13 @@ class WorkerManager:
                     return await self.delete_worker(msg["workerid"], ws)
                 elif msg["type"] == "new_worker":
                     # Extra kwargs for creation
-                    new_w = await self.new_worker(**msg.get("kwargs", {}))
-                    if new_w:
+                    new_w_config = await self.new_worker(**msg.get("kwargs", {}))
+                    if new_w_config:
                         await ws.send_str(
                             json.dumps(
                                 {
                                     "type": "worker_created",
-                                    "uuid": new_w.uuid(),
+                                    "uuid": new_w_config["uuid"],
                                 }
                             )
                         )
@@ -808,23 +809,26 @@ class WorkerManager:
 
             # Remove data directory
             data_path = target_worker.get("data_path")
-            if data_path and os.path.exists(data_path):
-                try:
-                    import shutil
+            for _ in range(10):
+                if data_path and os.path.exists(data_path):
+                    try:
+                        shutil.rmtree(data_path)
+                    except Exception:
+                        await asyncio.sleep(0.5)
+                        continue
+                    break
 
-                    shutil.rmtree(data_path, ignore_errors=True)
-                except Exception:
-                    pass
-
-            # Remove env directory if present
-            env_path = target_worker.get("env_path")
-            if env_path and os.path.exists(env_path):
-                try:
-                    import shutil
-
-                    shutil.rmtree(env_path, ignore_errors=True)
-                except Exception:
-                    pass
+            # Not recommended, as normaly for a single worker the env is in the data directory
+            # in which case it is already removed
+            # otherwise its an ecternal env, which might be used elsewhere
+            # so we leave it alone:
+            # # Remove env directory if present
+            # env_path = target_worker.get("env_path")
+            # if env_path and os.path.exists(env_path):
+            #     try:
+            #         shutil.rmtree(env_path, ignore_errors=True)
+            #     except Exception:
+            #         pass
 
             # Update caches
             self._active_workers = [
@@ -1203,7 +1207,7 @@ class WorkerManager:
         uuid: Optional[str] = None,
         workertype: str = "WSWorker",
         in_venv: Optional[bool] = None,
-    ):
+    ) -> WorkerJson:
         """
         Creates a new worker.
 
@@ -1214,11 +1218,11 @@ class WorkerManager:
           copyNS (bool): Whether to copy the nodespace from the reference worker.
 
         Returns:
-          None
+          WorkerJson: The new worker configuration.
 
         Examples:
           >>> await new_worker("MyWorker", "1234", True, False)
-          None
+          WorkerJson
         """
         logger.info("Creating new worker.")
         worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
@@ -1229,9 +1233,9 @@ class WorkerManager:
         logger.debug("Stopping Worker")
         new_worker.stop()
         logger.debug("Write Worker config")
-        c = new_worker.write_config()
+        new_worker_config = new_worker.write_config()
         if name:
-            c["name"] = name
+            new_worker_config["name"] = name
 
         if in_venv is None:
             in_venv = os.environ.get("FUNCNODES_WORKER_IN_VENV", "1") in [
@@ -1259,6 +1263,7 @@ class WorkerManager:
                 stdout_callback=print,
                 stderr_callback=print,
             )
+
             logger.debug("venv created")
             await self.set_progress_state(
                 message="Adding funcnodes",
@@ -1268,10 +1273,10 @@ class WorkerManager:
             )
 
             await workerenv.ainstall_package("funcnodes", upgrade=True)
-            c["env_path"] = str(workerenv.env_path)
+            new_worker_config["env_path"] = str(workerenv.env_path)
         else:
             logger.debug("using worker global venv")
-            c["env_path"] = None
+            new_worker_config["env_path"] = None
 
         logger.debug("Write config")
         ref_cfg = None
@@ -1283,7 +1288,9 @@ class WorkerManager:
 
         if ref_cfg:
             if copyLib:
-                c["package_dependencies"] = ref_cfg["package_dependencies"]
+                new_worker_config["package_dependencies"] = ref_cfg[
+                    "package_dependencies"
+                ]
             if copyNS:
                 nsfile = os.path.join(ref_cfg["data_path"], "nodespace.json")
                 if os.path.exists(nsfile):
@@ -1291,7 +1298,7 @@ class WorkerManager:
                         ns: WorkerState = json.load(file)
                     nsd = dict(ns)
                     del nsd["meta"]
-                nsfile = os.path.join(c["data_path"], "nodespace.json")
+                nsfile = os.path.join(new_worker_config["data_path"], "nodespace.json")
                 write_json_secure(data=nsd, filepath=nsfile)
         await self.set_progress_state(
             message="Writing configuration.",
@@ -1300,7 +1307,9 @@ class WorkerManager:
             blocking=True,
         )
 
-        new_worker.write_config(c)
+        new_worker.write_config(new_worker_config)
+        new_worker.cleanup()
+        del new_worker
         await self.set_progress_state(
             message="Creating new worker.",
             progress=1.0,
@@ -1310,7 +1319,7 @@ class WorkerManager:
 
         self._last_woker_check = 0
         logger.debug("Worker created")
-        return new_worker
+        return new_worker_config
 
 
 def start_worker_manager(

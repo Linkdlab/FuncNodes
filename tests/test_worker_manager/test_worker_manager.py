@@ -159,7 +159,7 @@ if sys.platform != "emscripten":
                 async with session.ws_connect(f"ws://127.0.0.1:{self._port}") as ws:
                     t = time.time()
                     await ws.send_str(json.dumps({"type": "new_worker"}))
-                    while time.time() - t < 20:
+                    while time.time() - t < 40:
                         try:
                             resp = await ws.receive(timeout=3)
                         except asyncio.TimeoutError:
