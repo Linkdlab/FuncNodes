@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
 resolution-markers = [
     "sys_platform != 'emscripten'",
@@ -478,7 +478,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes"
-version = "1.1.1"
+version = "1.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "funcnodes-basic" },
@@ -524,8 +524,8 @@ requires-dist = [
     { name = "funcnodes-core", specifier = ">=1.0.2" },
     { name = "funcnodes-module", marker = "sys_platform != 'emscripten'" },
     { name = "funcnodes-react-flow", marker = "sys_platform != 'emscripten'", specifier = ">=1.0.0" },
-    { name = "funcnodes-worker", marker = "sys_platform == 'emscripten'", specifier = ">=1.1.1" },
-    { name = "funcnodes-worker", extras = ["all"], marker = "sys_platform != 'emscripten'", specifier = ">=1.1.1" },
+    { name = "funcnodes-worker", marker = "sys_platform == 'emscripten'", specifier = ">=1.2.0" },
+    { name = "funcnodes-worker", extras = ["all"], marker = "sys_platform != 'emscripten'", specifier = ">=1.2.0" },
     { name = "subprocess-monitor", marker = "sys_platform != 'emscripten'", specifier = ">=0.3.0" },
     { name = "uv", marker = "sys_platform != 'emscripten'", specifier = ">=0.5.21" },
     { name = "venvmngr", marker = "sys_platform != 'emscripten'", specifier = ">=0.2.0" },
@@ -609,7 +609,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes-worker"
-version = "1.1.1"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asynctoolkit" },
@@ -618,9 +618,9 @@ dependencies = [
     { name = "pip" },
     { name = "python-slugify" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/96/b7b3a2c7ab08f735328ed12c1cebd4e833554f7a3dd87e1f84007016d6cd/funcnodes_worker-1.1.1.tar.gz", hash = "sha256:0e2830c710b5a528ef5a10dca375955a6e33b0681412d426aa38fc7f91eaa0d2", size = 113062, upload-time = "2025-10-21T22:33:36.876Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cf/a5/fb32162db7128592d9606f5327f080bd1708324e5db7bb68704c9311a44a/funcnodes_worker-1.2.0.tar.gz", hash = "sha256:f87be45e4019610aa5fa0b4a6a70c1fded1f9a69ba182f269b81724621d27d04", size = 116294, upload-time = "2025-11-05T06:38:38.266Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/29/d887820f685e17b6195a9215e1bd6f6a73b086048ba6e318602f2a3fb6b8/funcnodes_worker-1.1.1-py3-none-any.whl", hash = "sha256:1762e805dd9bcd12737095ca8fbfe1e72dbb2dffcae8b2921d8bd261f5e360bb", size = 48008, upload-time = "2025-10-21T22:33:35.478Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/b7/902d271eda782d7851a87302fc81864fac0795187d97ca18ad5dd4cd8467/funcnodes_worker-1.2.0-py3-none-any.whl", hash = "sha256:e3d0cb99b885a045a9a0f51f0018c04b5ee666a2ab09dc31a7b3a1a8ade72394", size = 48129, upload-time = "2025-11-05T06:38:36.636Z" },
 ]
 
 [package.optional-dependencies]
