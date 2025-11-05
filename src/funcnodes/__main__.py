@@ -12,7 +12,7 @@ import shutil
 from funcnodes.utils.cmd import build_worker_start
 import asyncio
 import dotenv
-from funcnodes_worker.worker import WorkerJson
+from funcnodes_worker.worker import WorkerJson, worker_json_get_data_path
 from pathlib import Path
 
 import warnings
@@ -185,7 +185,7 @@ def start_existing_worker(args: argparse.Namespace):
 
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
     fn.FUNCNODES_LOGGER.info("Starting existing worker of type %s", workertype)
-    fn.logging.set_logging_dir(cfg["data_path"])
+    fn.logging.set_logging_dir(worker_json_get_data_path(cfg))
     worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
     worker.run_forever()
@@ -263,7 +263,7 @@ def listen_worker(args: argparse.Namespace):
     """
 
     cfg = _worker_conf_from_args(args)
-    log_file_path = os.path.join(cfg["data_path"], "worker.log")
+    log_file_path = os.path.join(worker_json_get_data_path(cfg), "worker.log")
     # log file path
     while True:
         if os.path.exists(log_file_path):
