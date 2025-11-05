@@ -22,7 +22,12 @@ from aiohttp import (
     ClientConnectionError,
 )
 
-from funcnodes_worker.worker import WorkerJson, WorkerState
+from funcnodes_worker.worker import (
+    WorkerJson,
+    WorkerState,
+    get_workers_dir,
+    worker_json_get_data_path,
+)
 import subprocess_monitor
 import venvmngr
 
@@ -129,13 +134,17 @@ def create_worker_env(workerconfig: WorkerJson):
     # purge pip cache
     command = [pip_path, "cache", "purge"]
     subprocess.run(
-        command, check=True, cwd=os.path.join(workerconfig["data_path"], "..")
+        command,
+        check=True,
+        cwd=os.path.join(worker_json_get_data_path(workerconfig), ".."),
     )
 
     # install funcnodes
     command = [pip_path, "install", "funcnodes", "--upgrade"]
     subprocess.run(
-        command, check=True, cwd=os.path.join(workerconfig["data_path"], "..")
+        command,
+        check=True,
+        cwd=os.path.join(worker_json_get_data_path(workerconfig), ".."),
     )
 
 
@@ -274,7 +283,7 @@ class WorkerManager:
         if port is not None:
             config["worker_manager"]["port"] = port
 
-        self._worker_dir = os.path.join(fn.config.get_config_dir(), "workers")
+        self._worker_dir = get_workers_dir()
         if not os.path.exists(self._worker_dir):
             os.makedirs(self._worker_dir)
 
@@ -757,7 +766,7 @@ class WorkerManager:
                 jsonfilepath = os.path.join(self.worker_dir, f"worker_{workerid}.json")
                 if os.path.exists(jsonfilepath):
                     with open(jsonfilepath, "r", encoding="utf-8") as f:
-                        target_worker = json.load(f)
+                        target_worker = WorkerJson(**json.load(f))
             except Exception:
                 target_worker = None
 
@@ -808,7 +817,7 @@ class WorkerManager:
                     pass
 
             # Remove data directory
-            data_path = target_worker.get("data_path")
+            data_path = worker_json_get_data_path(target_worker)
             for _ in range(10):
                 if data_path and os.path.exists(data_path):
                     try:
@@ -1292,13 +1301,17 @@ class WorkerManager:
                     "package_dependencies"
                 ]
             if copyNS:
-                nsfile = os.path.join(ref_cfg["data_path"], "nodespace.json")
+                nsfile = os.path.join(
+                    worker_json_get_data_path(ref_cfg), "nodespace.json"
+                )
                 if os.path.exists(nsfile):
                     with open(nsfile, "r", encoding="utf-8") as file:
                         ns: WorkerState = json.load(file)
                     nsd = dict(ns)
                     del nsd["meta"]
-                nsfile = os.path.join(new_worker_config["data_path"], "nodespace.json")
+                nsfile = os.path.join(
+                    worker_json_get_data_path(new_worker_config), "nodespace.json"
+                )
                 write_json_secure(data=nsd, filepath=nsfile)
         await self.set_progress_state(
             message="Writing configuration.",

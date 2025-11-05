@@ -14,6 +14,7 @@ if sys.platform != "emscripten":
 
     # Import your WorkerManager from wherever it's defined
     from funcnodes.worker.worker_manager import WorkerManager
+    from funcnodes_worker.worker import worker_json_get_data_path
 
     # If your code references `funcnodes.config.CONFIG` or a similar global config,
     # you can mock it out here or set it before running tests.
@@ -219,7 +220,7 @@ if sys.platform != "emscripten":
                     )
                     with open(json_file, "r", encoding="utf-8") as f:
                         cfg = json.load(f)
-                    data_path = cfg.get("data_path")
+                    data_path = worker_json_get_data_path(cfg)
                     env_path = cfg.get("env_path")
 
                     # Request deletion
