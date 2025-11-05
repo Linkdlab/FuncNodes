@@ -1,5 +1,9 @@
 ## 1.2.0 (2025-11-05)
 
+### Feat
+- Bump funcnodes_worker dependency to version 1.2.0 for both emscripten and non-emscripten platforms in pyproject.toml and related lock files.
+- Refactor data path handling in worker management and main application code to utilize worker_json_get_data_path for improved consistency and clarity.
+
 ## v1.1.1 (2025-10-22)
 
 ### Feat
