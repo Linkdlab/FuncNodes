@@ -666,6 +666,13 @@ def main():
             help="Profile the code",
         )
 
+        parser.add_argument(
+            "--use-subprocess-monitor",
+            default=os.environ.get("USE_SUBPROCESS_MONITOR", "1"),
+            type=int,
+            help="Use the subprocess monitor to run the code",
+        )
+
         subparsers = parser.add_subparsers(dest="task", required=True)
 
         # Add subparsers for each major task
@@ -689,6 +696,8 @@ def main():
             # try:
         if args.debug:
             fn.FUNCNODES_LOGGER.setLevel("DEBUG")
+
+        os.environ["USE_SUBPROCESS_MONITOR"] = str(args.use_subprocess_monitor)
 
         if (
             getattr(args, "long_running", False)
