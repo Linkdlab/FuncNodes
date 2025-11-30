@@ -1,3 +1,13 @@
+## 1.3.0 (2025-11-30)
+
+### Feat
+
+- add subprocess monitor argument to main function
+
+### Fix
+
+- update package version handling in __init__.py
+
 ## 1.2.0 (2025-11-05)
 
 ### Feat
