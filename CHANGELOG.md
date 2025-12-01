@@ -1,3 +1,9 @@
+## 1.3.1 (2025-12-01)
+
+### Fix
+
+- correct package name in version retrieval
+
 ## 1.3.0 (2025-11-30)
 
 ### Feat
