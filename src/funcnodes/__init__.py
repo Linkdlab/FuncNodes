@@ -28,7 +28,7 @@ __all__ += worker_all + core_all
 
 
 try:
-    __version__ = version("your_package")
+    __version__ = version("funcnodes")
 except PackageNotFoundError:
     # Package isn't installed (e.g. during local dev)
     __version__ = "0.0.0"
