@@ -1,67 +1,121 @@
-## Start the UI
+# First Steps with FuncNodes
 
-The core use case of FuncNodes is to bring arbitrary complex functionalities into a node-based no-code interface.
+This guide walks you through launching FuncNodes, creating your first worker, and building a simple workflow.
 
-To start the UI simply call:
+---
+
+## 1. Launch the UI
+
+Start the FuncNodes web interface:
 
 ```bash
 funcnodes runserver # (1)!
 ```
 
-1. For more options see the [CLI options](../api/cli.md#runserver)
+1. For more options see the [CLI reference](../api/cli.md#runserver)
 
-This will spawn a browser window with the basic FuncNodes Interface:
+This opens a browser window with the FuncNodes interface:
+
 ![UI startup](../ui-guide/react_flow/interface_startup.png)
 
-## First Worker
+---
 
-### Create Worker
+## 2. Create a Worker
 
-[Workers](../components/worker.md) are basically individuall programms that live within the FuncNodes framework.
-They are usually running completely seperated from each other and contain the necessary modules and the current state of the complete workflow.
+[Workers](../components/worker.md) are isolated execution environments that run your workflows. Each worker has:
 
-To create a new worker simply click on the `Worker` menu → `New`, enter a name and click `Create`.
-This will create a new Worker with the given name in the Worker directory (default `~/.funcnodes/worker`) and also set up the virtual environment for the Worker.
+- Its own **virtual environment** (isolated dependencies)
+- Its own **nodespace** (graph state)
+- Its own **installed modules**
+
+### Steps
+
+1. Click **Worker** → **New** in the menu bar
+2. Enter a name for your worker
+3. Click **Create**
+
 ![new worker](../ui-guide/react_flow/new_worker.gif)
 
-### Run Worker
+The worker is created in `~/.funcnodes/workers/` with its own virtualenv.
 
-To start the newly created Worker click on the worker name under `Worker` → `select`.
-You can see that the worker is active if the `Nodespace` header menu and the `Manage Libraries`
+---
+
+## 3. Start the Worker
+
+1. Go to **Worker** → **Select**
+2. Click on your worker's name
+
+The worker is active when you see:
+
+- **Nodespace** menu enabled in the header
+- **Manage Libraries** button available
 
 ![run worker](../ui-guide/react_flow/run_worker.gif)
 
-### Add Functionalities
+---
 
-FuncNodes provides its functionalities in the form of Nodes. These nodes are shipped as normal python packages with a specific layout and entry points for auto detection.
+## 4. Install Modules
 
-The UI currently grabs a list of available modules from our [managed repository list](https://github.com/Linkdlab/funcnodes_repositories){target="\_blank"} and shows them under `Manage Libraries`
+FuncNodes functionality comes from **modules**—Python packages containing nodes.
 
-If you click on `Manage Libraries` a window opens that shows you a List of:
+### Steps
 
-- Installed modules, that are not used by the worker
-- Installable modules
-- Modules that are currently used by the Worker
-
-New modules can simply added via the `Add` button
+1. Click **Manage Libraries**
+2. Browse available modules:
+   - **Installed** — Modules in your worker's environment
+   - **Available** — Modules from the [official registry](https://github.com/Linkdlab/funcnodes_repositories){target="_blank"}
+   - **Active** — Modules loaded in the current worker
+3. Click **Add** to install a module
 
 ![add module](../ui-guide/react_flow/add_module.gif)
 
-If a new module is added its [Shelf](../components/shelf.md) becomes available in the `Lib` menu
+After installation, the module's [shelf](../components/shelf.md) appears in the **Lib** menu.
 
-### Adding and working with Nodes
+---
 
-[Nodes](../components/node.md) are the core components of Func**Nodes** and are the simples computing unit in the framework and are basically functions with [Inputs](../components/nodeinput.md) and [Outputs](../components/nodeoutput.md).
-Inputs can be either connected to other node's outputs or set manually (if the underlying datatype allows it).
+## 5. Add Nodes to Your Workflow
 
-Nodes can be added from the Library by selecting the specific shelf (and sub-shelf) or searched via the search bar in the lib.
-By double-clicking the name of the Node a new Instance is added to the [Nodespace](../components/nodespace.md) in the center.
+[Nodes](../components/node.md) are the computational units—functions with [inputs](../components/inputs-outputs.md) and outputs.
+
+### Adding Nodes
+
+1. Open the **Lib** menu
+2. Browse shelves or use the **search bar**
+3. **Double-click** a node name to add it to the [nodespace](../components/nodespace.md)
 
 ![node basics](../ui-guide/react_flow/basic_nodes.gif)
 
-Ones a Node is created its inputs can be set and the outputs can be connected to the inputs of other Nodes.
-Ones the input of a Node changes it is triggered and the created outputs are passed to connected inputs.
+### Connecting Nodes
 
-If you hover over inputs and outputs its current value is shown, allowing for live feedback.
+1. **Drag** from an output port to an input port to create a connection
+2. **Click** on an input to edit its value manually (for compatible types)
+3. **Hover** over any port to see its current value
 
-To highlight what you can really do with FuncNodes plase head to the [Examples](../examples/index.md)
+### Execution Flow
+
+- When an input changes, the node **triggers** automatically
+- Outputs flow to connected inputs, potentially triggering downstream nodes
+- Execution cascades through the graph based on data dependencies
+
+---
+
+## 6. What's Next?
+
+Now that you have a running workflow:
+
+| Topic | Description |
+|-------|-------------|
+| [Creating Nodes](../components/node.md) | Build custom nodes with decorators or classes |
+| [Inputs & Outputs](../components/inputs-outputs.md) | Understand data flow and type rendering |
+| [Examples](../examples/index.md) | See complete workflow examples |
+| [Available Modules](../modules/index.md) | Browse the official module ecosystem |
+
+---
+
+## Tips
+
+!!! tip "Live Preview"
+    Click on connections to see data flowing through your workflow in real-time.
+
+!!! tip "Development Mode"
+    For developing custom nodes, use `funcnodes --dir .funcnodes runserver` to keep data in your project folder.

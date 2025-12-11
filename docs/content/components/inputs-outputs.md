@@ -78,3 +78,60 @@ class IOModNode(fn.Node):
 ```
 
 <div class="nodebuilder" code-source="prev_language-python" id="sdgg"></div>
+
+## Events & triggering
+
+- Inputs fire `after_set_value` events when `emit_value_set=True`; outputs fire on `trigger`.
+- Inputs can opt out of triggering the node with `does_trigger=False` (useful for control signals or staged values).
+- Hidden maintenance ports (e.g., the auto-created `_triggerinput`/`_triggeroutput`) use `hidden=True` to stay out of the UI.
+
+## Dynamic IO updates
+
+Use decorator helpers to recompute options based on other inputs:
+
+- `update_other_io_options("target", modifier=...)` — recalc dropdown contents.
+- `update_other_io_value_options("target", options_generator=...)` — recalc numeric bounds (`min/max/step`).
+
+Patterns in the shipped modules:
+
+- Pandas column selectors rebuild `options` from `df.columns`.
+- Basic list nodes adjust valid indices to the current list length.
+- File/folder pickers repopulate from the worker `files_dir`.
+
+## Enumerations & `DataEnum`
+
+For stable choice lists, subclass `fn.DataEnum`; it registers a type string and exposes `.v()` to resolve stored values. Example:
+
+```python
+class BorderTypes(fn.DataEnum):
+    CONSTANT = (0, "Constant")
+    REFLECT = (2, "Reflect")
+```
+
+Attach the enum as the IO `type` or use `value_options={"options": BorderTypes}`; the UI renders friendly labels while storing the underlying values.
+
+## `NoValue` and optional outputs
+
+`NoValue` represents “no data” and **suppresses downstream triggers**. Return it from optional outputs or routers to avoid firing branches unintentionally. Inputs default to `NoValue` until set; disconnecting an input resets it to its class default if provided.
+
+## Render routing & previews
+
+Node-level `default_render_options` can point the UI at a specific IO, e.g. `{"data": {"src": "figure"}}` for Plotly or images. Per-IO `render_options` can request widgets (`{"type": "color"}`, sliders via min/max) or mark values as preview-only.
+
+### Custom renderers and type hints
+
+- The global render-option registry lives in `funcnodes_core.config.FUNCNODES_RENDER_OPTIONS`. Modules can extend it at import time via an entry point (`render_options`) or by calling `funcnodes_core.config.update_render_options`.
+- Serialization uses `funcnodes_core.utils.serialization.JSONEncoder/Decoder`; modules may register additional encoders so custom types can be stored in `nodespace.json` and previewed in the UI.
+- Enums for dropdowns should subclass `fn.DataEnum` so both values and display labels are preserved.
+
+## Connection rules & multiplicity
+
+- Inputs default to **single connection**; set `allow_multiple=True` for fan-in semantics.
+- Outputs allow multiple downstream connections.
+- Connection validation prevents input→input and output→output wiring and enforces `allow_multiple`; violations raise `NodeConnectionError` / `MultipleConnectionsError`.
+- There is no automatic cycle detection across the graph; avoid feedback loops unless your node logic guards against it.
+
+## Serialization hints
+
+- All IO values must be JSON-serializable by the registered encoders to persist in `nodespace.json`.
+- Set `render_options["set_default"]=True` when user-set values should become the new default and be serialized with the graph.
