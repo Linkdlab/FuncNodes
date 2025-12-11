@@ -1,6 +1,38 @@
-# Understanding the Working Principles of FuncNodes
+# Introduction to FuncNodes
 
-FuncNodes is a modular workflow automation framework designed to handle complex tasks using **node-based execution**. It enables users to construct workflows by interconnecting nodes, where each node represents an individual computational function. This guide provides a high-level overview of how FuncNodes operates internally.
+FuncNodes is a **modular workflow automation framework** that uses node-based execution to handle complex computational tasks. Users construct workflows by connecting nodes—each representing a function—into a visual graph that processes data automatically.
+
+---
+
+## Architecture Overview
+
+```mermaid
+flowchart TB
+    subgraph System["FuncNodes System"]
+        UI["🖥️ Web UI<br/>(React Flow)"]
+        WM["⚙️ Workermanager<br/>(orchestrates worker lifecycle)"]
+
+        subgraph Workers["Worker Pool"]
+            subgraph W1["Worker 1"]
+                V1["venv"]
+                NS1["Nodespace<br/>(graph)"]
+            end
+            subgraph W2["Worker 2"]
+                V2["venv"]
+                NS2["Nodespace<br/>(graph)"]
+            end
+            subgraph WN["Worker N"]
+                VN["venv"]
+                NSN["Nodespace<br/>(graph)"]
+            end
+        end
+    end
+
+    UI <-->|WebSocket| WM
+    WM --> W1
+    WM --> W2
+    WM --> WN
+```
 
 ---
 
@@ -8,85 +40,92 @@ FuncNodes is a modular workflow automation framework designed to handle complex 
 
 ### Nodes
 
-- The fundamental building blocks of FuncNodes.
-- Each node encapsulates a function with defined **inputs** and **outputs**.
-- Nodes execute when all required inputs are available, producing output data for downstream nodes.
-- Nodes are **extremly** easy to create, simply but a decorator to a existing function and the corresponding Node is created with the correct inputs and outputs automatically.
+Nodes are the fundamental building blocks of FuncNodes:
 
-### Node Connections & Data Flow
+- Each node encapsulates a **function** with defined **inputs** and **outputs**
+- Nodes execute automatically when all required inputs are available
+- Creating nodes is **extremely** simple—just add a decorator to an existing function:
 
-- Nodes are connected via **inputs and outputs**, forming a **directed acyclic graph (DAG)**.
-- Data flows from one node’s output to another’s input, **triggering execution dynamically**.
+```python
+import funcnodes as fn
 
-### Workers & Execution Environments
+@fn.NodeDecorator(node_id="add_numbers")
+def add(a: int, b: int) -> int:
+    return a + b
+```
 
-- Nodes execute inside **Workers**, which are isolated execution units.
-- Workers ensure that processes are sandboxed, preventing conflicts between workflows.
-- Each worker can run on its own virtual environment, ensuring dependency isolation.
+### Data Flow
+
+- Nodes connect via inputs and outputs, forming a **directed acyclic graph (DAG)**
+- Data flows from outputs to inputs, **triggering execution dynamically**
+- The system automatically determines execution order based on dependencies
+
+### Workers
+
+Workers are **isolated execution environments** that run node graphs:
+
+- Each worker has its own **virtual environment** for dependency isolation
+- Workers are **sandboxed**, preventing conflicts between workflows
+- Multiple workers can run simultaneously with different configurations
 
 ### Workermanager
 
-- The **Workermanager** orchestrates multiple workers.
-- Manages worker lifecycle, logging, and monitoring.
+The Workermanager is a **supervisory service** that:
 
-### Event-Driven Execution
-
-- FuncNodes follows an **event-driven model**, where each input change triggers execution.
-- Execution order is determined dynamically based on data dependencies.
-- Nodes can be triggered **synchronously or asynchronously** depending on their function.
+- Orchestrates worker lifecycle (create, start, stop, delete)
+- Provides a central discovery point for the UI
+- Manages worker communication via WebSocket
 
 ---
 
-## Execution Lifecycle
+## Execution Model
 
-### Workflow Initialization
+### Event-Driven Triggering
 
-- Users define a workflow by arranging nodes and connecting them.
-- The workflow is loaded into a Worker, ready for execution.
+FuncNodes uses an **event-driven execution model**:
 
-### Input Handling & Triggering
+1. **Input Change** → A node's input value is set or updated
+2. **Trigger Check** → System verifies all required inputs are available
+3. **Execution** → Node function runs asynchronously
+4. **Propagation** → Output values flow to connected downstream nodes
+5. **Cascade** → Connected nodes trigger if their inputs are satisfied
 
-- When an input value changes, the connected node is **triggered**.
-- If all required inputs are available, the node executes its function.
+### Parallel Processing
 
-## Processing & Data Flow
-
-- The node processes its input, generating output values.
-- These outputs are passed to the connected nodes, potentially triggering their execution.
-
-## Asynchronous & Parallel Execution
-
-- Multiple nodes can execute in parallel if they don’t have data dependencies.
-- Workers manage parallelism and ensure optimized execution.
-
-## Logging & Debugging
-
-- Execution logs are collected in real-time, allowing users to debug workflows.
-- Users can monitor execution status and the underlying data through the **FuncNodes Web UI**.
+- Nodes without data dependencies execute **in parallel**
+- Heavy computations can run in **separate threads or processes**
+- The async architecture ensures the UI stays responsive
 
 ---
 
-## **Key Features that Enable Efficient Processing**
+## Key Features
 
-- **Modular Architecture** – Nodes can be customized and extended via plugins.
-- **Web-Based UI** – Graphical workflow editor for easy management.
-- **Event-Driven Execution** – Nodes trigger dynamically based on data changes.
-- **Python & API Integration** – Supports Python-based functions and external API calls.
+| Feature                   | Description                                                          |
+| ------------------------- | -------------------------------------------------------------------- |
+| **Visual Editor**         | Drag-and-drop workflow creation with live previews                   |
+| **Live Data Preview**     | Hover over connections to see current values                         |
+| **Modular Ecosystem**     | Install domain-specific node packages as needed                      |
+| **Type-Aware UI**         | Inputs render as sliders, dropdowns, or custom widgets based on type |
+| **Isolated Environments** | Each worker manages its own dependencies                             |
+| **Async by Default**      | Non-blocking execution for responsive workflows                      |
 
 ---
 
-## **Example Use Case: Image Processing Pipeline**
+## Example: Image Processing Pipeline
 
 ![cat example](../examples/cat.png)
 
-The live data preview of FuncNodes comes of course especially handy when working with visual data like images. In this example, we demonstrate how FuncNodes can be used to create an image processing pipeline. Each node performs a specific operation on the input image, color space conversion, blurring area detection, filtering and finally the output. Basically we create a grey-scale image of the image except, in this case where the cat has red fur.
+This image processing workflow demonstrates FuncNodes' **live preview** capabilities:
 
-You can see that every node shown a live preview of the current state of the image Inputs can be dynamically changed and are rendered depending on the underlying data type (e.g. numeric inputs are rendered as sliders when defined with a minimum and maximum).
+- Each node shows a preview of its current output
+- Numeric inputs with `min`/`max` render as **interactive sliders**
+- The workflow converts an image to grayscale except where the cat has red fur
 
 ---
 
-## **Next Steps**
+## Next Steps
 
-- Learn more about **[Nodes and their Configuration](../components/node.md)**.
-- Explore **[How Inputs and Outputs Work](../components/inputs-outputs.md)**.
-- Set up your first workflow with **[Basic Usage Guide](basic_usage.md)**.
+1. **[Install FuncNodes](installation.md)** — Set up your environment
+2. **[First Steps](basic_usage.md)** — Launch the UI and create your first workflow
+3. **[Creating Nodes](../components/node.md)** — Learn the two ways to define nodes
+4. **[Inputs & Outputs](../components/inputs-outputs.md)** — Understand data flow and type hints
