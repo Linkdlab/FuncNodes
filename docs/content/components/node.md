@@ -398,6 +398,8 @@ async def my_node(input1: int, input2: int) -> int:
 This works for both class based and decorator based nodes.
 Alternatively, the NodeDecorator accepts a `separate_thread=True` argument, which will automatically run the function in a separate thread. (The decorator alternativly accepts a `separate_process=True` argument, which will run the function in a separate process, but this is still experimental and should only considered for heavy CPU bound tasks)
 
+`separate_process` wraps the function with `funcnodes_core.utils.functions.make_run_in_new_process`, which uses a `ProcessPoolExecutor`. Resource limits or sandboxing are not applied by FuncNodes; if you need supervision, point the worker at a running `subprocess_monitor` (see Worker config).
+
 ### Nested Inheritance
 
 While the class based approach allows for more complex inheritance patterns:
