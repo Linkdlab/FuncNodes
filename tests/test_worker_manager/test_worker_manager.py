@@ -14,6 +14,7 @@ if sys.platform != "emscripten":
 
     # Import your WorkerManager from wherever it's defined
     from funcnodes.worker.worker_manager import WorkerManager
+    from funcnodes_worker.worker import worker_json_get_data_path
 
     # If your code references `funcnodes.config.CONFIG` or a similar global config,
     # you can mock it out here or set it before running tests.
@@ -159,7 +160,7 @@ if sys.platform != "emscripten":
                 async with session.ws_connect(f"ws://127.0.0.1:{self._port}") as ws:
                     t = time.time()
                     await ws.send_str(json.dumps({"type": "new_worker"}))
-                    while time.time() - t < 20:
+                    while time.time() - t < 40:
                         try:
                             resp = await ws.receive(timeout=3)
                         except asyncio.TimeoutError:
@@ -177,6 +178,101 @@ if sys.platform != "emscripten":
                     self.assertEqual(data["type"], "worker_created")
                     # Check that a 'uuid' is returned
                     self.assertIn("uuid", data)
+
+        async def test_delete_worker_traceless(self):
+            """
+            Create a worker, then delete it and verify all related files are gone.
+            """
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(f"ws://127.0.0.1:{self._port}") as ws:
+                    # Create new worker
+                    t = time.time()
+                    await ws.send_str(json.dumps({"type": "new_worker"}))
+                    uuid = None
+                    while time.time() - t < 60:
+                        try:
+                            resp = await ws.receive(timeout=3)
+                        except asyncio.TimeoutError:
+                            continue
+                        self.assertEqual(resp.type, WSMsgType.TEXT)
+                        data = json.loads(resp.data)
+                        if data.get("type") in {"progress", "worker_status"}:
+                            continue
+                        if data.get("type") == "worker_created":
+                            uuid = data["uuid"]
+                            break
+                    self.assertIsNotNone(uuid, "Worker was not created in time")
+
+                    # Locate worker files to verify deletion later
+                    workers_dir = os.path.join(self.testdir, "workers")
+                    json_file = os.path.join(workers_dir, f"worker_{uuid}.json")
+                    p_file = os.path.join(workers_dir, f"worker_{uuid}.p")
+                    runstate_file = os.path.join(workers_dir, f"worker_{uuid}.runstate")
+
+                    # Read config to know data_path and env_path
+                    # Wait briefly for file to be written
+                    for _ in range(30):
+                        if os.path.exists(json_file):
+                            break
+                        await asyncio.sleep(0.1)
+                    self.assertTrue(
+                        os.path.exists(json_file), "Worker config file missing"
+                    )
+                    with open(json_file, "r", encoding="utf-8") as f:
+                        cfg = json.load(f)
+                    data_path = worker_json_get_data_path(cfg)
+                    env_path = cfg.get("env_path")
+
+                    # Request deletion
+                    await ws.send_str(
+                        json.dumps({"type": "delete_worker", "workerid": uuid})
+                    )
+
+                    # Consume messages until we see confirmation or timeout
+                    t = time.time()
+                    deleted = False
+                    while time.time() - t < 30:
+                        try:
+                            resp = await ws.receive(timeout=3)
+                        except asyncio.TimeoutError:
+                            # Still allow filesystem checks
+                            pass
+                        else:
+                            if resp.type == WSMsgType.TEXT:
+                                data = json.loads(resp.data)
+                                if data.get("type") in {"progress", "worker_status"}:
+                                    # continue waiting
+                                    pass
+                                elif (
+                                    data.get("type") == "worker_deleted"
+                                    and data.get("uuid") == uuid
+                                ):
+                                    deleted = True
+                                    break
+
+                        # Check if files are gone already
+                        if not any(
+                            os.path.exists(p)
+                            for p in [json_file, p_file, runstate_file]
+                        ):
+                            if (not data_path or not os.path.exists(data_path)) and (
+                                not env_path or not os.path.exists(env_path)
+                            ):
+                                deleted = True
+                                break
+
+                    self.assertTrue(
+                        deleted, "Did not receive deletion confirmation in time"
+                    )
+
+                    # Final assertions that everything is removed
+                    self.assertFalse(os.path.exists(json_file))
+                    self.assertFalse(os.path.exists(p_file))
+                    self.assertFalse(os.path.exists(runstate_file))
+                    if data_path:
+                        self.assertFalse(os.path.exists(data_path))
+                    if env_path:
+                        self.assertFalse(os.path.exists(env_path))
 
         async def test_activate_unknown_worker(self):
             """

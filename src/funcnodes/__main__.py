@@ -1,5 +1,5 @@
 import threading
-from typing import Type
+from typing import Optional, Type
 
 import funcnodes as fn
 import argparse
@@ -12,6 +12,8 @@ import shutil
 from funcnodes.utils.cmd import build_worker_start
 import asyncio
 import dotenv
+from funcnodes_worker.worker import WorkerJson, worker_json_get_data_path
+from pathlib import Path
 
 import warnings
 
@@ -117,14 +119,13 @@ def start_new_worker(args: argparse.Namespace):
     )
     import asyncio
 
-    new_worker = asyncio.run(new_worker_routine)
+    new_worker_config = asyncio.run(new_worker_routine)
 
-    args.uuid = new_worker.uuid()
-    args.name = new_worker.name()
-
+    args.uuid = new_worker_config["uuid"]
+    args.name = new_worker_config.get("name", None)
     if args.create_only:
         return
-    return start_existing_worker(args)
+    return start_existing_worker(args, new_worker_config)
 
 
 def start_existing_worker(args: argparse.Namespace):
@@ -146,9 +147,13 @@ def start_existing_worker(args: argparse.Namespace):
     """
 
     cfg = _worker_conf_from_args(args)
-    if cfg["env_path"] and venvmngr:
-        workerenv = venvmngr.UVVenvManager.get_virtual_env(cfg["env_path"])
 
+    workerenv = get_worker_venv(cfg)
+    pypath = str(workerenv.python_exe) if workerenv else sys.executable
+
+    fn.FUNCNODES_LOGGER.info("Starting existing worker with pypath: %s", pypath)
+
+    if workerenv:
         update_on_startup = cfg.get("update_on_startup", {})
         if update_on_startup.get("funcnodes", True):
             workerenv.install_package("funcnodes", upgrade=True)
@@ -156,12 +161,11 @@ def start_existing_worker(args: argparse.Namespace):
             workerenv.install_package("funcnodes-core", upgrade=True)
         if update_on_startup.get("funcnodes-core", True):
             workerenv.install_package("funcnodes-worker", upgrade=True)
-        cfg["python_path"] = str(workerenv.python_exe)
 
-    if cfg.get("python_path", sys.executable) != sys.executable:
+    if pypath != sys.executable:
         # run the worker with the same python executable
-        if not os.path.exists(cfg["python_path"]):
-            raise Exception(f"Python executable not found: {cfg['python_path']}")
+        if not os.path.exists(pypath):
+            raise Exception(f"Python executable not found: {pypath}")
 
         kwargs = {}
         if args.debug:
@@ -169,14 +173,11 @@ def start_existing_worker(args: argparse.Namespace):
         if args.profile:
             kwargs["profile"] = args.profile
         calllist = [
-            cfg["python_path"],
+            pypath,
             "-m",
         ] + build_worker_start(uuid=cfg["uuid"], workertype=args.workertype, **kwargs)
 
-        return os.execv(
-            cfg["python_path"],
-            calllist,
-        )
+        return subprocess.run(calllist)
 
     workertype = args.workertype
     if workertype is None:
@@ -184,6 +185,7 @@ def start_existing_worker(args: argparse.Namespace):
 
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
     fn.FUNCNODES_LOGGER.info("Starting existing worker of type %s", workertype)
+    fn.logging.set_logging_dir(worker_json_get_data_path(cfg))
     worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
 
     worker.run_forever()
@@ -195,7 +197,7 @@ def stop_worker(args: argparse.Namespace):
     asyncio.run(mng.stop_worker(cfg["uuid"]))
 
 
-def _worker_conf_from_args(args: argparse.Namespace):
+def _worker_conf_from_args(args: argparse.Namespace) -> WorkerJson:
     """
     Returns the worker configuration from the arguments.
 
@@ -261,7 +263,7 @@ def listen_worker(args: argparse.Namespace):
     """
 
     cfg = _worker_conf_from_args(args)
-    log_file_path = os.path.join(cfg["data_path"], "worker.log")
+    log_file_path = os.path.join(worker_json_get_data_path(cfg), "worker.log")
     # log file path
     while True:
         if os.path.exists(log_file_path):
@@ -356,6 +358,13 @@ def start_worker_manager(args: argparse.Namespace):
     )
 
 
+def get_worker_venv(cfg: WorkerJson) -> Optional[venvmngr.UVVenvManager]:
+    if cfg["env_path"] and venvmngr:
+        workerenv = venvmngr.UVVenvManager.get_virtual_env(cfg["env_path"])
+        return workerenv
+    return None
+
+
 def activate_worker_env(args: argparse.Namespace):
     """
     Activates the funcnodes environment.
@@ -421,11 +430,13 @@ def py_in_worker_env(args: argparse.Namespace):
       None
     """
     cfg = _worker_conf_from_args(args)
+    workerenv = get_worker_venv(cfg)
+    pypath = str(workerenv.python_exe) if workerenv else sys.executable
 
     # Run the command in the worker environment
     if args.command[0] == "--":
         args.command = args.command[1:]
-    command = [cfg["python_path"]] + args.command
+    command = [pypath] + args.command
     fn.FUNCNODES_LOGGER.debug("Executing: %s", command)
 
     subprocess.run(command)
@@ -433,7 +444,9 @@ def py_in_worker_env(args: argparse.Namespace):
 
 def worker_modules_task(args: argparse.Namespace):
     cfg = _worker_conf_from_args(args)
-    command = [cfg["python_path"], "-m", "funcnodes", "modules", args.moduletask]
+    workerenv = get_worker_venv(cfg)
+    pypath = str(workerenv.python_exe) if workerenv else sys.executable
+    command = [pypath, "-m", "funcnodes", "modules", args.moduletask]
 
     subprocess.run(command)
 
@@ -653,6 +666,13 @@ def main():
             help="Profile the code",
         )
 
+        parser.add_argument(
+            "--use-subprocess-monitor",
+            default=os.environ.get("USE_SUBPROCESS_MONITOR", "1"),
+            type=int,
+            help="Use the subprocess monitor to run the code",
+        )
+
         subparsers = parser.add_subparsers(dest="task", required=True)
 
         # Add subparsers for each major task
@@ -677,6 +697,8 @@ def main():
         if args.debug:
             fn.FUNCNODES_LOGGER.setLevel("DEBUG")
 
+        os.environ["USE_SUBPROCESS_MONITOR"] = str(args.use_subprocess_monitor)
+
         if (
             getattr(args, "long_running", False)
             and os.environ.get("SUBPROCESS_MONITOR_PID") is None
@@ -686,11 +708,13 @@ def main():
             fn.FUNCNODES_LOGGER.info("Starting subprocess via monitor")
 
             async def via_subprocess_monitor():
-                monitor = subprocess_monitor.SubprocessMonitor()
+                monitor = subprocess_monitor.SubprocessMonitor(
+                    logger=fn.FUNCNODES_LOGGER,
+                )
                 asyncio.create_task(monitor.run())
                 await asyncio.sleep(1)
                 resp = await subprocess_monitor.send_spawn_request(
-                    sys.executable,
+                    str(Path(sys.executable).absolute()),
                     [os.path.abspath(__file__)] + sys.argv[1:],
                 )
                 if "pid" not in resp:
@@ -759,6 +783,8 @@ def main():
     except Exception as exc:
         fn.FUNCNODES_LOGGER.exception(exc)
         raise
+    finally:
+        fn.FUNCNODES_LOGGER.info("Funcnodes finished")
 
 
 if __name__ == "__main__":

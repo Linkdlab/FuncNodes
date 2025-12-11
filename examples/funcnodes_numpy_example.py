@@ -4,7 +4,6 @@ import asyncio
 
 
 async def main1():
-
     linspace = fnnp.linspace()
 
     linspace.inputs["start"].value = 0

@@ -1,3 +1,4 @@
+import os
 import unittest
 
 # Import all the build functions from your helper script
@@ -42,10 +43,11 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn("WSWorker", cmd)
         self.assertIn("--create-only", cmd)
         # Check the joined string
-        self.assertEqual(
-            "funcnodes worker --uuid 123 --name test_worker new --workertype WSWorker --create-only",
-            cmd_str,
-        )
+        expected = "funcnodes"
+        if os.environ.get("FUNCNODES_CONFIG_DIR"):
+            expected += f" --dir {os.environ.get('FUNCNODES_CONFIG_DIR')}"
+        expected += " worker --uuid 123 --name test_worker new --workertype WSWorker --create-only"
+        self.assertEqual(expected, cmd_str)
 
     def test_build_worker_start(self):
         cmd = build_worker_start(uuid="abc", name="my_worker", workertype="SomeType")
@@ -59,10 +61,11 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn("my_worker", cmd)
         self.assertIn("--workertype", cmd)
         self.assertIn("SomeType", cmd)
-        self.assertEqual(
-            "funcnodes worker --uuid abc --name my_worker start --workertype SomeType",
-            cmd_str,
-        )
+        expected = "funcnodes"
+        if os.environ.get("FUNCNODES_CONFIG_DIR"):
+            expected += f" --dir {os.environ.get('FUNCNODES_CONFIG_DIR')}"
+        expected += " worker --uuid abc --name my_worker start --workertype SomeType"
+        self.assertEqual(expected, cmd_str)
 
     def test_build_worker_list(self):
         # Test full=True
@@ -72,7 +75,11 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn("worker", cmd)
         self.assertIn("list", cmd)
         self.assertIn("--full", cmd)
-        self.assertEqual("funcnodes worker list --full", cmd_str)
+        expected = "funcnodes"
+        if os.environ.get("FUNCNODES_CONFIG_DIR"):
+            expected += f" --dir {os.environ.get('FUNCNODES_CONFIG_DIR')}"
+        expected += " worker list --full"
+        self.assertEqual(expected, cmd_str)
 
         # Test full=False
         cmd = build_worker_list(full=False)
@@ -81,7 +88,11 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn("worker", cmd)
         self.assertIn("list", cmd)
         self.assertNotIn("--full", cmd)
-        self.assertEqual("funcnodes worker list", cmd_str)
+        expected = "funcnodes"
+        if os.environ.get("FUNCNODES_CONFIG_DIR"):
+            expected += f" --dir {os.environ.get('FUNCNODES_CONFIG_DIR')}"
+        expected += " worker list"
+        self.assertEqual(expected, cmd_str)
 
     def test_build_worker_activate(self):
         cmd = build_worker_activate(uuid="xyz", name="env_worker")
@@ -93,9 +104,11 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn("xyz", cmd)
         self.assertIn("--name", cmd)
         self.assertIn("env_worker", cmd)
-        self.assertEqual(
-            "funcnodes worker --uuid xyz --name env_worker activate", cmd_str
-        )
+        expected = "funcnodes"
+        if os.environ.get("FUNCNODES_CONFIG_DIR"):
+            expected += f" --dir {os.environ.get('FUNCNODES_CONFIG_DIR')}"
+        expected += " worker --uuid xyz --name env_worker activate"
+        self.assertEqual(expected, cmd_str)
 
     def test_build_worker_listen(self):
         cmd = build_worker_listen(uuid="789", name="log_worker")
@@ -107,9 +120,11 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn("789", cmd)
         self.assertIn("--name", cmd)
         self.assertIn("log_worker", cmd)
-        self.assertEqual(
-            "funcnodes worker --uuid 789 --name log_worker listen", cmd_str
-        )
+        expected = "funcnodes"
+        if os.environ.get("FUNCNODES_CONFIG_DIR"):
+            expected += f" --dir {os.environ.get('FUNCNODES_CONFIG_DIR')}"
+        expected += " worker --uuid 789 --name log_worker listen"
+        self.assertEqual(expected, cmd_str)
 
     def test_build_worker_py(self):
         # Provide multiple args to simulate running a script with arguments
@@ -127,10 +142,11 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn("script.py", cmd)
         self.assertIn("--arg", cmd)
         self.assertIn("value", cmd)
-        self.assertEqual(
-            "funcnodes worker --uuid 456 --name py_worker py script.py --arg value",
-            cmd_str,
-        )
+        expected = "funcnodes"
+        if os.environ.get("FUNCNODES_CONFIG_DIR"):
+            expected += f" --dir {os.environ.get('FUNCNODES_CONFIG_DIR')}"
+        expected += " worker --uuid 456 --name py_worker py script.py --arg value"
+        self.assertEqual(expected, cmd_str)
 
     def test_build_startworkermanager(self):
         cmd = build_startworkermanager(port=8080, host="localhost", debug=True)
@@ -142,10 +158,11 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertIn("--host", cmd)
         self.assertIn("localhost", cmd)
         self.assertIn("--debug", cmd)
-        self.assertEqual(
-            "funcnodes --debug startworkermanager --port 8080 --host localhost",
-            cmd_str,
-        )
+        expected = "funcnodes --debug"
+        if os.environ.get("FUNCNODES_CONFIG_DIR"):
+            expected += f" --dir {os.environ.get('FUNCNODES_CONFIG_DIR')}"
+        expected += " startworkermanager --port 8080 --host localhost"
+        self.assertEqual(expected, cmd_str)
 
 
 if __name__ == "__main__":

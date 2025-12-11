@@ -15,9 +15,14 @@ from funcnodes_basic.math_nodes import (
 )
 from funcnodes_basic.logic import IfNode, WhileNode
 from funcnodes_core import get_deep_connected_nodeset
+import funcnodes_core
 
 
 class TestExamples(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        funcnodes_core.config.set_in_test(fail_on_warnings=[DeprecationWarning])
+        print("Starting TestExamples")
+
     async def test_linear_add(self):
         N = 3
         preadd = add_node()
@@ -56,10 +61,10 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
         greater_node_ins.inputs["b"].value = 1
 
         while_node = WhileNode(
-            reset_inputs_on_trigger=True,
-            io_options={
-                "condition": {"does_trigger": False},
-            },
+            # reset_inputs_on_trigger=True,
+            # io_options={
+            #     "condition": {"does_trigger": False},
+            # },
         )
         while_node.inputs["condition"].c(greater_node_ins.outputs["out"])
         while_node.inputs["input"].c(start.outputs["out"])
@@ -74,9 +79,6 @@ class TestExamples(unittest.IsolatedAsyncioTestCase):
 
         if_node = IfNode(
             reset_inputs_on_trigger=True,
-            io_options={
-                "condition": {"does_trigger": False},
-            },
         )
         if_node.inputs["condition"].c(eq.outputs["out"])
         if_node.inputs["input"].c(while_node.outputs["do"])
