@@ -10,11 +10,13 @@ from enum import Enum
 import funcnodes as fn
 import ssl
 import os
+import sys
 import logging
 import asyncio
 import subprocess_monitor
 import threading
 import webbrowser
+import subprocess
 import time
 
 
@@ -29,7 +31,27 @@ class Methods(Enum):
 
 def _open_browser(port: int, host: str = "localhost", delay=1.0):
     time.sleep(delay)
-    webbrowser.open(f"http://{host}:{port}")
+    url = f"http://{host}:{port}"
+    try:
+        if webbrowser.open(url):
+            return
+    except Exception:
+        pass
+
+    # Best-effort fallbacks for environments where `webbrowser` is misconfigured.
+    try:
+        if sys.platform.startswith("win"):
+            startfile = getattr(os, "startfile", None)
+            if startfile is not None:
+                startfile(url)
+            else:  # pragma: no cover
+                subprocess.Popen(["cmd", "/c", "start", "", url])
+        elif sys.platform == "darwin":  # pragma: no cover
+            subprocess.Popen(["open", url])
+        else:  # pragma: no cover
+            subprocess.Popen(["xdg-open", url])
+    except Exception:
+        return
 
 
 class BaseServer:
