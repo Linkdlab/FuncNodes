@@ -45,6 +45,9 @@ class BaseServer:
         worker_manager_port: Optional[int] = None,
         worker_manager_ssl: Optional[bool] = None,
         start_worker_manager=True,
+        worker_host: Optional[str] = None,
+        worker_port: Optional[int] = None,
+        worker_ssl: Optional[bool] = None,
         static_path: Optional[str] = None,
         static_url: Optional[str] = None,
         debug=False,
@@ -66,6 +69,11 @@ class BaseServer:
             self.worker_manager_ssl = worker_manager_ssl
             self.worker_manager_host = worker_manager_host
             self.worker_manager_port = worker_manager_port
+        else:
+            self.worker_host = worker_host
+            self.worker_port = worker_port
+            self.worker_ssl = worker_ssl
+            self.start_worker_manager = False
         self.host = host
         self.port = port
         self.app = web.Application()
@@ -88,6 +96,8 @@ class BaseServer:
 
         if has_worker_manager:
             self.add_route(Methods.GET, "/worker_manager", self.get_worker_manager)
+        else:
+            self.add_route(Methods.GET, "/worker", self.get_worker)
 
         self.add_route(Methods.GET, "/", self.index)
 
@@ -199,6 +209,16 @@ class BaseServer:
         except KeyboardInterrupt:
             loop.run_until_complete(self.shutdown())
 
+    async def get_worker(self, request):
+        return web.json_response(
+            data={
+                "host": self.worker_host,
+                "port": self.worker_port,
+                "ssl": self.worker_ssl,
+            },
+            status=200,
+        )
+
     async def get_worker_manager(self, request):
         if self.start_worker_manager:
             await fn.worker.worker_manager.assert_worker_manager_running(
@@ -237,6 +257,9 @@ class BaseServer:
         worker_manager_ssl: Optional[bool] = None,
         start_worker_manager=True,
         has_worker_manager=True,
+        worker_host: Optional[str] = None,
+        worker_port: Optional[int] = None,
+        worker_ssl: Optional[bool] = None,
         **kwargs,
     ):
         ins = cls(
@@ -247,6 +270,9 @@ class BaseServer:
             worker_manager_ssl=worker_manager_ssl,
             start_worker_manager=start_worker_manager,
             has_worker_manager=has_worker_manager,
+            worker_host=worker_host,
+            worker_port=worker_port,
+            worker_ssl=worker_ssl,
             **kwargs,
         )
 

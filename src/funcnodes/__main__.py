@@ -64,6 +64,10 @@ def task_run_server(args: argparse.Namespace):
         worker_manager_port=args.worker_manager_port,
         worker_manager_ssl=args.worker_manager_ssl,
         start_worker_manager=args.no_manager,
+        has_worker_manager=args.no_manager,
+        worker_host=args.worker_host,
+        worker_port=args.worker_port,
+        worker_ssl=args.worker_ssl,
         debug=args.debug,
     )
 
@@ -522,6 +526,23 @@ def add_runserver_parser(subparsers):
         default="react_flow",
         help="The frontend to use (e.g. react_flow)",
         choices=["react_flow"],
+    )
+
+    parser.add_argument(
+        "--worker_host",
+        default="localhost",
+        help="The host to run the worker on",
+    )
+    parser.add_argument(
+        "--worker_port",
+        default=9380,
+        type=int,
+        help="The port to run the worker on",
+    )
+    parser.add_argument(
+        "--worker_ssl",
+        action="store_true",
+        help="Use SSL for the worker",
     )
 
     parser.set_defaults(long_running=True)
