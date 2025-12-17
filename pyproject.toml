@@ -17,7 +17,7 @@ dependencies = [
     "virtualenv; sys_platform != 'emscripten'",
     "funcnodes-basic>=0.2.1",
     "funcnodes-core>=1.0.2",
-    "funcnodes-react-flow>=1.0.0; sys_platform != 'emscripten'",
+    "funcnodes-react-flow>=1.1.0; sys_platform != 'emscripten'",
     "subprocess-monitor>=0.3.0; sys_platform != 'emscripten'",
     "funcnodes-module; sys_platform != 'emscripten'",
     "funcnodes_worker[all]>=1.2.0; sys_platform != 'emscripten'",
