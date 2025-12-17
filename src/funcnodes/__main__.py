@@ -72,6 +72,49 @@ def task_run_server(args: argparse.Namespace):
     )
 
 
+def task_standalone(args: argparse.Namespace):
+    from funcnodes.runner.standalone import StandaloneLauncher, pick_free_port
+
+    fnw_path = Path(args.fnw_file).expanduser().resolve()
+    if not fnw_path.exists():
+        raise FileNotFoundError(f"File not found: {fnw_path}")
+
+    config_dir = (
+        Path(args.config_dir).expanduser().resolve() if args.config_dir else None
+    )
+
+    ui_port = args.ui_port if args.ui_port is not None else pick_free_port(args.host)
+
+    launcher = StandaloneLauncher(
+        fnw_path=fnw_path,
+        config_dir=config_dir,
+        host=args.host,
+        ui_port=ui_port,
+        worker_port=args.worker_port,
+        open_browser=args.open_browser,
+        debug=args.debug,
+    )
+
+    try:
+        worker_port = launcher.ensure_worker(import_fnw=True)
+
+        from funcnodes_react_flow import run_server
+
+        run_server(
+            port=ui_port,
+            host=args.host,
+            open_browser=args.open_browser,
+            start_worker_manager=False,
+            has_worker_manager=False,
+            worker_host=args.host,
+            worker_port=worker_port,
+            worker_ssl=False,
+            debug=args.debug,
+        )
+    finally:
+        launcher.shutdown()
+
+
 def list_workers(args: argparse.Namespace):
     """
     Lists all workers.
@@ -548,6 +591,53 @@ def add_runserver_parser(subparsers):
     parser.set_defaults(long_running=True)
 
 
+def add_standalone_parser(subparsers):
+    parser = subparsers.add_parser(
+        "standalone",
+        help="Open a .fnw file with its own worker (no manager)",
+    )
+    parser.set_defaults(long_running=True)
+
+    parser.add_argument(
+        "fnw_file",
+        type=str,
+        help="Path to the .fnw file to open",
+    )
+    parser.add_argument(
+        "--config-dir",
+        type=str,
+        default=None,
+        help="Config directory (default: <fnw_dir>/<fnw_stem>_config)",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Host to bind to",
+    )
+    parser.add_argument(
+        "--worker-port",
+        type=int,
+        default=None,
+        help="Worker port (default: auto)",
+    )
+    parser.add_argument(
+        "--port",
+        "--ui-port",
+        dest="ui_port",
+        type=int,
+        default=None,
+        help="UI server port (default: auto)",
+    )
+    parser.add_argument(
+        "--no-browser",
+        dest="open_browser",
+        action="store_false",
+        default=True,
+        help="Don't open browser automatically",
+    )
+
+
 def _add_worker_identifiers(parser):
     parser.add_argument(
         "--uuid",
@@ -647,6 +737,8 @@ def _submain(args):
     fn.FUNCNODES_LOGGER.debug("Running funcnodes with args: %s", args)
     if args.task == "runserver":
         task_run_server(args)
+    elif args.task == "standalone":
+        task_standalone(args)
     elif args.task == "worker":
         task_worker(args)
     elif args.task == "startworkermanager":
@@ -698,6 +790,7 @@ def main():
 
         # Add subparsers for each major task
         add_runserver_parser(subparsers)
+        add_standalone_parser(subparsers)
         add_worker_parser(subparsers)
         add_worker_manager_parser(subparsers)
         add_modules_parser(subparsers)
