@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest_funcnodes  # noqa: F401
@@ -63,7 +64,10 @@ def test_write_launcher_script_creates_unix_executable(tmp_path: Path):
 
     assert script.exists()
     assert script.name == "fnw_open.sh"
-    assert (script.stat().st_mode & 0o111) != 0
+    assert script.read_text(encoding="utf-8").startswith("#!")
+    # Windows does not support POSIX executable permission bits.
+    if os.name != "nt":
+        assert (script.stat().st_mode & 0o111) != 0
 
 
 def test_build_linux_desktop_entry_contains_exec_mime_and_icon(tmp_path: Path):
