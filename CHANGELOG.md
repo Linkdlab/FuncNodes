@@ -1,3 +1,32 @@
+## 1.4.0 (2025-12-18)
+
+### Feat
+
+- **docs**: add experimental features section and standalone mode documentation
+- **standalone**: add --register to set .fnw file opener
+- **standalone**: add in_venv parameter to StandaloneLauncher and enhance worker startup logic
+- **worker**: add command subtask to invoke exposed methods
+- **server**: enhance browser opening functionality with fallbacks
+- **scripts**: add Windows launcher and file association for .fnw files
+- **standalone**: implement standalone task and launcher
+- **server**: add worker configuration options and endpoint
+- **docs**: add mkdocs-llmstxt plugin and update site URL
+
+### Fix
+
+- **tests**: update launcher script assertions for cross-platform compatibility
+- **tests**: enhance shutdown handling in standalone tests
+- **tests**: update assertions in is_worker_running tests to return tuple format
+- **worker**: handle error messages in worker command responses
+- **standalone**: improve launcher shutdown and worker detection
+- **runner**: make shutdown thread-safe and close active connections
+- **cli**: gracefully shut down monitor on interrupt
+- **worker**: handle asyncio event loop initialization and improve logging
+
+### Refactor
+
+- **funcnodes**: decouple worker commands from argparse.Namespace
+
 ## 1.3.1 (2025-12-01)
 
 ### Fix

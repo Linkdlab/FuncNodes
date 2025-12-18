@@ -54,6 +54,7 @@ For development purposes we recomment setting `--dir .funcnodes` (1) which will 
 The `funcnodes` command expects a specific task, which can be one of the following:
 
 - runserver → Runs the [browser interface](../ui-guide/react_flow/web-ui.md) with various [options][runserver]
+- standalone → Opens a single `.fnw` file with a dedicated worker ([experimental](../experimental/standalone.md))
 - worker → Allows running and management of a [Worker](../components/worker.md)([options][worker])
 - startworkermanager → Starts the [Workermanager](../components/workermanager.md)([options][workermanager])
 - modules → Gives access to the installed FuncNodes modules ([options][modules])
