@@ -523,6 +523,8 @@ async def call_worker_command(
 
                     if msg_type == "result":
                         return data.get("result")
+                    if msg_type == "error":
+                        raise RuntimeError(str(data.get("error") or "Unknown error"))
                 except json.JSONDecodeError:
                     pass
                 continue
