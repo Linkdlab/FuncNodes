@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Optional, Type
 from aiohttp import (
     web,
@@ -18,6 +19,8 @@ import threading
 import webbrowser
 import subprocess
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class Methods(Enum):
@@ -151,10 +154,18 @@ class BaseServer:
         return self._is_running
 
     async def shutdown(self):
-        print("Shutting down server")
+        logger.info("Shutting down server")
         async with self._is_running_lock:
             self._is_running = False
             self._shutdown_signal.set()
+
+        # Force-close all active HTTP connections immediately
+        # This closes the transport without waiting for handlers to finish
+        if self.runner and self.runner.server:
+            conns = self.runner.server.connections
+            for conn in conns:
+                conn.force_close()
+        logger.debug("shutdown: complete")
 
     async def _run(
         self,
@@ -200,7 +211,9 @@ class BaseServer:
             async with self._is_running_lock:
                 self._is_running = True
                 self._shutdown_signal.clear()
-            print(f"Server started at http://{self.host or '0.0.0.0'}:{self.port}")
+            logger.info(
+                f"Server started at http://{self.host or '0.0.0.0'}:{self.port}"
+            )
 
             try:
                 await self._shutdown_signal.wait()
@@ -282,6 +295,10 @@ class BaseServer:
         worker_host: Optional[str] = None,
         worker_port: Optional[int] = None,
         worker_ssl: Optional[bool] = None,
+        register_shutdown_handler: Optional[
+            Callable[[Callable[[float], None]], asyncio.Future]
+        ] = None,
+        shutdown_timeout: float = 5.0,
         **kwargs,
     ):
         ins = cls(
@@ -304,18 +321,24 @@ class BaseServer:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        def _shutdown():
+        def _shutdown(delay: float = 5.0) -> asyncio.Future:
             async def __shutdown():
-                await asyncio.sleep(5)
+                await asyncio.sleep(delay)
                 await ins.shutdown()
 
-            loop.create_task(__shutdown())
+            # Use run_coroutine_threadsafe for thread-safe scheduling
+            # This is critical because _shutdown may be called from another thread
+            # (e.g., the launcher thread) while the event loop runs in the main thread
+            return asyncio.run_coroutine_threadsafe(__shutdown(), loop)
 
         if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
             if not os.environ.get("SUBPROCESS_MONITOR_KEEP_RUNNING"):
                 subprocess_monitor.call_on_manager_death(
                     _shutdown,
                 )
+
+        if register_shutdown_handler:
+            register_shutdown_handler(_shutdown)
 
         if open_browser:
             threading.Thread(
@@ -327,4 +350,4 @@ class BaseServer:
                 daemon=True,
             ).start()
 
-        ins.run(loop=loop)
+        ins.run(loop=loop, shutdown_timeout=shutdown_timeout)
