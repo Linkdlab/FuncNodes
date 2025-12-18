@@ -1,0 +1,3352 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Comprehensive documentation for FuncNodes - a modular workflow automation system.">
+      
+      
+      
+        <link rel="canonical" href="https://linkdlab.github.io/FuncNodes/api/cli/">
+      
+      
+        <link rel="prev" href="../../extending/testing-modules/">
+      
+      
+        <link rel="next" href="../../faq/common-issues/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>CLI Commands - FuncNodes Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M22%2012a10%2010%200%200%201-10%2010A10%2010%200%200%201%202%2012%2010%2010%200%200%201%2012%202a10%2010%200%200%201%2010%2010M6%2013h8l-3.5%203.5%201.42%201.42L17.84%2012l-5.92-5.92L10.5%207.5%2014%2011H6z%22/%3E%3C/svg%3E');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.css">
+    
+      <link rel="stylesheet" href="../../static/css/style.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#funcnodes-cli-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="FuncNodes Documentation" class="md-header__button md-logo" aria-label="FuncNodes Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            FuncNodes Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI Commands
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Linkdlab/funcnodes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Linkdlab/funcnodes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/introduction/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../components/node/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Core Concepts
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../components/worker/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Runtime
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../experimental/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Experimental
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ui-guide/react_flow/web-ui/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  UI Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../modules/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Modules
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../extending/writing-modules/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Extending FuncNodes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../faq/common-issues/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="FuncNodes Documentation" class="md-nav__button md-logo" aria-label="FuncNodes Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    FuncNodes Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Linkdlab/funcnodes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Linkdlab/funcnodes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/introduction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/basic_usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Steps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Nodes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/node/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Nodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/inputs-outputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inputs & Outputs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/nodeinput/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Inputs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/nodeoutput/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node Outputs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph & State
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Graph & State
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/nodespace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodespace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/serialization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Serialization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries & Modules
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Libraries & Modules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/lib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library Registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/shelf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shelves
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/core-components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Components
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/worker-components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker Components
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/message-protocol/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Message Protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Runtime
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/worker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/workermanager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workermanager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/worker_config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker Config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../experimental/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experimental
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Experimental
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../experimental/standalone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standalone
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    UI Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ui-guide/react_flow/web-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web-based UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../examples/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/csv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CSV Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/cat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Image Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/titanic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plotly Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../modules/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modules
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extending FuncNodes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Extending FuncNodes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../extending/writing-modules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing Modules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../extending/react-plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    React Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../extending/testing-modules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing Modules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Commands
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Started
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CLI Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#commonoptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tasks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tasks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#runserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runserver
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="worker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#worker_new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        new worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        start worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stop worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list all worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_listen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        listen to a worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker modules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_activate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        activate worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_py" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run py in worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workermanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        workermanager
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        modules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Help
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Help
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/common-issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ & Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Started
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CLI Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#commonoptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tasks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tasks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#runserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runserver
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="worker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#worker_new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        new worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        start worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stop worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list all worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_listen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        listen to a worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        worker modules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_activate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        activate worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker_py" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run py in worker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workermanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        workermanager
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        modules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="funcnodes-cli-guide">FuncNodes CLI Guide<a class="headerlink" href="#funcnodes-cli-guide" title="Permanent link">&para;</a></h1>
+<p>The FuncNodes command-line interface (CLI) allows users to manage workflows, workers, and configurations efficiently. This guide provides an overview of available commands and usage examples.</p>
+<hr />
+<h2 id="getting-started"><strong>Getting Started</strong><a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
+<p>To check if FuncNodes is installed and accessible, run:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>funcnodes<span class="w"> </span>--version
+</span></code></pre></div>
+<p>To view all available commands:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>funcnodes<span class="w"> </span>--help
+</span></code></pre></div>
+<hr />
+<h2 id="cli-commands"><strong>CLI Commands</strong><a class="headerlink" href="#cli-commands" title="Permanent link">&para;</a></h2>
+<h3 id="commonoptions">Common Options<a class="headerlink" href="#commonoptions" title="Permanent link">&para;</a></h3>
+<p>The basic command structure for the CLI is:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span><span class="o">{</span>task<span class="o">}</span>
+</span></code></pre></div>
+<p>where {task} specifies an operation. The shared common options for all tasks are:</p>
+<div class="annotate">
+<ul>
+<li><code>--version</code> → Prints the current version of FuncNodes.</li>
+<li><code>-h, --help</code> →  Displays CLI help.</li>
+<li><code>--dir &lt;path&gt;</code> → Specifies a custom base directory where workflow data is stored (default: <code>~/.funcnodes</code>). In this directory all configurations, logs, worker data, worker environments etc. is stored. So by defining a custom path it is possible to completly seperate instances of FuncNodes.
+For development purposes we recomment setting <code>--dir .funcnodes</code> (1) which will create a respective folder in your current worspace.</li>
+<li><code>--debug</code> →  Enables debugging logs for all processes (and child processes).</li>
+<li><code>--profile</code> → Only available if FuncNodes was installed with the optional dependency <code>fundnodes[profiling]</code> Runs the task under profiling mode using <a href="https://github.com/sumerc/yappi" target="_blank">yappi</a>, generating a <em>funcnodesprofile.pstat</em> file in your current directory. This file than can be opened with different profiling views such as <a href="https://jiffyclub.github.io/snakeviz/" target="_blank">snakeviz</a></li>
+</ul>
+</div>
+<ol>
+<li>This is also what <code>--funcnodes-module demoworker</code> does.</li>
+</ol>
+<h3 id="tasks">Tasks<a class="headerlink" href="#tasks" title="Permanent link">&para;</a></h3>
+<p>The <code>funcnodes</code> command expects a specific task, which can be one of the following:</p>
+<ul>
+<li>runserver → Runs the <a href="../../ui-guide/react_flow/web-ui/">browser interface</a> with various <a href="#runserver">options</a></li>
+<li>standalone → Opens a single <code>.fnw</code> file with a dedicated worker (<a href="../../experimental/standalone/">experimental</a>)</li>
+<li>worker → Allows running and management of a <a href="../../components/worker/">Worker</a>(<a href="#worker">options</a>)</li>
+<li>startworkermanager → Starts the <a href="../../components/workermanager/">Workermanager</a>(<a href="#workermanager">options</a>)</li>
+<li>modules → Gives access to the installed FuncNodes modules (<a href="#modules">options</a>)</li>
+</ul>
+<h4 id="runserver">runserver<a class="headerlink" href="#runserver" title="Permanent link">&para;</a></h4>
+<p>To start the <a href="../../ui-guide/react_flow/web-ui/">FuncNodes web UI</a>, use:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>runserver<span class="w"> </span><span class="o">[</span>server_options<span class="o">]</span>
+</span></code></pre></div>
+<p>This will run a simple server that serves all the static static files necessary to use Funcnodes in the browser. By default the server runs on <code>localhost:8000</code> and a corresponding browser window is opened autoamtically. To interact with the <a href="../../components/worker/">Workers</a> the server tries to find a running instance of a <a href="../../components/workermanager/">Workermanager</a> under <code>localhost:9380</code> and if it cannot find a running instance it will spawn a new one.
+Optional argument to the command are:</p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--host</td>
+<td>The host adress of the server, defaults to the <a href="../../components/config/">config</a>["frontend"]["host"] (default:localhost)</td>
+</tr>
+<tr>
+<td>--port</td>
+<td>The port of the server, defaults to the <a href="../../components/config/">config</a>["frontend"]["port"] (default:8000)</td>
+</tr>
+<tr>
+<td>--no-browser</td>
+<td>If present, does not open a browser window</td>
+</tr>
+<tr>
+<td>--no-manager</td>
+<td>The server does not automatically spawns a <a href="../../components/workermanager/">Workermanager</a></td>
+</tr>
+<tr>
+<td><nobr>--worker_manager_host </nobr></td>
+<td>The host adress of the <a href="../../components/workermanager/">Workermanager</a> the server tries to rach or under which a new one will be spawned, defaults to the <a href="../../components/config/">config</a>["worker_manager"]["host"] (default:localhost)</td>
+</tr>
+<tr>
+<td><nobr>--worker_manager_port</nobr></td>
+<td>The port of the <a href="../../components/workermanager/">Workermanager</a> the server tries to rach or under which a new one will be spawned, defaults to the <a href="../../components/config/">config</a>["worker_manager"]["port"] (default:9380)</td>
+</tr>
+<tr>
+<td>--frontend</td>
+<td>Which frontend to use in the UI (currently only <a href="../../ui-guide/react_flow/web-ui/"><code>react_flow</code></a> is supported)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="worker">worker<a class="headerlink" href="#worker" title="Permanent link">&para;</a></h4>
+<p>The task command <code>worker</code> allows to create, start, stop and interact with the <a href="../../components/worker/">Worker</a> instances of FuncNodes. The command is build up as:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>worker<span class="w"> </span><span class="o">[</span>worker_options<span class="o">]</span><span class="w"> </span>workertask
+</span></code></pre></div>
+<p>where the worker_options are mainy to define which worker to acess:</p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--uuid</td>
+<td>The unique id of the Worker, for a new worker it will be created automatically</td>
+</tr>
+<tr>
+<td>--name</td>
+<td>The (non-unique) name of the Worker, for a new worker it defaults to the uuid but can be changed later</td>
+</tr>
+</tbody>
+</table>
+<p>To interact with an existing Worker either <code>--uuid</code> or <code>--name</code> have to be present. If only name is given the first worker with the given name will be picked (as it is not unqiue). For new Workers a if no <code>--uuid</code> is given, it will be created automatically and if <code>--name</code> is not set, it will be the <code>uuid</code> by default.</p>
+<p>The command then requires a worker specific task:</p>
+<ul>
+<li><a href="#worker_new">new</a> → Creates a new Worker</li>
+<li><a href="#worker_start">start</a> → Runs the existing worker</li>
+<li><a href="#worker_stop">stop</a> → Stops the existing, running worker</li>
+<li><a href="#worker_modules">modules</a> → Runs the <code>funcnodes module</code> command in the Worker env</li>
+<li><a href="#worker_list">list</a> → List all existing workers</li>
+<li><a href="#worker_listen">listen</a> → Listens to the output of an existing worker</li>
+<li><a href="#worker_activate">activate</a> → Activates the environment of an existing worker (if present)</li>
+<li><a href="#worker_py">py</a> → Runs the Python instance of the respective worker</li>
+</ul>
+<h5 id="worker_new">new worker<a class="headerlink" href="#worker_new" title="Permanent link">&para;</a></h5>
+<p>To create a new worker via the CLI the basic command is:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>worker<span class="w"> </span><span class="o">[</span>worker_options<span class="o">]</span><span class="w"> </span>new<span class="w"> </span><span class="o">[</span>new_worker_options<span class="o">]</span>
+</span></code></pre></div>
+<p>This command creates a new worker in your current <code>&lt;funcnodes directory&gt;/worker</code> defined via the <a href="#commonoptions">common_options</a> (default <code>~/.funcnodes/worker</code>). If the uuid and name are not set in the <a href="#worker">worker_options</a> they will be created automatically.</p>
+<p>The worker can be created with a bunch of creation options via <code>[new_worker_options]</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--create-only</td>
+<td>By default a newly created worker will automatically start. By setting this flag it will only be created and not started</td>
+</tr>
+<tr>
+<td>--not-in-venv</td>
+<td>By default new workers will also create their own virtual environment in there respective path. By setting this flag the worker will be initiated with the current python interpreter (and always use this interpreter even if started from another environment)</td>
+</tr>
+<tr>
+<td><nobr>(--workertype)</nobr></td>
+<td>Defines the workertype (this feature is under development and should not be used currently)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition info">
+<p class="admonition-title">--not-in-venv</p>
+<p>The <code>--not-in-venv</code>-flag should be used carefully, since workers can automatically install packages in their environment, which is why it creates a new one by default.</p>
+<p>But the --not-in-venv command commes especially handy during the development of new node packages which should be tested within a worker while it is only locally available.</p>
+<p>This behaviour is also used by the <code>--funcnodes-module demoworker</code> command.</p>
+</div>
+<h5 id="worker_start">start worker<a class="headerlink" href="#worker_start" title="Permanent link">&para;</a></h5>
+<p>To start an existing worker via the cli simlpy run</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>worker<span class="w"> </span>--uuid<span class="p">|</span>--name<span class="w"> </span>start
+</span></code></pre></div>
+<p>This will continously run the respective worker until stopped.</p>
+<div class="admonition important">
+<p class="admonition-title">A Worker can only run one instance at a time</p>
+<p>The workers are running their node based programm continously. Since they have a fixed state at a given time it is not possible to run a single worker on the same machine (to be more exact with the same base folder) multiple times in paralell. As such if you try to run a worker at it is already running it will automatically stop imediatly.</p>
+<p>If you want to start a worker and it is not working because it says it is already running, you can either try stopping it with the <a href="#worker_stop">stop worker</a> command, or go into the worker directory <code>&lt;funcnodes directory&gt;/worker</code> and check for the <code>worker_&lt;uuid&gt;.p</code> file. This file contains the pid for the Worker  which can be used to kill it, or you can try to delet the file.<br>
+Note: If the file is deleted, but the worker is still running, it will be recreated.</p>
+</div>
+<h5 id="worker_stop">stop worker<a class="headerlink" href="#worker_stop" title="Permanent link">&para;</a></h5>
+<p>To stop a running worker via the cli simlpy run</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>worker<span class="w"> </span>--uuid<span class="p">|</span>--name<span class="w"> </span>stop
+</span></code></pre></div>
+<h5 id="worker_list">list all worker<a class="headerlink" href="#worker_list" title="Permanent link">&para;</a></h5>
+<p>To get a list of all workers the <code>list</code> worker task can be utilized:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>worker<span class="w"> </span>list<span class="w"> </span><span class="o">[</span>--full<span class="o">]</span>
+</span></code></pre></div>
+<p>e.g.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w"> </span>worker<span class="w"> </span>list
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>15e84e74d25446cdafc9339e8a437e73<span class="w">        </span>myworker
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>0a60b90c55e24a448b6714fce3d08aed<span class="w">        </span><span class="nb">test</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>c52079f077f94929908bbc9013941a08<span class="w">        </span>dummy
+</span></code></pre></div>
+<p>Without the <code>--full</code> option this command will print a list of all existing workers in the form of:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>&lt;uuid&gt;<span class="se">\t</span>&lt;name&gt;
+</span></code></pre></div>
+<p>if the <code>--full</code> option is set the output will print all configuration dictionaries of the existing Workers (see:
+<a href="../../components/worker_config/">Worker config</a>
+)</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w"> </span>worker<span class="w"> </span>list<span class="w"> </span>--full
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="o">[{</span><span class="s1">&#39;data_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_myworker&#39;</span>,
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="s1">&#39;env_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_myworker/.venv&#39;</span>,
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="s1">&#39;host&#39;</span>:<span class="w"> </span><span class="s1">&#39;localhost&#39;</span>,
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="s1">&#39;name&#39;</span>:<span class="w"> </span><span class="s1">&#39;myworker&#39;</span>,
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="s1">&#39;package_dependencies&#39;</span>:<span class="w"> </span><span class="o">{}</span>,
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">  </span><span class="s1">&#39;pid&#39;</span>:<span class="w"> </span><span class="m">39692</span>,
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span><span class="s1">&#39;port&#39;</span>:<span class="w"> </span><span class="m">9382</span>,
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="s1">&#39;python_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_myworker/.venv/Scripts/python.exe&#39;</span>,
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">  </span><span class="s1">&#39;ssl&#39;</span>:<span class="w"> </span>False,
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">  </span><span class="s1">&#39;type&#39;</span>:<span class="w"> </span><span class="s1">&#39;WSWorker&#39;</span>,
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">  </span><span class="s1">&#39;update_on_startup&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;funcnodes&#39;</span>:<span class="w"> </span>True<span class="o">}</span>,
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span><span class="s1">&#39;uuid&#39;</span>:<span class="w"> </span><span class="s1">&#39;myworker&#39;</span>,
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">  </span><span class="s1">&#39;worker_dependencies&#39;</span>:<span class="w"> </span><span class="o">{}}</span>,
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w"> </span><span class="o">{</span><span class="s1">&#39;data_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_0a60b90c55e24a448b6714fce3d08aed&#39;</span>,
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="w">  </span><span class="s1">&#39;env_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_0a60b90c55e24a448b6714fce3d08aed/.venv&#39;</span>,
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">  </span><span class="s1">&#39;host&#39;</span>:<span class="w"> </span><span class="s1">&#39;localhost&#39;</span>,
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">  </span><span class="s1">&#39;name&#39;</span>:<span class="w"> </span><span class="s1">&#39;test&#39;</span>,
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="w">  </span><span class="s1">&#39;package_dependencies&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;funcnodes-basic&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-basic&#39;</span>,
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="w">                                               </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;&gt;=0.2.1&#39;</span><span class="o">}</span>,
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-files&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-files&#39;</span>,
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="w">                                               </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;0.2.7&#39;</span><span class="o">}</span>,
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-images&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-images&#39;</span>,
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="w">                                                </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;0.2.2&#39;</span><span class="o">}</span>,
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-numpy&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-numpy&#39;</span>,
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="w">                                               </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;0.2.9&#39;</span><span class="o">}</span>,
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-opencv&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-opencv&#39;</span>,
+</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="w">                                                </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;0.2.2&#39;</span><span class="o">}</span>,
+</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-storage&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-storage&#39;</span>,
+</span><span id="__span-11-30"><a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="w">                                                 </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;0.1.0&#39;</span><span class="o">}}</span>,
+</span><span id="__span-11-31"><a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="w">  </span><span class="s1">&#39;pid&#39;</span>:<span class="w"> </span><span class="m">31112</span>,
+</span><span id="__span-11-32"><a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a><span class="w">  </span><span class="s1">&#39;port&#39;</span>:<span class="w"> </span><span class="m">9383</span>,
+</span><span id="__span-11-33"><a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="w">  </span><span class="s1">&#39;python_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_0a60b90c55e24a448b6714fce3d08aed/.venv/Scripts/python.exe&#39;</span>,
+</span><span id="__span-11-34"><a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a><span class="w">  </span><span class="s1">&#39;ssl&#39;</span>:<span class="w"> </span>False,
+</span><span id="__span-11-35"><a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a><span class="w">  </span><span class="s1">&#39;type&#39;</span>:<span class="w"> </span><span class="s1">&#39;WSWorker&#39;</span>,
+</span><span id="__span-11-36"><a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="w">  </span><span class="s1">&#39;update_on_startup&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;funcnodes&#39;</span>:<span class="w"> </span>True<span class="o">}</span>,
+</span><span id="__span-11-37"><a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a><span class="w">  </span><span class="s1">&#39;uuid&#39;</span>:<span class="w"> </span><span class="s1">&#39;0a60b90c55e24a448b6714fce3d08aed&#39;</span>,
+</span><span id="__span-11-38"><a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a><span class="w">  </span><span class="s1">&#39;worker_dependencies&#39;</span>:<span class="w"> </span><span class="o">{}}</span>,
+</span><span id="__span-11-39"><a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a><span class="w"> </span><span class="o">{</span><span class="s1">&#39;data_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_15e84e74d25446cdafc9339e8a437e73&#39;</span>,
+</span><span id="__span-11-40"><a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a><span class="w">  </span><span class="s1">&#39;env_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_15e84e74d25446cdafc9339e8a437e73/.venv&#39;</span>,
+</span><span id="__span-11-41"><a id="__codelineno-11-41" name="__codelineno-11-41" href="#__codelineno-11-41"></a><span class="w">  </span><span class="s1">&#39;host&#39;</span>:<span class="w"> </span><span class="s1">&#39;localhost&#39;</span>,
+</span><span id="__span-11-42"><a id="__codelineno-11-42" name="__codelineno-11-42" href="#__codelineno-11-42"></a><span class="w">  </span><span class="s1">&#39;name&#39;</span>:<span class="w"> </span><span class="s1">&#39;dummy2&#39;</span>,
+</span><span id="__span-11-43"><a id="__codelineno-11-43" name="__codelineno-11-43" href="#__codelineno-11-43"></a><span class="w">  </span><span class="s1">&#39;package_dependencies&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;funcnodes-files&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-files&#39;</span>,
+</span><span id="__span-11-44"><a id="__codelineno-11-44" name="__codelineno-11-44" href="#__codelineno-11-44"></a><span class="w">                                               </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;0.2.7&#39;</span><span class="o">}</span>,
+</span><span id="__span-11-45"><a id="__codelineno-11-45" name="__codelineno-11-45" href="#__codelineno-11-45"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-opencv&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-opencv&#39;</span>,
+</span><span id="__span-11-46"><a id="__codelineno-11-46" name="__codelineno-11-46" href="#__codelineno-11-46"></a><span class="w">                                                </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;0.2.2&#39;</span><span class="o">}}</span>,
+</span><span id="__span-11-47"><a id="__codelineno-11-47" name="__codelineno-11-47" href="#__codelineno-11-47"></a><span class="w">  </span><span class="s1">&#39;pid&#39;</span>:<span class="w"> </span><span class="m">18300</span>,
+</span><span id="__span-11-48"><a id="__codelineno-11-48" name="__codelineno-11-48" href="#__codelineno-11-48"></a><span class="w">  </span><span class="s1">&#39;port&#39;</span>:<span class="w"> </span><span class="m">9383</span>,
+</span><span id="__span-11-49"><a id="__codelineno-11-49" name="__codelineno-11-49" href="#__codelineno-11-49"></a><span class="w">  </span><span class="s1">&#39;python_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_15e84e74d25446cdafc9339e8a437e73/.venv/Scripts/python.exe&#39;</span>,
+</span><span id="__span-11-50"><a id="__codelineno-11-50" name="__codelineno-11-50" href="#__codelineno-11-50"></a><span class="w">  </span><span class="s1">&#39;ssl&#39;</span>:<span class="w"> </span>False,
+</span><span id="__span-11-51"><a id="__codelineno-11-51" name="__codelineno-11-51" href="#__codelineno-11-51"></a><span class="w">  </span><span class="s1">&#39;type&#39;</span>:<span class="w"> </span><span class="s1">&#39;WSWorker&#39;</span>,
+</span><span id="__span-11-52"><a id="__codelineno-11-52" name="__codelineno-11-52" href="#__codelineno-11-52"></a><span class="w">  </span><span class="s1">&#39;update_on_startup&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;funcnodes&#39;</span>:<span class="w"> </span>True<span class="o">}</span>,
+</span><span id="__span-11-53"><a id="__codelineno-11-53" name="__codelineno-11-53" href="#__codelineno-11-53"></a><span class="w">  </span><span class="s1">&#39;uuid&#39;</span>:<span class="w"> </span><span class="s1">&#39;15e84e74d25446cdafc9339e8a437e73&#39;</span>,
+</span><span id="__span-11-54"><a id="__codelineno-11-54" name="__codelineno-11-54" href="#__codelineno-11-54"></a><span class="w">  </span><span class="s1">&#39;worker_dependencies&#39;</span>:<span class="w"> </span><span class="o">{}}</span>,
+</span><span id="__span-11-55"><a id="__codelineno-11-55" name="__codelineno-11-55" href="#__codelineno-11-55"></a><span class="w"> </span><span class="o">{</span><span class="s1">&#39;data_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_c52079f077f94929908bbc9013941a08&#39;</span>,
+</span><span id="__span-11-56"><a id="__codelineno-11-56" name="__codelineno-11-56" href="#__codelineno-11-56"></a><span class="w">  </span><span class="s1">&#39;env_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_c52079f077f94929908bbc9013941a08/.venv&#39;</span>,
+</span><span id="__span-11-57"><a id="__codelineno-11-57" name="__codelineno-11-57" href="#__codelineno-11-57"></a><span class="w">  </span><span class="s1">&#39;host&#39;</span>:<span class="w"> </span><span class="s1">&#39;localhost&#39;</span>,
+</span><span id="__span-11-58"><a id="__codelineno-11-58" name="__codelineno-11-58" href="#__codelineno-11-58"></a><span class="w">  </span><span class="s1">&#39;name&#39;</span>:<span class="w"> </span><span class="s1">&#39;dummy&#39;</span>,
+</span><span id="__span-11-59"><a id="__codelineno-11-59" name="__codelineno-11-59" href="#__codelineno-11-59"></a><span class="w">  </span><span class="s1">&#39;package_dependencies&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;funcnodes-basic&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-basic&#39;</span>,
+</span><span id="__span-11-60"><a id="__codelineno-11-60" name="__codelineno-11-60" href="#__codelineno-11-60"></a><span class="w">                                               </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span>None<span class="o">}</span>,
+</span><span id="__span-11-61"><a id="__codelineno-11-61" name="__codelineno-11-61" href="#__codelineno-11-61"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-files&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-files&#39;</span>,
+</span><span id="__span-11-62"><a id="__codelineno-11-62" name="__codelineno-11-62" href="#__codelineno-11-62"></a><span class="w">                                               </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span>None<span class="o">}</span>,
+</span><span id="__span-11-63"><a id="__codelineno-11-63" name="__codelineno-11-63" href="#__codelineno-11-63"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-hplc&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-hplc&#39;</span>,
+</span><span id="__span-11-64"><a id="__codelineno-11-64" name="__codelineno-11-64" href="#__codelineno-11-64"></a><span class="w">                                              </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span>None<span class="o">}</span>,
+</span><span id="__span-11-65"><a id="__codelineno-11-65" name="__codelineno-11-65" href="#__codelineno-11-65"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-opencv&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-opencv&#39;</span>,
+</span><span id="__span-11-66"><a id="__codelineno-11-66" name="__codelineno-11-66" href="#__codelineno-11-66"></a><span class="w">                                                </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span><span class="s1">&#39;0.2.2&#39;</span><span class="o">}</span>,
+</span><span id="__span-11-67"><a id="__codelineno-11-67" name="__codelineno-11-67" href="#__codelineno-11-67"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-pandas&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-pandas&#39;</span>,
+</span><span id="__span-11-68"><a id="__codelineno-11-68" name="__codelineno-11-68" href="#__codelineno-11-68"></a><span class="w">                                                </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span>None<span class="o">}</span>,
+</span><span id="__span-11-69"><a id="__codelineno-11-69" name="__codelineno-11-69" href="#__codelineno-11-69"></a><span class="w">                           </span><span class="s1">&#39;funcnodes-plotly&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;package&#39;</span>:<span class="w"> </span><span class="s1">&#39;funcnodes-plotly&#39;</span>,
+</span><span id="__span-11-70"><a id="__codelineno-11-70" name="__codelineno-11-70" href="#__codelineno-11-70"></a><span class="w">                                                </span><span class="s1">&#39;version&#39;</span>:<span class="w"> </span>None<span class="o">}}</span>,
+</span><span id="__span-11-71"><a id="__codelineno-11-71" name="__codelineno-11-71" href="#__codelineno-11-71"></a><span class="w">  </span><span class="s1">&#39;pid&#39;</span>:<span class="w"> </span><span class="m">10568</span>,
+</span><span id="__span-11-72"><a id="__codelineno-11-72" name="__codelineno-11-72" href="#__codelineno-11-72"></a><span class="w">  </span><span class="s1">&#39;port&#39;</span>:<span class="w"> </span><span class="m">9382</span>,
+</span><span id="__span-11-73"><a id="__codelineno-11-73" name="__codelineno-11-73" href="#__codelineno-11-73"></a><span class="w">  </span><span class="s1">&#39;python_path&#39;</span>:<span class="w"> </span><span class="s1">&#39;~/.funcnodes/workers/worker_c52079f077f94929908bbc9013941a08/.venv/Scripts/python.exe&#39;</span>,
+</span><span id="__span-11-74"><a id="__codelineno-11-74" name="__codelineno-11-74" href="#__codelineno-11-74"></a><span class="w">  </span><span class="s1">&#39;ssl&#39;</span>:<span class="w"> </span>False,
+</span><span id="__span-11-75"><a id="__codelineno-11-75" name="__codelineno-11-75" href="#__codelineno-11-75"></a><span class="w">  </span><span class="s1">&#39;type&#39;</span>:<span class="w"> </span><span class="s1">&#39;WSWorker&#39;</span>,
+</span><span id="__span-11-76"><a id="__codelineno-11-76" name="__codelineno-11-76" href="#__codelineno-11-76"></a><span class="w">  </span><span class="s1">&#39;update_on_startup&#39;</span>:<span class="w"> </span><span class="o">{</span><span class="s1">&#39;funcnodes&#39;</span>:<span class="w"> </span>True<span class="o">}</span>,
+</span><span id="__span-11-77"><a id="__codelineno-11-77" name="__codelineno-11-77" href="#__codelineno-11-77"></a><span class="w">  </span><span class="s1">&#39;uuid&#39;</span>:<span class="w"> </span><span class="s1">&#39;c52079f077f94929908bbc9013941a08&#39;</span>,
+</span><span id="__span-11-78"><a id="__codelineno-11-78" name="__codelineno-11-78" href="#__codelineno-11-78"></a><span class="w">  </span><span class="s1">&#39;worker_dependencies&#39;</span>:<span class="w"> </span><span class="o">{}}]</span>
+</span></code></pre></div>
+<h5 id="worker_listen">listen to a worker<a class="headerlink" href="#worker_listen" title="Permanent link">&para;</a></h5>
+<p>The CLI provides the option to listen to a worker. It basically continously prints the log of the worker to the current output until the command is terminated. It always prints the current full log data of the worker, so it will also work with workers that are not running, in which case it will simply print the histroical logs, without any new output until the worker starts.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>worker<span class="w"> </span>--uuid<span class="p">|</span>--name<span class="w"> </span>listen
+</span></code></pre></div>
+<p>e.g.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w"> </span>worker<span class="w"> </span>--name<span class="w"> </span>dummy<span class="w"> </span>listen
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="m">2025</span>-01-30<span class="w"> </span><span class="m">13</span>:30:03,491<span class="w"> </span>-<span class="w"> </span>funcnodes.c52079f077f94929908bbc9013941a08<span class="w"> </span>-<span class="w"> </span>INFO<span class="w"> </span>-<span class="w"> </span>Starting<span class="w"> </span>worker<span class="w"> </span>forever
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="m">2025</span>-01-30<span class="w"> </span><span class="m">13</span>:30:09,273<span class="w"> </span>-<span class="w"> </span>funcnodes.c52079f077f94929908bbc9013941a08<span class="w"> </span>-<span class="w"> </span>INFO<span class="w"> </span>-<span class="w"> </span>Setup<span class="w"> </span>loop<span class="w"> </span>manager<span class="w"> </span>to<span class="w"> </span>run
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="m">2025</span>-01-30<span class="w"> </span><span class="m">13</span>:30:09,273<span class="w"> </span>-<span class="w"> </span>funcnodes.c52079f077f94929908bbc9013941a08<span class="w"> </span>-<span class="w"> </span>INFO<span class="w"> </span>-<span class="w"> </span>Starting<span class="w"> </span>loop<span class="w"> </span>manager
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="m">2025</span>-01-30<span class="w"> </span><span class="m">13</span>:30:09,392<span class="w"> </span>-<span class="w"> </span>funcnodes.c52079f077f94929908bbc9013941a08<span class="w"> </span>-<span class="w"> </span>INFO<span class="w"> </span>-<span class="w"> </span>WebSocket<span class="w"> </span>server<span class="w"> </span>running<span class="w"> </span>on<span class="w"> </span>localhost:9382
+</span></code></pre></div>
+<h5 id="worker_modules">worker modules<a class="headerlink" href="#worker_modules" title="Permanent link">&para;</a></h5>
+<p>This command allows to run the <a href="#modules">funcnodes module</a> command within the worker environment</p>
+<p>e.g.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>worker<span class="w"> </span>--uuid<span class="p">|</span>--name<span class="w"> </span>modules<span class="w"> </span>list
+</span></code></pre></div>
+<h5 id="worker_activate">activate worker<a class="headerlink" href="#worker_activate" title="Permanent link">&para;</a></h5>
+<p>By default each worker has its own virtual environment to make the installed modules independed for each worker.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>worker<span class="w"> </span>--uuid<span class="p">|</span>--name<span class="w"> </span>activate
+</span></code></pre></div>
+<p>gives a convinient way of directly entering the virtual environment (mainly for debugging purposes or if a package has to be installed manually via the terminal)</p>
+<p>e.g.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w"> </span>worker<span class="w"> </span>--name<span class="w"> </span>dummy<span class="w"> </span>activate
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="o">(</span>worker_c52079f077f94929908bbc9013941a08<span class="o">)</span>&gt;&gt;█
+</span></code></pre></div>
+<h5 id="worker_py">run py in worker<a class="headerlink" href="#worker_py" title="Permanent link">&para;</a></h5>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w">  </span>worker<span class="w"> </span>--uuid<span class="p">|</span>--name<span class="w"> </span>py<span class="w"> </span><span class="o">[</span>python_args<span class="o">]</span>
+</span></code></pre></div>
+<p>This worker task is short for</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w">  </span>worker<span class="w"> </span>--uuid<span class="p">|</span>--name<span class="w"> </span>activate
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="o">(</span>env<span class="o">)</span>&gt;&gt;<span class="w"> </span>python<span class="w"> </span><span class="o">[</span>python_args<span class="o">]</span>
+</span></code></pre></div>
+<p>and can be used to directly execute python scripts or task with the python interpreter of the worker</p>
+<p>e.g.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w"> </span>worker<span class="w"> </span>--name<span class="w"> </span>dummy<span class="w"> </span>py<span class="w"> </span>--<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;print(\&quot;hello\&quot;)&quot;</span><span class="w"> </span><span class="c1"># (1)!</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>hello
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w"> </span>worker<span class="w"> </span>--name<span class="w"> </span>dummy<span class="w"> </span>py<span class="w"> </span>--<span class="w"> </span>--version
+</span></code></pre></div>
+<ol>
+<li>If arguments have to be passed to the python directly command they must be seperated via -- from the main command and string quotations need to be properly escaped.</li>
+</ol>
+<p>or:
+with a local srypt <code>myscript.py</code></p>
+<div class="language-py highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># myscript.py</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>&gt;&gt;<span class="w"> </span>funcnodes<span class="w"> </span>worker<span class="w"> </span>--name<span class="w"> </span>dummy<span class="w"> </span>py<span class="w"> </span>myscript.py<span class="w">  </span>--innerarg
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="o">[</span><span class="s1">&#39;myscript.py&#39;</span>,<span class="w"> </span><span class="s1">&#39;--innerarg&#39;</span><span class="o">]</span>
+</span></code></pre></div>
+<h4 id="workermanager">workermanager<a class="headerlink" href="#workermanager" title="Permanent link">&para;</a></h4>
+<p>To start a <a href="../../components/workermanager/">Workermanager</a> via the cli you can run</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>startworkermanager<span class="w"> </span><span class="o">[</span>workermanager_options<span class="o">]</span>
+</span></code></pre></div>
+<p>The optional arguments for this command are:</p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--host</td>
+<td>The host of the Workermanager, defaults to the <a href="../../components/config/">config</a>["worker_manager"]["host"] (default:localhost)</td>
+</tr>
+<tr>
+<td>--port</td>
+<td>The port of the Workermanager, defaults to the <a href="../../components/config/">config</a>["worker_manager"]["port"] (default:9380)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="modules">modules<a class="headerlink" href="#modules" title="Permanent link">&para;</a></h4>
+<p>Funcnodes has a way of automatically detecting available Nodes in the current environment.</p>
+<p>The nodes have to be packed in a common <a href="../../modules/">NodeModule</a>.</p>
+<p>To list all Modules in the current environment run:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>funcnodes<span class="w"> </span><span class="o">[</span>common_options<span class="o">]</span><span class="w"> </span>modules<span class="w"> </span>list
+</span></code></pre></div>
+<p>the output will be an indent list of the installed funcnodes modules:
+in the form of:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>funcnodes_basic:
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="w">        </span>InstalledModule<span class="o">(</span><span class="nv">name</span><span class="o">=</span>funcnodes_basic,<span class="w"> </span><span class="nv">description</span><span class="o">=</span>Basic<span class="w"> </span>functionalities<span class="w"> </span><span class="k">for</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">                </span>funcnodes,<span class="w"> </span><span class="nv">entry_points</span><span class="o">=[</span><span class="s1">&#39;module&#39;</span>,<span class="w"> </span><span class="s1">&#39;shelf&#39;</span><span class="o">]</span>,<span class="w"> </span><span class="nv">version</span><span class="o">=</span><span class="m">0</span>.2.1,<span class="w"> </span><span class="nv">react_plugin</span><span class="o">=</span>False,
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">                </span><span class="nv">render_options</span><span class="o">=</span>False<span class="o">)</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../extending/testing-modules/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Testing Modules">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Testing Modules
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../faq/common-issues/" class="md-footer__link md-footer__link--next" aria-label="Next: FAQ &amp; Troubleshooting">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                FAQ & Troubleshooting
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.es.js" type="module"></script>
+      
+        <script src="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.es.js" type="module"></script>
+      
+        <script src="../../static/js/basic_funcnodes_pyodide.js"></script>
+      
+    
+  </body>
+</html>
