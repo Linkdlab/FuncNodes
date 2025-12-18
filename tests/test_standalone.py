@@ -220,9 +220,12 @@ def test_standalone_launcher_reuses_worker_with_custom_config_dir(fnw_path: Path
         assert launcher2.started_worker is False
     finally:
         time.sleep(2)
-        launcher.shutdown()
-        if runthread.is_alive():
-            runthread.join()
+        try:
+            launcher.shutdown()
+            if runthread.is_alive():
+                runthread.join()
+        except Exception:
+            pass
 
 
 def test_standalone_launcher_reuses_running_worker(fnw_path: Path):
@@ -267,16 +270,23 @@ def test_standalone_launcher_reuses_running_worker(fnw_path: Path):
 
     finally:
         time.sleep(2)
-        if launcher:
-            launcher.shutdown()
-        if launcher2:
-            launcher2.shutdown()
-        if runthread:
-            if runthread.is_alive():
-                runthread.join()
-        if runthread2:
-            if runthread2.is_alive():
-                runthread2.join()
+        try:
+            if launcher:
+                launcher.shutdown()
+            if runthread:
+                if runthread.is_alive():
+                    runthread.join()
+        except Exception:
+            pass
+
+        try:
+            if launcher2:
+                launcher2.shutdown()
+            if runthread2:
+                if runthread2.is_alive():
+                    runthread2.join()
+        except Exception:
+            pass
 
 
 def test_standalone_launcher_starts_worker_and_imports_fnw(fnw_path: Path):
@@ -312,6 +322,9 @@ def test_standalone_launcher_starts_worker_and_imports_fnw(fnw_path: Path):
         )
         assert extracted.read_bytes() == b"hello"
     finally:
-        launcher.shutdown()
-        if runthread.is_alive():
-            runthread.join()
+        try:
+            launcher.shutdown()
+            if runthread.is_alive():
+                runthread.join()
+        except Exception:
+            pass
