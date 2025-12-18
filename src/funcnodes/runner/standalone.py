@@ -108,6 +108,7 @@ class StandaloneLauncher:
         open_browser: bool = True,
         debug: bool = False,
         on_worker_shutdown: Optional[Callable[[], None]] = None,
+        in_venv=True,
     ) -> None:
         self.fnw_path = Path(fnw_path).expanduser().resolve()
         self.host = host
@@ -125,6 +126,7 @@ class StandaloneLauncher:
         self.worker_uuid = compute_worker_uuid(self.fnw_path)
         self.started_worker = False
         self._ensured = False
+        self.in_venv = in_venv
 
     def _ensure_config_dir(self) -> None:
         import funcnodes_core as fn_core
@@ -184,22 +186,40 @@ class StandaloneLauncher:
         return self.worker_port
 
     def _start_worker(self) -> None:
-        from funcnodes.__main__ import _get_worker_conf
+        from funcnodes.__main__ import _get_worker_conf, start_new_worker
         from funcnodes.worker.worker_manager import start_worker
 
-        worker_config = _get_worker_conf(
-            uuid=self.worker_uuid,
-            name=self.fnw_path.stem,
-            workertype="WSWorker",
-            debug=self.debug,
-        )
+        try:
+            worker_config = _get_worker_conf(
+                uuid=self.worker_uuid,
+                name=self.fnw_path.stem,
+                workertype="WSWorker",
+                debug=self.debug,
+            )
+        except Exception:
+            start_new_worker(
+                uuid=self.worker_uuid,
+                name=self.fnw_path.stem,
+                workertype="WSWorker",
+                in_venv=self.in_venv,
+                create_only=True,
+                host=self.host,
+                port=self.worker_port,
+            )
+            worker_config = _get_worker_conf(
+                uuid=self.worker_uuid,
+                name=self.fnw_path.stem,
+                workertype="WSWorker",
+                debug=self.debug,
+            )
+
         start_worker(worker_config)
         logger.info(f"Worker started with {worker_config}")
         self.worker_port = worker_config["port"]
 
         self.started_worker = True
 
-    def _import_fnw(self, *, timeout_s: float = 60.0) -> None:
+    def _import_fnw(self) -> None:
         from funcnodes.__main__ import worker_command_task
         import base64
 

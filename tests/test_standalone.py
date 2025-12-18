@@ -1,8 +1,10 @@
 import json
 import os
 import socket
+import threading
 import zipfile
 from pathlib import Path
+import time
 
 import pytest
 
@@ -198,9 +200,12 @@ def test_standalone_launcher_reuses_worker_with_custom_config_dir(fnw_path: Path
         config_dir=custom_config_dir,
         host="127.0.0.1",
         open_browser=False,
+        in_venv=False,
     )
+    runthread = threading.Thread(target=launcher.run_forever, daemon=True)
     try:
         port = launcher.ensure_worker(import_fnw=True)
+        runthread.start()
         assert launcher.started_worker is True
 
         launcher2 = StandaloneLauncher(
@@ -214,63 +219,89 @@ def test_standalone_launcher_reuses_worker_with_custom_config_dir(fnw_path: Path
         assert port2 == port
         assert launcher2.started_worker is False
     finally:
+        time.sleep(2)
         launcher.shutdown()
+        if runthread.is_alive():
+            runthread.join()
 
 
 def test_standalone_launcher_reuses_running_worker(fnw_path: Path):
     from funcnodes.runner.standalone import (
         StandaloneLauncher,
-        compute_worker_uuid,
         compute_fnw_config_dir,
     )
 
     workers_dir = compute_fnw_config_dir(fnw_path) / "workers"
     workers_dir.mkdir(parents=True, exist_ok=True)
 
-    worker_uuid = compute_worker_uuid(fnw_path)
+    launcher = None
+    runthread = None
+    launcher2 = None
+    runthread2 = None
+    try:
+        launcher = StandaloneLauncher(
+            fnw_path=fnw_path,
+            host="127.0.0.1",
+            open_browser=False,
+            in_venv=False,
+        )
+
+        resolved_port = launcher.ensure_worker(import_fnw=True)
+        runthread = threading.Thread(target=launcher.run_forever, daemon=True)
+        runthread.start()
+
+        assert launcher.worker_port == resolved_port
+        assert launcher.started_worker is True
+
+        launcher2 = StandaloneLauncher(
+            fnw_path=fnw_path,
+            host="127.0.0.1",
+            open_browser=False,
+        )
+
+        launcher2.ensure_worker(import_fnw=True)
+        runthread2 = threading.Thread(target=launcher2.run_forever, daemon=True)
+        runthread2.start()
+        assert launcher2.worker_port == resolved_port
+        assert launcher2.started_worker is False
+
+    finally:
+        time.sleep(2)
+        if launcher:
+            launcher.shutdown()
+        if launcher2:
+            launcher2.shutdown()
+        if runthread:
+            if runthread.is_alive():
+                runthread.join()
+        if runthread2:
+            if runthread2.is_alive():
+                runthread2.join()
+
+
+def test_standalone_launcher_starts_worker_and_imports_fnw(fnw_path: Path):
+    from funcnodes.runner.standalone import StandaloneLauncher, compute_fnw_config_dir
 
     launcher = StandaloneLauncher(
         fnw_path=fnw_path,
         host="127.0.0.1",
         open_browser=False,
+        in_venv=False,
     )
-
-    resolved_port = launcher.ensure_worker(import_fnw=True)
-
-    assert launcher.worker_port == resolved_port
-    assert launcher.started_worker is True
-
-    launcher2 = StandaloneLauncher(
-        fnw_path=fnw_path,
-        host="127.0.0.1",
-        open_browser=False,
-    )
-
-    launcher2.ensure_worker(import_fnw=True)
-    assert launcher2.worker_port == resolved_port
-    assert launcher2.started_worker is False
-
-    assert (workers_dir / f"worker_{worker_uuid}").exists()
-    assert (workers_dir / f"worker_{worker_uuid}" / "files").exists()
-    assert (workers_dir / f"worker_{worker_uuid}" / "files" / "hello.txt").exists()
-
-
-def test_standalone_launcher_starts_worker_and_imports_fnw(tmp_path: Path):
-    from funcnodes.runner.standalone import StandaloneLauncher
-
-    fnw_path = tmp_path / "example.fnw"
-    _write_minimal_fnw(fnw_path, extra_files={"files/hello.txt": b"hello"})
-
-    launcher = StandaloneLauncher(
-        fnw_path=fnw_path,
-        host="127.0.0.1",
-        open_browser=False,
-    )
+    runthread = threading.Thread(target=launcher.run_forever, daemon=True)
     try:
         port = launcher.ensure_worker(import_fnw=True)
+        runthread.start()
         assert isinstance(port, int)
         assert 1 <= port <= 65535
         assert launcher.started_worker is True
+
+        workers_dir = compute_fnw_config_dir(fnw_path) / "workers"
+        assert (workers_dir / f"worker_{launcher.worker_uuid}").exists()
+        assert (workers_dir / f"worker_{launcher.worker_uuid}" / "files").exists()
+        assert (
+            workers_dir / f"worker_{launcher.worker_uuid}" / "files" / "hello.txt"
+        ).exists()
 
         extracted = (
             launcher.config_dir
@@ -282,3 +313,5 @@ def test_standalone_launcher_starts_worker_and_imports_fnw(tmp_path: Path):
         assert extracted.read_bytes() == b"hello"
     finally:
         launcher.shutdown()
+        if runthread.is_alive():
+            runthread.join()
