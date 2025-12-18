@@ -1,13 +1,15 @@
-import asyncio
+from collections.abc import Callable
 import hashlib
 import json
+import logging
 import socket
-import threading
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import psutil
+
+logger = logging.getLogger(__name__)
 
 
 def pick_free_port(host: str = "127.0.0.1") -> int:
@@ -32,19 +34,21 @@ def compute_fnw_config_dir(fnw_path: Path) -> Path:
 
 def is_worker_running(
     fnw_path: Path, config_dir: Optional[Path] = None
-) -> Optional[int]:
+) -> Tuple[Optional[int], Optional[str]]:
     uuid = compute_worker_uuid(fnw_path)
     workers_dir = (config_dir or compute_fnw_config_dir(fnw_path)) / "workers"
     worker_json = workers_dir / f"worker_{uuid}.json"
     worker_pid = workers_dir / f"worker_{uuid}.p"
 
     if not worker_json.exists() or not worker_pid.exists():
-        return None
+        logger.debug(f"No json or pid file found for worker {uuid}")
+        return None, None
 
     try:
         pid_raw = worker_pid.read_text(encoding="utf-8").strip()
         if not pid_raw:
-            return None
+            logger.debug(f"No pid found for worker {uuid}")
+            return None, None
 
         try:
             pid = json.loads(pid_raw)
@@ -52,25 +56,31 @@ def is_worker_running(
             pid = int(pid_raw)
 
         if not isinstance(pid, int) or pid <= 0:
-            return None
+            logger.debug(f"Invalid pid {pid} for worker {uuid}")
+            return None, None
 
         if not psutil.pid_exists(pid):
-            return None
+            logger.debug(f"Pid {pid} does not exist for worker {uuid}")
+            return None, None
     except Exception:
-        return None
+        logger.debug(f"Exception in is_worker_running for worker {uuid}")
+        return None, None
 
     try:
         cfg = json.loads(worker_json.read_text(encoding="utf-8"))
     except Exception:
-        return None
+        logger.debug(f"Exception in is_worker_running for worker {uuid}")
+        return None, None
 
     if not isinstance(cfg, dict):
-        return None
+        logger.debug(f"Invalid config {cfg} for worker {uuid}")
+        return None, None
 
     host = cfg.get("host") or "localhost"
     port = cfg.get("port")
     if not isinstance(port, int) or not (1 <= port <= 65535):
-        return None
+        logger.debug(f"Invalid port {port} for worker {uuid}")
+        return None, None
 
     connect_host = host
     if connect_host in ("0.0.0.0", "::", ""):
@@ -80,9 +90,10 @@ def is_worker_running(
         with socket.create_connection((connect_host, port), timeout=0.2):
             pass
     except OSError:
-        return None
+        logger.debug(f"OSError in is_worker_running for worker {uuid}")
+        return None, None
 
-    return port
+    return port, host
 
 
 class StandaloneLauncher:
@@ -96,6 +107,7 @@ class StandaloneLauncher:
         worker_port: Optional[int] = None,
         open_browser: bool = True,
         debug: bool = False,
+        on_worker_shutdown: Optional[Callable[[], None]] = None,
     ) -> None:
         self.fnw_path = Path(fnw_path).expanduser().resolve()
         self.host = host
@@ -103,17 +115,16 @@ class StandaloneLauncher:
         self.worker_port = worker_port
         self.open_browser = open_browser
         self.debug = debug
-
+        self.on_worker_shutdown = on_worker_shutdown
+        self.running: bool = False
         self.config_dir = (
             Path(config_dir).expanduser().resolve()
             if config_dir is not None
             else compute_fnw_config_dir(self.fnw_path)
         )
         self.worker_uuid = compute_worker_uuid(self.fnw_path)
-
         self.started_worker = False
-        self._worker = None
-        self._worker_thread: Optional[threading.Thread] = None
+        self._ensured = False
 
     def _ensure_config_dir(self) -> None:
         import funcnodes_core as fn_core
@@ -121,32 +132,48 @@ class StandaloneLauncher:
         fn_core.config.reload(str(self.config_dir))
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
+    def run_forever(self) -> None:
+        self.ensure_worker()
+        self.running: bool = True
+        while self.running:
+            time.sleep(2)
+            existing_port, existing_host = is_worker_running(
+                self.fnw_path, config_dir=self.config_dir
+            )
+            if existing_port is None:
+                self.shutdown()
+
     def ensure_worker(self, *, import_fnw: bool = True) -> int:
+        if self._ensured:
+            return self.worker_port
+        self._ensured = True
         self._ensure_config_dir()
 
-        existing_port = is_worker_running(self.fnw_path, config_dir=self.config_dir)
+        existing_port, existing_host = is_worker_running(
+            self.fnw_path, config_dir=self.config_dir
+        )
         if existing_port is not None:
             self.worker_port = existing_port
+            self.host = existing_host
             self.started_worker = False
             return existing_port
 
         self._start_worker()
 
         # Wait until the worker wrote its config + is reachable.
-        deadline = time.monotonic() + 10.0
+        deadline = time.monotonic() + 120.0
         while time.monotonic() < deadline:
-            port = is_worker_running(self.fnw_path, config_dir=self.config_dir)
+            logger.info(f"Waiting for worker to start on port {self.worker_port}")
+            port, host = is_worker_running(self.fnw_path, config_dir=self.config_dir)
             if port is not None:
                 self.worker_port = port
+                self.host = host
                 break
-            time.sleep(0.05)
+            time.sleep(2)
+        if port is None:
+            raise RuntimeError("Failed to determine worker port")
 
-        if self.worker_port is None:
-            # Fall back to the worker object's current port if reachable-check didn't succeed yet.
-            try:
-                self.worker_port = int(self._worker.port)  # type: ignore[union-attr]
-            except Exception:  # pragma: no cover
-                pass
+        self.worker_port = port
 
         if import_fnw:
             self._import_fnw()
@@ -157,41 +184,44 @@ class StandaloneLauncher:
         return self.worker_port
 
     def _start_worker(self) -> None:
-        from funcnodes_worker.websocket import WSWorker
+        from funcnodes.__main__ import _get_worker_conf
+        from funcnodes.worker.worker_manager import start_worker
 
-        self._worker = WSWorker(
-            host=self.host,
-            port=self.worker_port,
+        worker_config = _get_worker_conf(
             uuid=self.worker_uuid,
+            name=self.fnw_path.stem,
+            workertype="WSWorker",
             debug=self.debug,
         )
-        self._worker_thread = self._worker.run_forever_threaded(wait_for_running=True)
+        start_worker(worker_config)
+        logger.info(f"Worker started with {worker_config}")
+        self.worker_port = worker_config["port"]
+
         self.started_worker = True
 
     def _import_fnw(self, *, timeout_s: float = 60.0) -> None:
-        if self._worker is None:
-            return
+        from funcnodes.__main__ import worker_command_task
+        import base64
 
-        fnw_bytes = self.fnw_path.read_bytes()
-        loop = self._worker.loop_manager._loop
-        if not loop or not loop.is_running():  # pragma: no cover - defensive
-            raise RuntimeError("Worker event loop not running")
+        base64_fnw_bytes = base64.b64encode(self.fnw_path.read_bytes()).decode("utf-8")
 
-        fut = asyncio.run_coroutine_threadsafe(
-            self._worker.update_from_export(fnw_bytes),
-            loop,
+        worker_command_task(
+            command="update_from_export", uuid=self.worker_uuid, data=base64_fnw_bytes
         )
-        fut.result(timeout=timeout_s)
 
     def shutdown(self) -> None:
-        if not self.started_worker or self._worker is None:
-            return
+        logger.info(
+            "Shutting down standalone launcher with running state %s", self.running
+        )
+        if self.running:
+            self.running = False
+            if self.on_worker_shutdown:
+                self.on_worker_shutdown()
+            if self.started_worker:
+                port, host = is_worker_running(
+                    self.fnw_path, config_dir=self.config_dir
+                )
+                if port is not None:
+                    from funcnodes.__main__ import worker_command_task
 
-        loop = self._worker.loop_manager._loop
-        if loop and loop.is_running():
-            loop.call_soon_threadsafe(self._worker.stop)
-        else:  # pragma: no cover - defensive
-            self._worker.stop()
-
-        if self._worker_thread is not None:
-            self._worker_thread.join(timeout=5)
+                    worker_command_task(command="stop_worker", uuid=self.worker_uuid)

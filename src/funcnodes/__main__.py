@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from concurrent.futures import Future
 import threading
 from typing import Any, Optional, Type
 
@@ -86,6 +88,19 @@ def task_standalone(args: argparse.Namespace):
 
     ui_port = args.ui_port if args.ui_port is not None else pick_free_port(args.host)
 
+    server_shutdown_handler: Optional[Callable[[float], Future]] = None
+
+    def _shutdown():
+        fn.FUNCNODES_LOGGER.info("Shutting down standalone server")
+        launcher.shutdown()
+        if server_shutdown_handler:
+            fn.FUNCNODES_LOGGER.debug("Shutting down server shutdown handler")
+            # run_coroutine_threadsafe returns a concurrent.futures.Future
+            # It's thread-safe and will execute in the event loop's thread
+            server_shutdown_handler(0.5)
+            fn.FUNCNODES_LOGGER.debug("Shutdown scheduled via run_coroutine_threadsafe")
+        fn.FUNCNODES_LOGGER.debug("Standalone server shut down")
+
     launcher = StandaloneLauncher(
         fnw_path=fnw_path,
         config_dir=config_dir,
@@ -94,12 +109,19 @@ def task_standalone(args: argparse.Namespace):
         worker_port=args.worker_port,
         open_browser=args.open_browser,
         debug=args.debug,
+        on_worker_shutdown=_shutdown,
     )
 
     try:
         worker_port = launcher.ensure_worker(import_fnw=True)
+        launcher_task = threading.Thread(target=launcher.run_forever)
+        launcher_task.start()
 
         from funcnodes_react_flow import run_server
+
+        def register_shutdown_handler(handler: Callable[[float], asyncio.Task]):
+            nonlocal server_shutdown_handler
+            server_shutdown_handler = handler
 
         run_server(
             port=ui_port,
@@ -111,9 +133,12 @@ def task_standalone(args: argparse.Namespace):
             worker_port=worker_port,
             worker_ssl=False,
             debug=args.debug,
+            register_shutdown_handler=register_shutdown_handler,
         )
+    except KeyboardInterrupt:
+        _shutdown()
     finally:
-        launcher.shutdown()
+        _shutdown()
 
 
 def list_workers(args: argparse.Namespace):
