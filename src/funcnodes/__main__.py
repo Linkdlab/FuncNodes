@@ -137,50 +137,78 @@ def list_workers(args: argparse.Namespace):
             print(f"{cf['uuid']}\t{cf.get('name')}")
 
 
-def start_new_worker(args: argparse.Namespace):
+def start_new_worker(
+    uuid: Optional[str] = None,
+    name: Optional[str] = None,
+    workertype: Optional[str] = "WSWorker",
+    debug: bool = False,
+    in_venv: bool = True,
+    create_only: bool = False,
+    profile: bool = False,
+    **kwargs,
+):
     """
     Starts a new worker.
 
     Args:
-      args (argparse.Namespace): The arguments passed to the function.
+      uuid: The uuid of the worker.
+      name: The name of the worker.
+      workertype: The type of the worker.
+      debug: Whether to run the worker in debug mode.
+      in_venv: Whether to run the worker in a virtual environment.
+      create_only: Whether to create the worker only.
+      profile: Whether to run the worker in profile mode.
 
     Returns:
       None
 
     Examples:
-      >>> start_new_worker(args)
+      >>> start_new_worker(uuid=worker124, in_venv=True, create_only=True)
       None
     """
 
     fn.FUNCNODES_LOGGER.info(
-        "Starting new worker of type %s", args.workertype or "WSWorker"
+        f"Starting new worker with uuid: {uuid}, name: {name}, workertype: {workertype}, debug: {debug}"
     )
 
-    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
+    mng = fn.worker.worker_manager.WorkerManager(debug=debug)
 
     new_worker_routine = mng.new_worker(
-        name=args.name,
-        uuid=args.uuid,
-        workertype=args.workertype or "WSWorker",
-        in_venv=args.in_venv,
+        name=name,
+        uuid=uuid,
+        workertype=workertype or "WSWorker",
+        in_venv=in_venv,
+        **kwargs,
     )
     import asyncio
 
     new_worker_config = asyncio.run(new_worker_routine)
 
-    args.uuid = new_worker_config["uuid"]
-    args.name = new_worker_config.get("name", None)
-    if args.create_only:
+    uuid = new_worker_config["uuid"]
+    name = new_worker_config.get("name", None)
+    if create_only:
         return
-    return start_existing_worker(args, new_worker_config)
+    return start_existing_worker(
+        uuid=uuid, name=name, workertype=workertype, debug=debug, profile=profile
+    )
 
 
-def start_existing_worker(args: argparse.Namespace):
+def start_existing_worker(
+    uuid: Optional[str] = None,
+    name: Optional[str] = None,
+    workertype: Optional[str] = "WSWorker",
+    debug: bool = False,
+    profile: bool = False,
+):
     """
     Starts an existing worker.
 
     Args:
-      args (argparse.Namespace): The arguments passed to the function.
+      uuid: The uuid of the worker.
+      name: The name of the worker.
+      workertype: The type of the worker.
+      debug: Whether to run the worker in debug mode.
+      profile: Whether to run the worker in profile mode.
 
     Returns:
       None
@@ -189,11 +217,11 @@ def start_existing_worker(args: argparse.Namespace):
       Exception: If no worker is found with the given uuid or name.
 
     Examples:
-      >>> start_existing_worker(args)
+      >>> start_existing_worker(uuid=uuid, name=name, workertype=workertype, debug=debug, profile=profile)
       None
     """
 
-    cfg = _worker_conf_from_args(args)
+    cfg = _get_worker_conf(uuid=uuid, name=name, workertype=workertype, debug=debug)
 
     workerenv = get_worker_venv(cfg)
     pypath = str(workerenv.python_exe) if workerenv else sys.executable
@@ -215,33 +243,71 @@ def start_existing_worker(args: argparse.Namespace):
             raise Exception(f"Python executable not found: {pypath}")
 
         kwargs = {}
-        if args.debug:
-            kwargs["debug"] = args.debug
-        if args.profile:
-            kwargs["profile"] = args.profile
+        if debug:
+            kwargs["debug"] = debug
+        if profile:
+            kwargs["profile"] = profile
         calllist = [
             pypath,
             "-m",
-        ] + build_worker_start(uuid=cfg["uuid"], workertype=args.workertype, **kwargs)
+        ] + build_worker_start(uuid=cfg["uuid"], workertype=workertype, **kwargs)
 
         return subprocess.run(calllist)
 
-    workertype = args.workertype
     if workertype is None:
         workertype = cfg.get("type", "WSWorker")
 
     worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
     fn.FUNCNODES_LOGGER.info("Starting existing worker of type %s", workertype)
     fn.logging.set_logging_dir(worker_json_get_data_path(cfg))
-    worker = worker_class(uuid=cfg["uuid"], debug=args.debug)
+    worker = worker_class(uuid=cfg["uuid"], debug=debug)
 
     worker.run_forever()
 
 
-def stop_worker(args: argparse.Namespace):
-    cfg = _worker_conf_from_args(args)
-    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
+def stop_worker(
+    uuid: Optional[str] = None,
+    name: Optional[str] = None,
+    workertype: Optional[str] = "WSWorker",
+    debug: bool = False,
+):
+    cfg = _get_worker_conf(uuid=uuid, name=name, workertype=workertype, debug=debug)
+    mng = fn.worker.worker_manager.WorkerManager(debug=debug)
     asyncio.run(mng.stop_worker(cfg["uuid"]))
+
+
+def _get_worker_conf(uuid: str, name: str, workertype: str, debug: bool) -> WorkerJson:
+    if uuid is None:
+        if name is None:
+            raise Exception("uuid or name is required to start an existing worker")
+
+    mng = fn.worker.worker_manager.WorkerManager(debug=debug)
+    cfg = None
+    if uuid:
+        for cf in mng.get_all_workercfg():
+            if cf["uuid"] == uuid:
+                cfg = cf
+                break
+
+        if cfg is None:
+            raise Exception("No worker found with the given uuid")
+
+    if name:
+        if cfg is None:
+            for cf in mng.get_all_workercfg():
+                if cf.get("name") == name:
+                    cfg = cf
+                    break
+        else:
+            if cfg.get("name") != name:
+                raise Exception(
+                    "Worker found with the given uuid but with a different name"
+                )
+
+    if cfg is None:
+        raise Exception("No worker found with the given uuid or name")
+
+    return cfg
 
 
 def _worker_conf_from_args(args: argparse.Namespace) -> WorkerJson:
@@ -258,40 +324,18 @@ def _worker_conf_from_args(args: argparse.Namespace) -> WorkerJson:
       >>> _worker_conf_from_args(args)
       {}
     """
-    if args.uuid is None:
-        if args.name is None:
-            raise Exception("uuid or name is required to start an existing worker")
-
-    mng = fn.worker.worker_manager.WorkerManager(debug=args.debug)
-    cfg = None
-    if args.uuid:
-        for cf in mng.get_all_workercfg():
-            if cf["uuid"] == args.uuid:
-                cfg = cf
-                break
-
-        if cfg is None:
-            raise Exception("No worker found with the given uuid")
-
-    if args.name:
-        if cfg is None:
-            for cf in mng.get_all_workercfg():
-                if cf.get("name") == args.name:
-                    cfg = cf
-                    break
-        else:
-            if cfg.get("name") != args.name:
-                raise Exception(
-                    "Worker found with the given uuid but with a different name"
-                )
-
-    if cfg is None:
-        raise Exception("No worker found with the given uuid or name")
-
-    return cfg
+    return _get_worker_conf(
+        uuid=args.uuid, name=args.name, workertype=args.workertype, debug=args.debug
+    )
 
 
-def listen_worker(args: argparse.Namespace):
+def listen_worker(
+    uuid: Optional[str] = None,
+    name: Optional[str] = None,
+    workertype: Optional[str] = "WSWorker",
+    debug: bool = False,
+    out=sys.stdout.write,
+):
     """
     Listens to a running worker.
 
@@ -309,7 +353,12 @@ def listen_worker(args: argparse.Namespace):
       None
     """
 
-    cfg = _worker_conf_from_args(args)
+    cfg = _get_worker_conf(
+        uuid=uuid,
+        name=name,
+        workertype=workertype,
+        debug=debug,
+    )
     log_file_path = os.path.join(worker_json_get_data_path(cfg), "worker.log")
     # log file path
     while True:
@@ -318,13 +367,13 @@ def listen_worker(args: argparse.Namespace):
             with open(log_file_path, "r") as log_file:
                 # Read the entire file initially
                 for line in log_file:
-                    print(line, end="")  # Print each line from the existing content
+                    out(line)  # Print each line from the existing content
 
                 # Move to the end of the file to begin tailing new content
                 while True:
                     line = log_file.readline()
                     if line:
-                        print(line, end="")  # Print any new line added to the file
+                        out(line)  # Print any new line added to the file
                     else:
                         time.sleep(
                             0.5
@@ -363,15 +412,39 @@ def task_worker(args: argparse.Namespace):
     workertask = args.workertask
     try:
         if workertask == "start":
-            return start_existing_worker(args)
+            return start_existing_worker(
+                uuid=args.uuid,
+                name=args.name,
+                workertype=args.workertype,
+                debug=args.debug,
+                profile=args.profile,
+            )
         elif workertask == "stop":
-            return stop_worker(args)
+            return stop_worker(
+                uuid=args.uuid,
+                name=args.name,
+                workertype=args.workertype,
+                debug=args.debug,
+            )
         elif workertask == "new":
-            return start_new_worker(args)
+            return start_new_worker(
+                uuid=args.uuid,
+                name=args.name,
+                workertype=args.workertype,
+                debug=args.debug,
+                in_venv=args.in_venv,
+                create_only=args.create_only,
+                profile=args.profile,
+            )
         elif workertask == "list":
             return list_workers(args)
         elif workertask == "listen":
-            return listen_worker(args)
+            return listen_worker(
+                uuid=args.uuid,
+                name=args.name,
+                workertype=args.workertype,
+                debug=args.debug,
+            )
         elif workertask == "activate":
             return activate_worker_env(args)
         elif workertask == "py":

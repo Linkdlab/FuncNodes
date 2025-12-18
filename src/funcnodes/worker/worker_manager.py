@@ -1220,6 +1220,7 @@ class WorkerManager:
         uuid: Optional[str] = None,
         workertype: str = "WSWorker",
         in_venv: Optional[bool] = None,
+        **kwargs,
     ) -> WorkerJson:
         """
         Creates a new worker.
@@ -1239,8 +1240,13 @@ class WorkerManager:
         """
         logger.info("Creating new worker.")
         worker_class: Type[fn.worker.Worker] = getattr(fn.worker, workertype)
-        logger.debug("Init Worker class: %s", worker_class)
-        new_worker = worker_class(name=name, uuid=uuid)
+        logger.info(
+            "Init Worker class: %s, with name: %s and uuid: %s",
+            worker_class,
+            name,
+            uuid,
+        )
+        new_worker = worker_class(name=name, uuid=uuid, **kwargs)
         logger.debug("Init Worker config")
         await new_worker.ini_config()
         logger.debug("Stopping Worker")
