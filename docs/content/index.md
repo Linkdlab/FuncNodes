@@ -4,7 +4,7 @@
 
 ![example](./examples/titanic.png)
 
-<small>*[Plotly visualization example](./examples/titanic.md) — interactive data analysis in FuncNodes*</small>
+<small>_[Plotly visualization example](./examples/titanic.md) — interactive data analysis in FuncNodes_</small>
 
 ---
 
@@ -48,14 +48,14 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 ## Features
 
-| | |
-|---|---|
-| **Visual Editor** | Drag-and-drop workflow creation with live data previews |
-| **Async Execution** | Non-blocking, event-driven processing |
-| **Isolated Workers** | Each workflow runs in its own virtualenv |
-| **Type-Aware UI** | Smart input rendering (sliders, dropdowns, custom widgets) |
-| **Modular Ecosystem** | Install only the domain packages you need |
-| **Python Native** | Turn any function into a node with one decorator |
+|                       |                                                            |
+| --------------------- | ---------------------------------------------------------- |
+| **Visual Editor**     | Drag-and-drop workflow creation with live data previews    |
+| **Async Execution**   | Non-blocking, event-driven processing                      |
+| **Isolated Workers**  | Each workflow runs in its own virtualenv                   |
+| **Type-Aware UI**     | Smart input rendering (sliders, dropdowns, custom widgets) |
+| **Modular Ecosystem** | Install only the domain packages you need                  |
+| **Python Native**     | Turn any function into a node with one decorator           |
 
 ---
 
@@ -63,37 +63,43 @@ document.addEventListener("DOMContentLoaded", function (event) {
 
 ### Getting Started
 
-| Page | Description |
-|------|-------------|
-| [Introduction](getting-started/introduction.md) | Architecture overview and core concepts |
-| [Installation](getting-started/installation.md) | Setup instructions |
-| [First Steps](getting-started/basic_usage.md) | Launch UI, create workers, build workflows |
+| Page                                            | Description                                |
+| ----------------------------------------------- | ------------------------------------------ |
+| [Introduction](getting-started/introduction.md) | Architecture overview and core concepts    |
+| [Installation](getting-started/installation.md) | Setup instructions                         |
+| [First Steps](getting-started/basic_usage.md)   | Launch UI, create workers, build workflows |
 
 ### Core Concepts
 
-| Page | Description |
-|------|-------------|
-| [Creating Nodes](components/node.md) | Class-based and decorator-based node creation |
-| [Inputs & Outputs](components/inputs-outputs.md) | Data flow, types, render options, events |
-| [Nodespace](components/nodespace.md) | Graph state and persistence |
-| [Shelves & Libraries](components/shelf.md) | Organizing and discovering nodes |
+| Page                                             | Description                                   |
+| ------------------------------------------------ | --------------------------------------------- |
+| [Creating Nodes](components/node.md)             | Class-based and decorator-based node creation |
+| [Inputs & Outputs](components/inputs-outputs.md) | Data flow, types, render options, events      |
+| [Nodespace](components/nodespace.md)             | Graph state and persistence                   |
+| [Shelves & Libraries](components/shelf.md)       | Organizing and discovering nodes              |
 
 ### Runtime
 
-| Page | Description |
-|------|-------------|
-| [Workers](components/worker.md) | Execution environments and RPC interface |
-| [Workermanager](components/workermanager.md) | Worker orchestration service |
-| [Configuration](components/config.md) | System and worker settings |
+| Page                                         | Description                              |
+| -------------------------------------------- | ---------------------------------------- |
+| [Workers](components/worker.md)              | Execution environments and RPC interface |
+| [Workermanager](components/workermanager.md) | Worker orchestration service             |
+| [Configuration](components/config.md)        | System and worker settings               |
 
 ### Resources
 
-| Page | Description |
-|------|-------------|
-| [Web UI Guide](ui-guide/react_flow/web-ui.md) | Using the visual editor |
-| [Available Modules](modules/index.md) | Official node packages |
-| [CLI Reference](api/cli.md) | Command-line interface |
-| [Examples](examples/index.md) | Interactive workflow demos |
+| Page                                          | Description                |
+| --------------------------------------------- | -------------------------- |
+| [Web UI Guide](ui-guide/react_flow/web-ui.md) | Using the visual editor    |
+| [Available Modules](modules/index.md)         | Official node packages     |
+| [CLI Reference](api/cli.md)                   | Command-line interface     |
+| [Examples](examples/index.md)                 | Interactive workflow demos |
+
+### Experimental
+
+| Page                                          | Description                                        |
+| --------------------------------------------- | -------------------------------------------------- |
+| [Standalone Mode](experimental/standalone.md) | Open `.fnw` files directly with a dedicated worker |
 
 ---
 

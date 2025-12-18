@@ -35,6 +35,8 @@ plugins:
           - examples/*.md
         Modules:
           - modules/*.md
+        Experimental:
+          - experimental/*.md
 
 theme:
   name: material
@@ -160,6 +162,10 @@ nav:
       - Configuration:
           - Global Config: components/config.md
           - Worker Config: components/worker_config.md
+
+  - Experimental:
+      - Overview: experimental/index.md
+      - Standalone: experimental/standalone.md
 
   - UI Guide:
       - Web-based UI: ui-guide/react_flow/web-ui.md
