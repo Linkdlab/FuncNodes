@@ -165,7 +165,11 @@ def start_worker(workerconfig: WorkerJson, debug=False):
     args += build_worker_start(uuid=workerconfig["uuid"], debug=debug)
 
     if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
         if not loop.is_running():
             loop.run_until_complete(
                 subprocess_monitor.send_spawn_request(
