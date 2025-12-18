@@ -78,7 +78,7 @@ def test_compute_worker_uuid_changes_when_file_changes(tmp_path: Path):
 def test_is_worker_running_returns_none_without_files(fnw_path: Path):
     from funcnodes.runner.standalone import is_worker_running
 
-    assert is_worker_running(fnw_path) is None
+    assert is_worker_running(fnw_path) == (None, None)
 
 
 def test_is_worker_running_returns_none_on_invalid_pid(fnw_path: Path):
@@ -98,7 +98,7 @@ def test_is_worker_running_returns_none_on_invalid_pid(fnw_path: Path):
         encoding="utf-8",
     )
 
-    assert is_worker_running(fnw_path) is None
+    assert is_worker_running(fnw_path) == (None, None)
 
 
 def test_is_worker_running_returns_none_on_invalid_json(fnw_path: Path):
@@ -117,7 +117,7 @@ def test_is_worker_running_returns_none_on_invalid_json(fnw_path: Path):
         "{ this is not json", encoding="utf-8"
     )
 
-    assert is_worker_running(fnw_path) is None
+    assert is_worker_running(fnw_path) == (None, None)
 
 
 def test_is_worker_running_returns_none_when_port_closed(fnw_path: Path):
@@ -139,7 +139,7 @@ def test_is_worker_running_returns_none_when_port_closed(fnw_path: Path):
         encoding="utf-8",
     )
 
-    assert is_worker_running(fnw_path) is None
+    assert is_worker_running(fnw_path) == (None, None)
 
 
 def test_is_worker_running_returns_port_when_pid_alive_and_port_open(
@@ -163,7 +163,7 @@ def test_is_worker_running_returns_port_when_pid_alive_and_port_open(
         encoding="utf-8",
     )
 
-    assert is_worker_running(fnw_path) == port
+    assert is_worker_running(fnw_path) == (port, "127.0.0.1")
 
 
 def test_is_worker_running_uses_config_dir_override(fnw_path: Path, _listening_socket):
@@ -182,8 +182,11 @@ def test_is_worker_running_uses_config_dir_override(fnw_path: Path, _listening_s
         encoding="utf-8",
     )
 
-    assert is_worker_running(fnw_path, config_dir=custom_config_dir) == port
-    assert is_worker_running(fnw_path) is None
+    assert is_worker_running(fnw_path, config_dir=custom_config_dir) == (
+        port,
+        "127.0.0.1",
+    )
+    assert is_worker_running(fnw_path) == (None, None)
 
 
 def test_standalone_launcher_reuses_worker_with_custom_config_dir(fnw_path: Path):
