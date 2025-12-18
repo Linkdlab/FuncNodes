@@ -1,8 +1,9 @@
 import threading
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 import funcnodes as fn
 import argparse
+import json
 from pprint import pprint
 import textwrap
 import sys
@@ -391,6 +392,144 @@ def listen_worker(
         time.sleep(5)  # Avoid high CPU usage when there's no new content
 
 
+def _parse_command_value(value: str) -> Any:
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        pass
+
+    lowered = value.lower()
+    if lowered in ("true", "false"):
+        return lowered == "true"
+
+    if lowered in ("none", "null"):
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    try:
+        return float(value)
+    except ValueError:
+        pass
+
+    return value
+
+
+def parse_command_kwargs(argv: Optional[list[str]]) -> dict[str, Any]:
+    if not argv:
+        return {}
+
+    kwargs: dict[str, Any] = {}
+    i = 0
+    while i < len(argv):
+        token = argv[i]
+        if token == "--":
+            i += 1
+            continue
+
+        if not token.startswith("--") or token == "--":
+            raise ValueError(f"Unexpected argument: {token}")
+
+        key_with_value = token[2:]
+        if not key_with_value:
+            raise ValueError("Unexpected argument: --")
+
+        if "=" in key_with_value:
+            key, value = key_with_value.split("=", 1)
+            kwargs[key] = _parse_command_value(value)
+            i += 1
+            continue
+
+        key = key_with_value
+        if i + 1 < len(argv) and not argv[i + 1].startswith("--"):
+            kwargs[key] = _parse_command_value(argv[i + 1])
+            i += 2
+            continue
+
+        kwargs[key] = True
+        i += 1
+
+    return kwargs
+
+
+async def call_worker_command(
+    worker_config: WorkerJson,
+    command: str,
+    kwargs: dict[str, Any],
+    timeout: float = 30.0,
+) -> Any:
+    workertype = worker_config.get("type", "WSWorker")
+    if workertype != "WSWorker":
+        raise ValueError(
+            f"Worker {worker_config.get('uuid')} is not a WebSocket worker but {workertype},"
+            " command is only supported for WebSocket workers for now"
+        )
+    host = worker_config.get("host") or "localhost"
+    port = worker_config.get("port")
+
+    if not port:
+        raise ValueError(f"Worker {worker_config.get('uuid')} has no port configured")
+
+    connect_host = host if host not in ("0.0.0.0", "::", "") else "127.0.0.1"
+    protocol = "wss" if worker_config.get("ssl", False) else "ws"
+    url = f"{protocol}://{connect_host}:{port}"
+
+    import aiohttp
+    from aiohttp import WSMsgType
+
+    timeout_cfg = aiohttp.ClientTimeout(total=timeout)
+
+    async with aiohttp.ClientSession(timeout=timeout_cfg) as session:
+        async with session.ws_connect(url) as ws:
+            message = {"type": "cmd", "cmd": command, "kwargs": kwargs}
+            await ws.send_str(json.dumps(message))
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                msg = await ws.receive()
+                if msg.type != WSMsgType.TEXT:
+                    continue
+
+                try:
+                    data = json.loads(msg.data)
+                    msg_type = data.get("type")
+
+                    if msg_type == "result":
+                        return data.get("result")
+                except json.JSONDecodeError:
+                    pass
+                continue
+            raise RuntimeError(
+                f"Timeout waiting for result from worker {worker_config.get('uuid')}"
+            )
+
+
+def worker_command_task(
+    command: str,
+    uuid: Optional[str] = None,
+    name: Optional[str] = None,
+    workertype: Optional[str] = "WSWorker",
+    debug: bool = False,
+    **kwargs,
+):
+    cfg = _get_worker_conf(uuid=uuid, name=name, workertype=workertype, debug=debug)
+
+    result = asyncio.run(
+        call_worker_command(
+            worker_config=cfg,
+            command=command,
+            kwargs=kwargs,
+        )
+    )
+
+    if isinstance(result, (dict, list)):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    else:
+        print(result)
+
+
 def task_worker(args: argparse.Namespace):
     """
     Performs a task on worker(s).
@@ -449,6 +588,15 @@ def task_worker(args: argparse.Namespace):
             return activate_worker_env(args)
         elif workertask == "py":
             return py_in_worker_env(args)
+        elif workertask == "command":
+            return worker_command_task(
+                command=args.command,
+                uuid=args.uuid,
+                name=args.name,
+                workertype=args.workertype,
+                debug=args.debug,
+                **parse_command_kwargs(getattr(args, "kwargs", None)),
+            )
         elif workertask == "modules":
             return worker_modules_task(args)
         else:
@@ -758,6 +906,17 @@ def add_worker_parser(subparsers):
         help="The command to run in the worker environment",
     )
 
+    # Execute a command on a running worker
+    command_parser = worker_subparsers.add_parser(
+        "command", help="Execute a command on a running worker"
+    )
+    command_parser.add_argument(
+        "-c",
+        "--command",
+        required=True,
+        help="The exposed method name to call",
+    )
+
     # Start a new worker
     new_worker_parser = worker_subparsers.add_parser("new", help="Start a new worker")
     new_worker_parser.set_defaults(long_running=True)
@@ -876,7 +1035,12 @@ def main():
         parser.add_argument(
             "--version", action="version", version=f"%(prog)s {fn.__version__}"
         )
-        args = parser.parse_args()
+        args, unknown_args = parser.parse_known_args()
+        if unknown_args:
+            if args.task == "worker" and getattr(args, "workertask", None) == "command":
+                setattr(args, "kwargs", unknown_args)
+            else:
+                parser.error(f"unrecognized arguments: {' '.join(unknown_args)}")
 
         if args.dir:
             fn.config.reload(os.path.abspath(args.dir))
