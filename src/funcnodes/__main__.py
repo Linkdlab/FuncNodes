@@ -76,6 +76,12 @@ def task_run_server(args: argparse.Namespace):
 
 
 def task_standalone(args: argparse.Namespace):
+    if getattr(args, "register", False):
+        from funcnodes.runner.register import register_fnw
+
+        register_fnw()
+        return
+
     from funcnodes.runner.standalone import StandaloneLauncher, pick_free_port
 
     fnw_path = Path(args.fnw_file).expanduser().resolve()
@@ -848,8 +854,15 @@ def add_standalone_parser(subparsers):
 
     parser.add_argument(
         "fnw_file",
+        nargs="?",
         type=str,
+        default=None,
         help="Path to the .fnw file to open",
+    )
+    parser.add_argument(
+        "--register",
+        action="store_true",
+        help="Register FuncNodes as the default opener for .fnw files",
     )
     parser.add_argument(
         "--config-dir",
@@ -884,6 +897,26 @@ def add_standalone_parser(subparsers):
         default=True,
         help="Don't open browser automatically",
     )
+
+
+def validate_standalone_args(parser: argparse.ArgumentParser, args: argparse.Namespace):
+    if getattr(args, "task", None) != "standalone":
+        return
+
+    register = bool(getattr(args, "register", False))
+    fnw_file = getattr(args, "fnw_file", None)
+
+    if register:
+        if fnw_file is not None:
+            parser.error("--register does not take a .fnw file argument")
+        # Registration should run in-process (no subprocess monitor indirection).
+        setattr(args, "long_running", False)
+        return
+
+    if not fnw_file:
+        parser.error(
+            "the following arguments are required: fnw_file (unless --register)"
+        )
 
 
 def _add_worker_identifiers(parser):
@@ -1068,6 +1101,8 @@ def main():
                 setattr(args, "kwargs", unknown_args)
             else:
                 parser.error(f"unrecognized arguments: {' '.join(unknown_args)}")
+
+        validate_standalone_args(parser, args)
 
         if args.dir:
             fn.config.reload(os.path.abspath(args.dir))
