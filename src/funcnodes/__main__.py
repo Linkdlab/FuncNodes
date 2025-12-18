@@ -825,22 +825,27 @@ def main():
                 monitor = subprocess_monitor.SubprocessMonitor(
                     logger=fn.FUNCNODES_LOGGER,
                 )
-                asyncio.create_task(monitor.run())
-                await asyncio.sleep(1)
-                resp = await subprocess_monitor.send_spawn_request(
-                    str(Path(sys.executable).absolute()),
-                    [os.path.abspath(__file__)] + sys.argv[1:],
-                )
-                if "pid" not in resp:
-                    raise Exception(f"Subprocess failed: {resp}")
-                fn.FUNCNODES_LOGGER.debug("Subprocess started: %s", resp["pid"])
-                await subprocess_monitor.subscribe(
-                    pid=resp["pid"], callback=lambda x: print(x["data"])
-                )
-                fn.FUNCNODES_LOGGER.debug("Subprocess ended:  %s", resp["pid"])
-                await asyncio.sleep(1)
-                while len(monitor.process_ownership) > 0:
+
+                runtask = asyncio.create_task(monitor.run())
+                try:
                     await asyncio.sleep(1)
+                    resp = await subprocess_monitor.send_spawn_request(
+                        str(Path(sys.executable).absolute()),
+                        [os.path.abspath(__file__)] + sys.argv[1:],
+                    )
+                    if "pid" not in resp:
+                        raise Exception(f"Subprocess failed: {resp}")
+                    fn.FUNCNODES_LOGGER.debug("Subprocess started: %s", resp["pid"])
+                    await subprocess_monitor.subscribe(
+                        pid=resp["pid"], callback=lambda x: print(x["data"])
+                    )
+                    fn.FUNCNODES_LOGGER.debug("Subprocess ended:  %s", resp["pid"])
+                    await asyncio.sleep(1)
+                    while len(monitor.process_ownership) > 0:
+                        await asyncio.sleep(1)
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    monitor.stop_serve()
+                    await runtask
 
             asyncio.run(via_subprocess_monitor())
             return
