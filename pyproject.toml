@@ -65,11 +65,23 @@ docs = [
 
 
 
+[tool.hatch.build]
+include = [
+    "src/",
+    "tests/",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+exclude = [
+    "__pycache__",
+    "*.pyc",
+    "*.pyo",
+    ".venv*"
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/funcnodes"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"src/funcnodes/files" = "funcnodes/files"
 
 [project.scripts]
 funcnodes = 'funcnodes.__main__:main'
