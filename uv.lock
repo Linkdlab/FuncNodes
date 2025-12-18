@@ -547,8 +547,8 @@ requires-dist = [
     { name = "funcnodes-core", specifier = ">=1.0.2" },
     { name = "funcnodes-module", marker = "sys_platform != 'emscripten'" },
     { name = "funcnodes-react-flow", marker = "sys_platform != 'emscripten'", specifier = ">=1.1.0" },
-    { name = "funcnodes-worker", marker = "sys_platform == 'emscripten'", specifier = ">=1.5.0" },
-    { name = "funcnodes-worker", extras = ["all"], marker = "sys_platform != 'emscripten'", specifier = ">=1.5.0" },
+    { name = "funcnodes-worker", marker = "sys_platform == 'emscripten'", specifier = ">=1.5.1" },
+    { name = "funcnodes-worker", extras = ["all"], marker = "sys_platform != 'emscripten'", specifier = ">=1.5.1" },
     { name = "subprocess-monitor", marker = "sys_platform != 'emscripten'", specifier = ">=0.3.0" },
     { name = "uv", marker = "sys_platform != 'emscripten'", specifier = ">=0.5.21" },
     { name = "venvmngr", marker = "sys_platform != 'emscripten'", specifier = ">=0.2.0" },
@@ -634,7 +634,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes-worker"
-version = "1.5.0"
+version = "1.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asynctoolkit" },
@@ -644,9 +644,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "python-slugify" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/96/ecbde6a1b6f294642a0619882cc2bb6cc575ba76aa3ee5deb35c66bd4cea/funcnodes_worker-1.5.0.tar.gz", hash = "sha256:1a66b7eaf360027c87e8eb5c5d3976aa686b18d3090762c7f24f5c7eebc5e505", size = 133314, upload-time = "2025-12-17T20:25:43.849Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/92/7b/4894df1d0fb52d3da8bbc121c1e1067d0340deb24676f4ca5a2c293ab82e/funcnodes_worker-1.5.1.tar.gz", hash = "sha256:57b260c51028567ccc5bd41fb5a27a2c0fc0094f39b4f978272c36579bb77cee", size = 133595, upload-time = "2025-12-18T16:12:41.758Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8c/15/6618c8291751835e250c120219a837b06589ebb4162631de05055217038a/funcnodes_worker-1.5.0-py3-none-any.whl", hash = "sha256:41ce69c084d32c6d6cafaaa3e0911f96516a0579aff631e68d1c922cd1fb07a5", size = 52324, upload-time = "2025-12-17T20:25:42.502Z" },
+    { url = "https://files.pythonhosted.org/packages/88/73/35fd2066bb647967eef925a0536741c5754ec2cf69a74c823d6325105b5f/funcnodes_worker-1.5.1-py3-none-any.whl", hash = "sha256:6e5d88dd72a781f84fb0fd033563b15d2c2ea6b7912ac46e3febae6b3abeb0b5", size = 52577, upload-time = "2025-12-18T16:12:40.37Z" },
 ]
 
 [package.optional-dependencies]
