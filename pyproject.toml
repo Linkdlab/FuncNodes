@@ -50,6 +50,7 @@ dev = [
     "vulture>=2.14",
     "funcnodes[profiling]",
     "pytest-funcnodes>=0.1.0",
+    "pytest-cov",
 ]
 
 docs = [
