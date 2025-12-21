@@ -132,6 +132,7 @@ class StandaloneLauncher:
         import funcnodes_core as fn_core
 
         fn_core.config.reload(str(self.config_dir))
+        fn_core.logging.set_logging_dir(fn_core.config.get_config_dir() / "logs")
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
     def run_forever(self) -> None:
