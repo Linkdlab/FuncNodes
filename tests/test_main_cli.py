@@ -152,6 +152,184 @@ def test_parse_command_kwargs_supports_equals_and_double_dash():
 
 
 @pytest_funcnodes.funcnodes_test
+def test_list_workers_prints_uuid_and_name(worker_config, capsys):
+    from funcnodes.__main__ import list_workers
+
+    args = SimpleNamespace(debug=False, full=False)
+    list_workers(args)
+
+    captured = capsys.readouterr().out
+    assert worker_config["uuid"] in captured
+    assert worker_config["name"] in captured
+
+
+@pytest_funcnodes.funcnodes_test
+def test_list_workers_full_prints_config(worker_config, capsys):
+    from funcnodes.__main__ import list_workers
+
+    args = SimpleNamespace(debug=False, full=True)
+    list_workers(args)
+
+    captured = capsys.readouterr().out
+    assert worker_config["uuid"] in captured
+    assert worker_config["name"] in captured
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_worker_list_dispatches(worker_config, capsys):
+    from funcnodes.__main__ import task_worker
+
+    args = SimpleNamespace(
+        workertask="list",
+        debug=False,
+        full=False,
+        uuid=None,
+        name=None,
+        workertype="WSWorker",
+    )
+    task_worker(args)
+
+    captured = capsys.readouterr().out
+    assert worker_config["uuid"] in captured
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_worker_raises_on_unknown_task():
+    from funcnodes.__main__ import task_worker
+
+    args = SimpleNamespace(
+        workertask="unknown",
+        debug=False,
+        full=False,
+        uuid=None,
+        name=None,
+        workertype="WSWorker",
+    )
+
+    with pytest.raises(Exception, match="Unknown workertask"):
+        task_worker(args)
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_modules_list_uses_plugin_registry(monkeypatch, capsys):
+    from funcnodes.__main__ import task_modules
+    from funcnodes_core.utils import plugins
+
+    monkeypatch.setattr(plugins, "get_installed_modules", lambda: {"demo": {"v": 1}})
+
+    args = SimpleNamespace(moduletask="list")
+    task_modules(args)
+
+    captured = capsys.readouterr().out
+    assert "demo" in captured
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_modules_raises_on_unknown_task():
+    from funcnodes.__main__ import task_modules
+
+    args = SimpleNamespace(moduletask="unknown")
+    with pytest.raises(Exception, match="Unknown moduletask"):
+        task_modules(args)
+
+
+@pytest_funcnodes.funcnodes_test
+def test_add_worker_manager_parser_parses_args():
+    from funcnodes.__main__ import add_worker_manager_parser
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="task", required=True)
+    add_worker_manager_parser(subparsers)
+
+    args = parser.parse_args(
+        ["startworkermanager", "--host", "127.0.0.1", "--port", "9102"]
+    )
+
+    assert args.task == "startworkermanager"
+    assert args.host == "127.0.0.1"
+    assert args.port == 9102
+    assert args.long_running is True
+
+
+@pytest_funcnodes.funcnodes_test
+def test_add_modules_parser_parses_args():
+    from funcnodes.__main__ import add_modules_parser
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="task", required=True)
+    add_modules_parser(subparsers)
+
+    args = parser.parse_args(["modules", "list"])
+    assert args.task == "modules"
+    assert args.moduletask == "list"
+
+
+@pytest_funcnodes.funcnodes_test
+def test_activate_worker_env_raises_when_env_missing(worker_config):
+    from funcnodes.__main__ import activate_worker_env
+
+    args = SimpleNamespace(
+        uuid=worker_config["uuid"],
+        name=None,
+        workertype="WSWorker",
+        debug=False,
+    )
+
+    with pytest.raises(Exception, match="does not have an environment"):
+        activate_worker_env(args)
+
+
+@pytest_funcnodes.funcnodes_test
+def test_py_in_worker_env_invokes_subprocess(monkeypatch, worker_config):
+    from funcnodes import __main__ as main_mod
+    from funcnodes.__main__ import py_in_worker_env
+
+    called: dict = {}
+
+    def fake_run(cmd):
+        called["cmd"] = cmd
+
+    monkeypatch.setattr(main_mod.subprocess, "run", fake_run)
+
+    args = SimpleNamespace(
+        uuid=worker_config["uuid"],
+        name=None,
+        workertype="WSWorker",
+        debug=False,
+        command=["--", "-c", "print('ok')"],
+    )
+    py_in_worker_env(args)
+
+    assert called["cmd"][0] == sys.executable
+    assert called["cmd"][1:] == ["-c", "print('ok')"]
+
+
+@pytest_funcnodes.funcnodes_test
+def test_worker_modules_task_invokes_subprocess(monkeypatch, worker_config):
+    from funcnodes import __main__ as main_mod
+    from funcnodes.__main__ import worker_modules_task
+
+    called: dict = {}
+
+    def fake_run(cmd):
+        called["cmd"] = cmd
+
+    monkeypatch.setattr(main_mod.subprocess, "run", fake_run)
+
+    args = SimpleNamespace(
+        uuid=worker_config["uuid"],
+        name=None,
+        workertype="WSWorker",
+        debug=False,
+        moduletask="list",
+    )
+    worker_modules_task(args)
+
+    assert called["cmd"][0] == sys.executable
+    assert called["cmd"][1:] == ["-m", "funcnodes", "modules", "list"]
+
+
+@pytest_funcnodes.funcnodes_test
 def test_get_worker_conf_by_uuid(worker_config):
     from funcnodes.__main__ import _get_worker_conf
 

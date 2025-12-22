@@ -23,7 +23,8 @@ dependencies = [
     "funcnodes_worker[all]>=1.5.1; sys_platform != 'emscripten'",
     "funcnodes_worker>=1.5.1; sys_platform == 'emscripten'",
     "venvmngr>=0.2.0; sys_platform != 'emscripten'",
-    "uv>=0.5.21; sys_platform != 'emscripten'"
+    "uv>=0.5.21; sys_platform != 'emscripten'",
+    "rich>=14.2.0",
 ]
 
 [project.license]
