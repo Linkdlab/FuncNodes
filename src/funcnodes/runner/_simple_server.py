@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Optional, Type
 from aiohttp import (
     web,
@@ -10,12 +11,16 @@ from enum import Enum
 import funcnodes as fn
 import ssl
 import os
+import sys
 import logging
 import asyncio
 import subprocess_monitor
 import threading
 import webbrowser
+import subprocess
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class Methods(Enum):
@@ -29,7 +34,27 @@ class Methods(Enum):
 
 def _open_browser(port: int, host: str = "localhost", delay=1.0):
     time.sleep(delay)
-    webbrowser.open(f"http://{host}:{port}")
+    url = f"http://{host}:{port}"
+    try:
+        if webbrowser.open(url):
+            return
+    except Exception:
+        pass
+
+    # Best-effort fallbacks for environments where `webbrowser` is misconfigured.
+    try:
+        if sys.platform.startswith("win"):
+            startfile = getattr(os, "startfile", None)
+            if startfile is not None:
+                startfile(url)
+            else:  # pragma: no cover
+                subprocess.Popen(["cmd", "/c", "start", "", url])
+        elif sys.platform == "darwin":  # pragma: no cover
+            subprocess.Popen(["open", url])
+        else:  # pragma: no cover
+            subprocess.Popen(["xdg-open", url])
+    except Exception:
+        return
 
 
 class BaseServer:
@@ -45,6 +70,9 @@ class BaseServer:
         worker_manager_port: Optional[int] = None,
         worker_manager_ssl: Optional[bool] = None,
         start_worker_manager=True,
+        worker_host: Optional[str] = None,
+        worker_port: Optional[int] = None,
+        worker_ssl: Optional[bool] = None,
         static_path: Optional[str] = None,
         static_url: Optional[str] = None,
         debug=False,
@@ -66,6 +94,11 @@ class BaseServer:
             self.worker_manager_ssl = worker_manager_ssl
             self.worker_manager_host = worker_manager_host
             self.worker_manager_port = worker_manager_port
+        else:
+            self.worker_host = worker_host
+            self.worker_port = worker_port
+            self.worker_ssl = worker_ssl
+            self.start_worker_manager = False
         self.host = host
         self.port = port
         self.app = web.Application()
@@ -88,6 +121,8 @@ class BaseServer:
 
         if has_worker_manager:
             self.add_route(Methods.GET, "/worker_manager", self.get_worker_manager)
+        else:
+            self.add_route(Methods.GET, "/worker", self.get_worker)
 
         self.add_route(Methods.GET, "/", self.index)
 
@@ -119,10 +154,18 @@ class BaseServer:
         return self._is_running
 
     async def shutdown(self):
-        print("Shutting down server")
+        logger.info("Shutting down server")
         async with self._is_running_lock:
             self._is_running = False
             self._shutdown_signal.set()
+
+        # Force-close all active HTTP connections immediately
+        # This closes the transport without waiting for handlers to finish
+        if self.runner and self.runner.server:
+            conns = self.runner.server.connections
+            for conn in conns:
+                conn.force_close()
+        logger.debug("shutdown: complete")
 
     async def _run(
         self,
@@ -168,7 +211,9 @@ class BaseServer:
             async with self._is_running_lock:
                 self._is_running = True
                 self._shutdown_signal.clear()
-            print(f"Server started at http://{self.host or '0.0.0.0'}:{self.port}")
+            logger.info(
+                f"Server started at http://{self.host or '0.0.0.0'}:{self.port}"
+            )
 
             try:
                 await self._shutdown_signal.wait()
@@ -198,6 +243,16 @@ class BaseServer:
             loop.run_until_complete(self._run(**kwargs))
         except KeyboardInterrupt:
             loop.run_until_complete(self.shutdown())
+
+    async def get_worker(self, request):
+        return web.json_response(
+            data={
+                "host": self.worker_host,
+                "port": self.worker_port,
+                "ssl": self.worker_ssl,
+            },
+            status=200,
+        )
 
     async def get_worker_manager(self, request):
         if self.start_worker_manager:
@@ -237,6 +292,13 @@ class BaseServer:
         worker_manager_ssl: Optional[bool] = None,
         start_worker_manager=True,
         has_worker_manager=True,
+        worker_host: Optional[str] = None,
+        worker_port: Optional[int] = None,
+        worker_ssl: Optional[bool] = None,
+        register_shutdown_handler: Optional[
+            Callable[[Callable[[float], None]], asyncio.Future]
+        ] = None,
+        shutdown_timeout: float = 5.0,
         **kwargs,
     ):
         ins = cls(
@@ -247,6 +309,9 @@ class BaseServer:
             worker_manager_ssl=worker_manager_ssl,
             start_worker_manager=start_worker_manager,
             has_worker_manager=has_worker_manager,
+            worker_host=worker_host,
+            worker_port=worker_port,
+            worker_ssl=worker_ssl,
             **kwargs,
         )
 
@@ -256,18 +321,24 @@ class BaseServer:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        def _shutdown():
+        def _shutdown(delay: float = 5.0) -> asyncio.Future:
             async def __shutdown():
-                await asyncio.sleep(5)
+                await asyncio.sleep(delay)
                 await ins.shutdown()
 
-            loop.create_task(__shutdown())
+            # Use run_coroutine_threadsafe for thread-safe scheduling
+            # This is critical because _shutdown may be called from another thread
+            # (e.g., the launcher thread) while the event loop runs in the main thread
+            return asyncio.run_coroutine_threadsafe(__shutdown(), loop)
 
         if os.environ.get("SUBPROCESS_MONITOR_PORT", None) is not None:
             if not os.environ.get("SUBPROCESS_MONITOR_KEEP_RUNNING"):
                 subprocess_monitor.call_on_manager_death(
                     _shutdown,
                 )
+
+        if register_shutdown_handler:
+            register_shutdown_handler(_shutdown)
 
         if open_browser:
             threading.Thread(
@@ -279,4 +350,4 @@ class BaseServer:
                 daemon=True,
             ).start()
 
-        ins.run(loop=loop)
+        ins.run(loop=loop, shutdown_timeout=shutdown_timeout)

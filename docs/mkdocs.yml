@@ -1,5 +1,5 @@
 site_name: FuncNodes Documentation
-site_url: https://yourdomain.com/
+site_url: https://linkdlab.github.io/FuncNodes/
 site_description: "Comprehensive documentation for FuncNodes - a modular workflow automation system."
 repo_url: https://github.com/Linkdlab/funcnodes
 repo_name: Linkdlab/funcnodes
@@ -167,6 +167,10 @@ nav:
       - Configuration:
           - Global Config: components/config.md
           - Worker Config: components/worker_config.md
+
+  - Experimental:
+      - Overview: experimental/index.md
+      - Standalone: experimental/standalone.md
 
   - UI Guide:
       - Web-based UI: ui-guide/react_flow/web-ui.md
