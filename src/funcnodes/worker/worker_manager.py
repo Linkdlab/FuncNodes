@@ -85,28 +85,137 @@ class ReturnValueThread(threading.Thread):
         return self.result
 
 
-def run_in_new_process(*args, **kwargs):
+# Windows Job Object handling for terminate_with_parent feature
+if os.name == "nt":
+    import ctypes
+    from ctypes import wintypes
+
+    # Job object constants
+    _JobObjectExtendedLimitInformation = 9
+    _JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000
+    _PROCESS_ALL_ACCESS = 0x1F0FFF
+
+    _kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+    class _JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("PerProcessUserTimeLimit", ctypes.c_int64),
+            ("PerJobUserTimeLimit", ctypes.c_int64),
+            ("LimitFlags", wintypes.DWORD),
+            ("MinimumWorkingSetSize", ctypes.c_size_t),
+            ("MaximumWorkingSetSize", ctypes.c_size_t),
+            ("ActiveProcessLimit", wintypes.DWORD),
+            ("Affinity", ctypes.c_size_t),
+            ("PriorityClass", wintypes.DWORD),
+            ("SchedulingClass", wintypes.DWORD),
+        ]
+
+    class _IO_COUNTERS(ctypes.Structure):
+        _fields_ = [
+            ("ReadOperationCount", ctypes.c_uint64),
+            ("WriteOperationCount", ctypes.c_uint64),
+            ("OtherOperationCount", ctypes.c_uint64),
+            ("ReadTransferCount", ctypes.c_uint64),
+            ("WriteTransferCount", ctypes.c_uint64),
+            ("OtherTransferCount", ctypes.c_uint64),
+        ]
+
+    class _JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("BasicLimitInformation", _JOBOBJECT_BASIC_LIMIT_INFORMATION),
+            ("IoInfo", _IO_COUNTERS),
+            ("ProcessMemoryLimit", ctypes.c_size_t),
+            ("JobMemoryLimit", ctypes.c_size_t),
+            ("PeakProcessMemoryUsed", ctypes.c_size_t),
+            ("PeakJobMemoryUsed", ctypes.c_size_t),
+        ]
+
+    _job_handle = None
+
+    def _get_or_create_job():
+        """Get or create a Windows Job Object that kills children when parent exits."""
+        global _job_handle
+        if _job_handle is None:
+            _job_handle = _kernel32.CreateJobObjectW(None, None)
+            if not _job_handle:
+                raise ctypes.WinError(ctypes.get_last_error())
+
+            info = _JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+            info.BasicLimitInformation.LimitFlags = _JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+
+            if not _kernel32.SetInformationJobObject(
+                _job_handle,
+                _JobObjectExtendedLimitInformation,
+                ctypes.byref(info),
+                ctypes.sizeof(info),
+            ):
+                raise ctypes.WinError(ctypes.get_last_error())
+
+        return _job_handle
+
+    def _assign_process_to_job(process: subprocess.Popen):
+        """Assign a process to the job object so it terminates with the parent."""
+        job = _get_or_create_job()
+        handle = _kernel32.OpenProcess(_PROCESS_ALL_ACCESS, False, process.pid)
+        if handle:
+            try:
+                _kernel32.AssignProcessToJobObject(job, handle)
+            finally:
+                _kernel32.CloseHandle(handle)
+
+
+def run_in_new_process(*args, terminate_with_parent: bool = False, **kwargs):
     """
     Starts a new process with the given arguments.
 
     Args:
       *args (str): The arguments to pass to the new process.
-      **kwargs (str): The keyword arguments to pass to the new process.
+      terminate_with_parent (bool): If True, the child process will be terminated
+          when the parent process exits. If False (default), the child process
+          runs detached and survives parent termination.
+      **kwargs (str): The keyword arguments to pass to subprocess.Popen.
 
     Returns:
       subprocess.Popen: The new process.
     """
     logger.info(f"Starting new process: {' '.join(args)}")
-    if os.name == "posix":
-        p = subprocess.Popen(args, start_new_session=True)
+
+    if terminate_with_parent:
+        # Child should terminate when parent terminates
+        if os.name == "posix":
+            import signal
+            import ctypes as posix_ctypes
+
+            def set_pdeathsig():
+                """Set PR_SET_PDEATHSIG so child receives SIGTERM when parent dies."""
+                PR_SET_PDEATHSIG = 1
+                try:
+                    libc = posix_ctypes.CDLL("libc.so.6", use_errno=True)
+                    libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM)
+                except OSError:
+                    # macOS or other POSIX without libc.so.6 - no direct equivalent
+                    pass
+
+            p = subprocess.Popen(args, preexec_fn=set_pdeathsig, **kwargs)
+        else:
+            # Windows - use Job Objects
+            p = subprocess.Popen(args, **kwargs)
+            try:
+                _assign_process_to_job(p)
+            except Exception as e:
+                logger.warning(f"Failed to assign process to job object: {e}")
     else:
-        # Windows
-        p = subprocess.Popen(
-            args,
-            creationflags=subprocess.DETACHED_PROCESS
-            | subprocess.CREATE_NEW_PROCESS_GROUP,
-            **kwargs,
-        )
+        # Original detached behavior - child survives parent termination
+        if os.name == "posix":
+            p = subprocess.Popen(args, start_new_session=True, **kwargs)
+        else:
+            # Windows
+            p = subprocess.Popen(
+                args,
+                creationflags=subprocess.DETACHED_PROCESS
+                | subprocess.CREATE_NEW_PROCESS_GROUP,
+                **kwargs,
+            )
     return p
 
 
@@ -189,7 +298,7 @@ def start_worker(workerconfig: WorkerJson, debug=False):
                 )
             )
     else:
-        run_in_new_process(*args)
+        run_in_new_process(*args, terminate_with_parent=True)
 
 
 async def check_worker(workerconfig: WorkerJson):
@@ -1509,7 +1618,7 @@ async def assert_worker_manager_running(
                     )
                 )
             else:
-                run_in_new_process(*args)
+                run_in_new_process(*args, terminate_with_parent=True)
 
             await asyncio.sleep(retry_interval)
     else:
