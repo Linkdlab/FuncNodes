@@ -1,23 +1,38 @@
-name: ci
+name: docs
+
 on:
   push:
     branches:
       - doc
+    tags:
+      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+# Prevent two deployments racing and causing non-fast-forward pushes
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed so tags exist + less weird git edge cases
+
       - name: Configure Git Credentials
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
+
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
       - uses: actions/cache@v4
         with:
@@ -25,6 +40,30 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
+
       - run: pip install uv
       - run: uv sync --group docs --upgrade
-      - run: uv run mkdocs gh-deploy  -f docs/mkdocs.yml --force
+
+      - name: Fetch gh-pages (required for mike in CI)
+        run: |
+          git fetch origin gh-pages --depth=1 || true
+
+      - name: Deploy versioned docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          CFG="docs/mkdocs.yml"
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME}"   # e.g. v1.4.0
+
+            # If you prefer major.minor only (e.g. v1.4), uncomment:
+            # VERSION="${VERSION%.*}"
+
+            # Use redirect aliases for maximum hosting compatibility:
+            uv run mike deploy --push --update-aliases -F "$CFG" "$VERSION" latest --alias-type=redirect
+            uv run mike set-default --push -F "$CFG" latest
+          else
+            # Every push to doc updates the "dev" docs
+            uv run mike deploy --push -F "$CFG" dev
+          fi

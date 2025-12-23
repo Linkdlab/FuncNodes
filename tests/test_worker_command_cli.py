@@ -5,6 +5,8 @@ from types import SimpleNamespace
 import pytest
 import pytest_funcnodes  # noqa: F401
 
+pytestmark = pytest.mark.cli
+
 
 def test_add_worker_parser_supports_command_and_collects_unknown_kwargs():
     from funcnodes.__main__ import add_worker_parser

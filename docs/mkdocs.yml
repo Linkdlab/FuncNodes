@@ -6,6 +6,11 @@ repo_name: Linkdlab/funcnodes
 edit_uri: "edit/main/docs/content"
 docs_dir: content
 
+extra:
+  version:
+    provider: mike
+    alias: true # show "latest" etc next to the number
+
 plugins:
   - llmstxt:
       markdown_description: Comprehensive documentation for FuncNodes - a modular workflow automation system.
