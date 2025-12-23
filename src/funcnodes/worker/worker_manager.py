@@ -186,17 +186,58 @@ def run_in_new_process(*args, terminate_with_parent: bool = False, **kwargs):
             import signal
             import ctypes as posix_ctypes
 
-            def set_pdeathsig():
-                """Set PR_SET_PDEATHSIG so child receives SIGTERM when parent dies."""
-                PR_SET_PDEATHSIG = 1
-                try:
-                    libc = posix_ctypes.CDLL("libc.so.6", use_errno=True)
-                    libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM)
-                except OSError:
-                    # macOS or other POSIX without libc.so.6 - no direct equivalent
-                    pass
+            _is_linux = sys.platform.startswith("linux")
 
-            p = subprocess.Popen(args, preexec_fn=set_pdeathsig, **kwargs)
+            if _is_linux:
+
+                def set_pdeathsig():
+                    """Set PR_SET_PDEATHSIG so child receives SIGTERM when parent dies."""
+                    PR_SET_PDEATHSIG = 1
+                    try:
+                        libc = posix_ctypes.CDLL("libc.so.6", use_errno=True)
+                        libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM)
+                    except OSError:
+                        pass
+
+                p = subprocess.Popen(args, preexec_fn=set_pdeathsig, **kwargs)
+            else:
+                # macOS/BSD: No kernel-level equivalent to PR_SET_PDEATHSIG
+                # Use a wrapper that monitors parent PID and kills child when parent dies
+                parent_pid = os.getpid()
+
+                # Wrapper script that monitors parent and runs the actual command
+                wrapper_code = f"""
+import os, signal, subprocess, sys, threading
+
+parent_pid = {parent_pid}
+child_proc = None
+
+def monitor_parent():
+    import time
+    while True:
+        time.sleep(0.5)
+        try:
+            # Check if parent is still alive
+            os.kill(parent_pid, 0)
+        except OSError:
+            # Parent is dead, kill the child
+            if child_proc and child_proc.poll() is None:
+                child_proc.terminate()
+                try:
+                    child_proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    child_proc.kill()
+            os._exit(0)
+
+t = threading.Thread(target=monitor_parent, daemon=True)
+t.start()
+
+child_proc = subprocess.Popen(sys.argv[1:])
+sys.exit(child_proc.wait())
+"""
+                # Run the wrapper with the original command as arguments
+                wrapper_args = [sys.executable, "-c", wrapper_code] + list(args)
+                p = subprocess.Popen(wrapper_args, **kwargs)
         else:
             # Windows - use Job Objects
             p = subprocess.Popen(args, **kwargs)
