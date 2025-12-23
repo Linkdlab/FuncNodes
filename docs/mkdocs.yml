@@ -6,6 +6,43 @@ repo_name: Linkdlab/funcnodes
 edit_uri: "edit/main/docs/content"
 docs_dir: content
 
+extra:
+  version:
+    provider: mike
+    alias: true # show "latest" etc next to the number
+
+plugins:
+  - llmstxt:
+      markdown_description: Comprehensive documentation for FuncNodes - a modular workflow automation system.
+      full_output: llms-full.txt
+      sections:
+        Getting Started:
+          - getting-started/*.md
+        Core Concepts:
+          - components/*.md
+        Architecture:
+          - architecture/*.md
+        Runtime:
+          - components/*.md
+        Extending FuncNodes:
+          - extending/*.md
+        Reference:
+          - api/*.md
+        Help:
+          - faq/*.md
+        API:
+          - api/*.md
+        UI Guide:
+          - ui-guide/*.md
+        Components:
+          - components/*.md
+        Examples:
+          - examples/*.md
+        Modules:
+          - modules/*.md
+        Experimental:
+          - experimental/*.md
+
 theme:
   name: material
   features:
