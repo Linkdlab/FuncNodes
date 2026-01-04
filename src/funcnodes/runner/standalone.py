@@ -132,6 +132,7 @@ class StandaloneLauncher:
         import funcnodes_core as fn_core
 
         fn_core.config.reload(str(self.config_dir))
+        fn_core.logging.set_logging_dir(fn_core.config.get_config_dir() / "logs")
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
     def run_forever(self) -> None:
@@ -186,7 +187,7 @@ class StandaloneLauncher:
         return self.worker_port
 
     def _start_worker(self) -> None:
-        from funcnodes.__main__ import _get_worker_conf, start_new_worker
+        from funcnodes.cli.worker import _get_worker_conf, start_new_worker
         from funcnodes.worker.worker_manager import start_worker
 
         try:
@@ -220,7 +221,7 @@ class StandaloneLauncher:
         self.started_worker = True
 
     def _import_fnw(self) -> None:
-        from funcnodes.__main__ import worker_command_task
+        from funcnodes.cli.worker import worker_command_task
         import base64
 
         base64_fnw_bytes = base64.b64encode(self.fnw_path.read_bytes()).decode("utf-8")
@@ -242,6 +243,6 @@ class StandaloneLauncher:
                     self.fnw_path, config_dir=self.config_dir
                 )
                 if port is not None:
-                    from funcnodes.__main__ import worker_command_task
+                    from funcnodes.cli.worker import worker_command_task
 
                     worker_command_task(command="stop_worker", uuid=self.worker_uuid)

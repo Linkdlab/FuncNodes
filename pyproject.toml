@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "1.4.0"
+version = "1.5.0"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -23,7 +23,8 @@ dependencies = [
     "funcnodes_worker[all]>=1.5.1; sys_platform != 'emscripten'",
     "funcnodes_worker>=1.5.1; sys_platform == 'emscripten'",
     "venvmngr>=0.2.0; sys_platform != 'emscripten'",
-    "uv>=0.5.21; sys_platform != 'emscripten'"
+    "uv>=0.5.21; sys_platform != 'emscripten'",
+    "rich>=14.2.0",
 ]
 
 [project.license]
@@ -50,6 +51,7 @@ dev = [
     "vulture>=2.14",
     "funcnodes[profiling]",
     "pytest-funcnodes>=0.1.0",
+    "pytest-cov",
 ]
 
 docs = [

@@ -1,3 +1,19 @@
+## 1.5.0 (2025-12-23)
+
+### Feat
+
+- **worker-manager**: implement child process termination on macOS/BSD
+- **worker-manager**: terminate child processes with parent
+- **cli**: add modular CLI and rich interactive menu
+- **logging**: set logging directory for funcnodes_core in StandaloneLauncher
+
+### Refactor
+
+- **tests**: migrate tests from unittest to pytest in test_cmd.py and test_worker_manager.py
+- **tests**: further migrate test examples to pytest syntax
+- **tests**: remove obsolete unittest test file
+- **tests**: migrate from unittest to pytest for test examples
+
 ## 1.4.0 (2025-12-18)
 
 ### Feat

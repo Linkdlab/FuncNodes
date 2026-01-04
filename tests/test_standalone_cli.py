@@ -4,6 +4,8 @@ from pathlib import Path
 import pytest
 import pytest_funcnodes  # noqa: F401
 
+pytestmark = pytest.mark.cli
+
 
 def test_add_standalone_parser_parses_args(tmp_path: Path):
     from funcnodes.__main__ import add_standalone_parser, validate_standalone_args
