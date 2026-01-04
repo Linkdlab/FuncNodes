@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://linkdlab.github.io/FuncNodes/dev/components/workermanager/">
+        <link rel="canonical" href="https://linkdlab.github.io/FuncNodes/dev/components/external-workers/">
       
       
-        <link rel="prev" href="../external-workers/">
+        <link rel="prev" href="../worker/">
       
       
-        <link rel="next" href="../config/">
+        <link rel="next" href="../workermanager/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Workermanager - FuncNodes Documentation</title>
+        <title>External Workers - FuncNodes Documentation</title>
       
     
     
@@ -90,7 +90,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#what-is-the-workermanager" class="md-skip">
+        <a href="#external-workers-funcnodesexternalworker" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Workermanager
+              External Workers
             
           </span>
         </div>
@@ -1502,34 +1502,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../external-workers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    External Workers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -1547,7 +1519,7 @@
   <span class="md-ellipsis">
     
   
-    Workermanager
+    External Workers
   
 
     
@@ -1565,7 +1537,7 @@
   <span class="md-ellipsis">
     
   
-    Workermanager
+    External Workers
   
 
     
@@ -1589,10 +1561,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-is-the-workermanager" class="md-nav__link">
+  <a href="#external-workers-funcnodesexternalworker" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is the Workermanager?
+        External Workers (FuncNodesExternalWorker)
       
     </span>
   </a>
@@ -1600,10 +1572,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#message-protocol-websocket" class="md-nav__link">
+  <a href="#mental-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Message protocol (WebSocket)
+        Mental model
       
     </span>
   </a>
@@ -1611,10 +1583,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#files-liveness" class="md-nav__link">
+  <a href="#when-to-use-and-not-use-external-workers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Files &amp; liveness
+        When to use (and not use) external workers
       
     </span>
   </a>
@@ -1622,10 +1594,194 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#virtualenv-dependency-management" class="md-nav__link">
+  <a href="#building-an-external-worker-minimum-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Virtualenv &amp; dependency management
+        Building an external worker (minimum requirements)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building an external worker (minimum requirements)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-define-a-stable-class-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1) Define a stable class id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-implement-an-async-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2) Implement an async loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-expose-instance-methods-as-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3) Expose instance methods as nodes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3) Expose instance methods as nodes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instance_nodefunction-options-practical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        instance_nodefunction() options (practical)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessing-nodes-created-from-a-method-nodes-nodeclass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessing nodes created from a method (.nodes() / .nodeclass())
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-externalworkerconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration (ExternalWorkerConfig)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration (ExternalWorkerConfig)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reacting-to-config-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reacting to config changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#export-vs-save-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Export vs. save (secrets)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#providing-additional-nodes-via-a-shelf-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Providing additional nodes via a Shelf (optional)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Providing additional nodes via a Shelf (optional)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instance-methods-vs-shelf-nodes-how-to-choose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instance methods vs shelf nodes (how to choose)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refresh-mechanics-nodes_update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refresh mechanics ("nodes_update")
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle-and-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle and cleanup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lifecycle and cleanup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cleanup()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discovery-registration-how-external-workers-become-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery &amp; registration (how external workers become available)
       
     </span>
   </a>
@@ -1633,10 +1789,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#auto-start-behavior" class="md-nav__link">
+  <a href="#minimal-template-starter" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Auto-start behavior
+        Minimal template (starter)
       
     </span>
   </a>
@@ -1644,21 +1800,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#security" class="md-nav__link">
+  <a href="#troubleshooting-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Security
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#operations-cheat-sheet" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Operations cheat sheet
+        Troubleshooting checklist
       
     </span>
   </a>
@@ -1669,6 +1814,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workermanager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workermanager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2592,10 +2765,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-is-the-workermanager" class="md-nav__link">
+  <a href="#external-workers-funcnodesexternalworker" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is the Workermanager?
+        External Workers (FuncNodesExternalWorker)
       
     </span>
   </a>
@@ -2603,10 +2776,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#message-protocol-websocket" class="md-nav__link">
+  <a href="#mental-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Message protocol (WebSocket)
+        Mental model
       
     </span>
   </a>
@@ -2614,10 +2787,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#files-liveness" class="md-nav__link">
+  <a href="#when-to-use-and-not-use-external-workers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Files &amp; liveness
+        When to use (and not use) external workers
       
     </span>
   </a>
@@ -2625,10 +2798,194 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#virtualenv-dependency-management" class="md-nav__link">
+  <a href="#building-an-external-worker-minimum-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Virtualenv &amp; dependency management
+        Building an external worker (minimum requirements)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building an external worker (minimum requirements)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-define-a-stable-class-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1) Define a stable class id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-implement-an-async-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2) Implement an async loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-expose-instance-methods-as-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3) Expose instance methods as nodes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3) Expose instance methods as nodes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instance_nodefunction-options-practical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        instance_nodefunction() options (practical)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessing-nodes-created-from-a-method-nodes-nodeclass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessing nodes created from a method (.nodes() / .nodeclass())
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-externalworkerconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration (ExternalWorkerConfig)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration (ExternalWorkerConfig)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reacting-to-config-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reacting to config changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#export-vs-save-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Export vs. save (secrets)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#providing-additional-nodes-via-a-shelf-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Providing additional nodes via a Shelf (optional)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Providing additional nodes via a Shelf (optional)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instance-methods-vs-shelf-nodes-how-to-choose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instance methods vs shelf nodes (how to choose)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#refresh-mechanics-nodes_update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refresh mechanics ("nodes_update")
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle-and-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle and cleanup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lifecycle and cleanup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cleanup()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discovery-registration-how-external-workers-become-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery &amp; registration (how external workers become available)
       
     </span>
   </a>
@@ -2636,10 +2993,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#auto-start-behavior" class="md-nav__link">
+  <a href="#minimal-template-starter" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Auto-start behavior
+        Minimal template (starter)
       
     </span>
   </a>
@@ -2647,21 +3004,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#security" class="md-nav__link">
+  <a href="#troubleshooting-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Security
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#operations-cheat-sheet" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Operations cheat sheet
+        Troubleshooting checklist
       
     </span>
   </a>
@@ -2688,70 +3034,295 @@
   
 
 
-  <h1>Workermanager</h1>
+  <h1>External Workers</h1>
 
-<h2 id="what-is-the-workermanager">What is the Workermanager?<a class="headerlink" href="#what-is-the-workermanager" title="Permanent link">&para;</a></h2>
-<p>The Workermanager is a lightweight aiohttp service that supervises all workers on a host. It:</p>
+<h2 id="external-workers-funcnodesexternalworker">External Workers (<code>FuncNodesExternalWorker</code>)<a class="headerlink" href="#external-workers-funcnodesexternalworker" title="Permanent link">&para;</a></h2>
+<p>An <strong>external worker</strong> is a stateful, long-lived runtime component that runs <em>inside</em> a Worker process and can:</p>
 <ul>
-<li>Maintains worker metadata on disk (<code>~/.funcnodes/workers/worker_&lt;uuid&gt;.json/.p/.runstate</code>).</li>
-<li>Spawns, stops, restarts, deletes, and lists workers.</li>
-<li>Acts as a WebSocket hub so UIs can discover and control workers.</li>
-<li>Optionally provisions per-worker virtualenvs and upgrades packages on activation.</li>
+<li>Maintain persistent state/resources (connections, devices, caches, background tasks).</li>
+<li>Expose <strong>instance-bound nodes</strong> (node functions that operate on that specific instance).</li>
+<li>Optionally provide additional nodes grouped in a <strong>Shelf</strong>.</li>
 </ul>
-<p>By default it listens on <code>localhost:9380</code> at <code>/</code> for WebSocket clients (no auth by default—see Security).</p>
-<h2 id="message-protocol-websocket">Message protocol (WebSocket)<a class="headerlink" href="#message-protocol-websocket" title="Permanent link">&para;</a></h2>
-<p>Simple string commands:</p>
+<p>Use external workers when a pure, stateless node function is not enough—especially when you need a background loop, shared state, or controlled resource management.</p>
+<hr />
+<h2 id="mental-model">Mental model<a class="headerlink" href="#mental-model" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>ping</code> → <code>pong</code></li>
-<li><code>identify</code> → JSON <code>{ "class": "WorkerManager", "py": sys.executable }</code></li>
-<li><code>worker_status</code> → lists active/inactive workers</li>
-<li><code>stop</code> → stop the manager</li>
+<li>A <strong>Worker</strong> hosts a <code>NodeSpace</code> and executes graphs.</li>
+<li>An <strong>external worker class</strong> describes <em>what kind</em> of external worker it is (e.g. “camera”, “instrument”, “service client”).</li>
+<li>An <strong>external worker instance</strong> is a running object with its own state and optional background loop.</li>
+<li>The Worker integrates the instance into the library under an “external worker” namespace so its methods can be used as nodes in the graph.</li>
 </ul>
-<p>JSON commands (selected):</p>
+<hr />
+<h2 id="when-to-use-and-not-use-external-workers">When to use (and not use) external workers<a class="headerlink" href="#when-to-use-and-not-use-external-workers" title="Permanent link">&para;</a></h2>
+<p>Good fits:</p>
 <ul>
-<li><code>{ "type": "new_worker", "kwargs": {...} }</code> → create worker (options: name, reference, copyLib, copyNS, in_venv toggle)</li>
-<li><code>{ "type": "set_active", "workerid": uuid }</code> → activate (start) worker</li>
-<li><code>{ "type": "stop_worker", "workerid": uuid }</code></li>
-<li><code>{ "type": "restart_worker", "workerid": uuid }</code></li>
-<li><code>{ "type": "delete_worker", "workerid": uuid }</code></li>
+<li>Hardware I/O (serial devices, cameras, lab instruments).</li>
+<li>Long-lived network sessions (websocket clients, authenticated API clients).</li>
+<li>Background monitoring (watchers, polling loops, subscriptions).</li>
+<li>Stateful caches shared across many node invocations.</li>
 </ul>
-<p>Responses/broadcasts include:</p>
+<p>Avoid external workers when:</p>
 <ul>
-<li><code>worker_status</code> (active/inactive lists)</li>
-<li><code>worker_created</code> / <code>worker_deleted</code></li>
-<li><code>set_worker</code> (full worker config once reachable)</li>
-<li><code>progress</code> (text + progress float) to drive UI HUDs</li>
+<li>The logic is naturally a pure function (use <code>@NodeDecorator</code>).</li>
+<li>You only need offloading for expensive computation (use <code>separate_thread=True</code> / <code>separate_process=True</code> on nodes).</li>
+<li>State can be passed explicitly through node inputs/outputs without a long-lived object.</li>
 </ul>
-<h2 id="files-liveness">Files &amp; liveness<a class="headerlink" href="#files-liveness" title="Permanent link">&para;</a></h2>
-<p>Each worker has:</p>
+<hr />
+<h2 id="building-an-external-worker-minimum-requirements">Building an external worker (minimum requirements)<a class="headerlink" href="#building-an-external-worker-minimum-requirements" title="Permanent link">&para;</a></h2>
+<h3 id="1-define-a-stable-class-id">1) Define a stable class id<a class="headerlink" href="#1-define-a-stable-class-id" title="Permanent link">&para;</a></h3>
+<p>Every concrete external worker class must define a stable identifier:</p>
 <ul>
-<li><code>worker_&lt;uuid&gt;.json</code> — config (host/port/env paths/nodespace path/flags)</li>
-<li><code>worker_&lt;uuid&gt;.p</code> — PID file written by the worker</li>
-<li><code>worker_&lt;uuid&gt;.runstate</code> — textual status during startup/running</li>
+<li><code>NODECLASSID = "&lt;unique_id&gt;"</code></li>
 </ul>
-<p>Missing or stale files mark workers as inactive; status is refreshed every ~10 s.</p>
-<h2 id="virtualenv-dependency-management">Virtualenv &amp; dependency management<a class="headerlink" href="#virtualenv-dependency-management" title="Permanent link">&para;</a></h2>
+<p>This id is used to:</p>
 <ul>
-<li>New workers default to their own venv unless <code>--not-in-venv</code> was set.</li>
-<li>On activation, optional <code>update_on_startup</code> flags can reinstall <code>funcnodes</code>, <code>funcnodes-core</code>, and unpinned dependencies.</li>
-<li>CLI helpers <code>funcnodes worker modules …</code> run inside the worker env.</li>
+<li>Refer to the worker type in the UI / RPC payloads.</li>
+<li>Construct node ids for instance methods.</li>
 </ul>
-<h2 id="auto-start-behavior">Auto-start behavior<a class="headerlink" href="#auto-start-behavior" title="Permanent link">&para;</a></h2>
-<p>Clients (e.g., <code>funcnodes runserver</code>) call <code>assert_worker_manager_running</code>: it pings/identifies the manager and, if unreachable, spawns a fresh instance via <code>python -m funcnodes startworkermanager</code> (optionally through <code>subprocess_monitor</code>).</p>
-<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
+<p>If you build an abstract base class for reuse, keep it abstract and do not register it as a concrete worker type.</p>
+<h3 id="2-implement-an-async-loop">2) Implement an async loop<a class="headerlink" href="#2-implement-an-async-loop" title="Permanent link">&para;</a></h3>
+<p>External workers are <em>loops</em>. Implement:</p>
 <ul>
-<li>No built-in authentication; expose only behind an authenticated reverse proxy.</li>
-<li>Keep the WS/HTTP ports private; block direct internet access.</li>
-<li>Size limits: large message/store defaults come from worker settings (<code>MAX_DATA_SIZE</code>, message expiry).</li>
-<li>TLS termination is not handled by the Workermanager itself; it serves plain HTTP/WebSocket. Terminate TLS at your proxy/load balancer if you need HTTPS/WSS.</li>
+<li><code>async def loop(self): ...</code></li>
 </ul>
-<h2 id="operations-cheat-sheet">Operations cheat sheet<a class="headerlink" href="#operations-cheat-sheet" title="Permanent link">&para;</a></h2>
+<p>This method is called repeatedly by the worker’s loop manager. Keep it:</p>
 <ul>
-<li>Start manager: <code>funcnodes startworkermanager --host 0.0.0.0 --port 9380</code></li>
-<li>List workers: <code>funcnodes worker list [--full]</code></li>
-<li>New worker: <code>funcnodes worker new --name demo</code></li>
-<li>Start worker: <code>funcnodes worker --name demo start</code></li>
-<li>Delete worker: <code>funcnodes worker --name demo delete</code></li>
+<li>Non-blocking (do not do long synchronous I/O here).</li>
+<li>Resilient (handle intermittent failures; log and continue when safe).</li>
+</ul>
+<p>If you need blocking calls, move them to threads, subprocesses, or async I/O.</p>
+<h3 id="3-expose-instance-methods-as-nodes">3) Expose instance methods as nodes<a class="headerlink" href="#3-expose-instance-methods-as-nodes" title="Permanent link">&para;</a></h3>
+<p>To expose per-instance operations, decorate methods as <strong>instance node functions</strong> via <code>instance_nodefunction()</code>.</p>
+<p>Conceptually:</p>
+<ul>
+<li>Each decorated method becomes a node class in the library.</li>
+<li>The node executes against <em>that external worker instance</em>, so it can use <code>self</code> state.</li>
+</ul>
+<p>Node id convention (conceptual):</p>
+<ul>
+<li><code>&lt;NODECLASSID&gt;.&lt;instance_uuid&gt;.&lt;method_name&gt;</code></li>
+</ul>
+<p>Concrete example:</p>
+<ul>
+<li><code>my_worker.2f3a8c7f1b4a4b3c8d9e0f1a2b3c4d5e.get_status</code></li>
+</ul>
+<p>Here, <code>2f3a...</code> is the <strong>external worker instance UUID</strong> (not the Worker process UUID).</p>
+<h4 id="instance_nodefunction-options-practical"><code>instance_nodefunction()</code> options (practical)<a class="headerlink" href="#instance_nodefunction-options-practical" title="Permanent link">&para;</a></h4>
+<p><code>instance_nodefunction()</code> accepts:</p>
+<ul>
+<li><strong>Node metadata</strong> (similar to <code>@NodeDecorator</code>), e.g. <code>default_io_options</code>, <code>default_render_options</code>, <code>description</code>.</li>
+<li><strong>Exposed method metadata</strong>, e.g. <code>inputs=[...]</code> and <code>outputs=[...]</code> to override/extend derived I/O schemas.</li>
+<li><strong><code>trigger_on_call</code></strong>: whether calling the instance method directly should <code>request_trigger()</code> any existing nodes of that method.</li>
+<li>If omitted (<code>None</code>), it defaults to “trigger on call if the node has no inputs”.</li>
+</ul>
+<p>Examples:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">funcnodes_core</span><span class="w"> </span><span class="kn">import</span> <span class="n">instance_nodefunction</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyWorker</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="nd">@instance_nodefunction</span><span class="p">(</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">outputs</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">}],</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">default_render_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;src&quot;</span><span class="p">:</span> <span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">}},</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="k">return</span> <span class="s2">&quot;ok&quot;</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyWorker</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="nd">@instance_nodefunction</span><span class="p">(</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="n">trigger_on_call</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="n">default_io_options</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>            <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;value_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;fast&quot;</span><span class="p">,</span> <span class="s2">&quot;safe&quot;</span><span class="p">]}},</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="p">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;safe&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="o">...</span>
+</span></code></pre></div>
+<h4 id="accessing-nodes-created-from-a-method-nodes-nodeclass">Accessing nodes created from a method (<code>.nodes()</code> / <code>.nodeclass()</code>)<a class="headerlink" href="#accessing-nodes-created-from-a-method-nodes-nodeclass" title="Permanent link">&para;</a></h4>
+<p>At runtime, instance node functions also provide helper APIs:</p>
+<ul>
+<li><code>self.&lt;method&gt;.nodes()</code> returns the current node instances created from that method for <em>this</em> external worker instance.</li>
+<li><code>self.&lt;method&gt;.nodeclass()</code> returns the generated node class for that method for <em>this</em> instance.</li>
+</ul>
+<p>This is commonly used to update input defaults/options dynamically (e.g., after config or state changes).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyWorker</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="nd">@instance_nodefunction</span><span class="p">(</span><span class="n">default_io_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;item&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;value_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="p">[]}}})</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">pick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="k">return</span> <span class="n">item</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">refresh_items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pick</span><span class="o">.</span><span class="n">nodes</span><span class="p">():</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>            <span class="n">node</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update_value_options</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="n">items</span><span class="p">)</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">pick</span><span class="o">.</span><span class="n">nodeclass</span><span class="p">()</span><span class="o">.</span><span class="n">input_item</span><span class="o">.</span><span class="n">update_value_options</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="n">items</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Note: older code may pass <code>self</code> into <code>nodes(self)</code> / <code>nodeclass(self)</code>; that instance argument is deprecated.</p>
+<hr />
+<hr />
+<h2 id="configuration-externalworkerconfig">Configuration (<code>ExternalWorkerConfig</code>)<a class="headerlink" href="#configuration-externalworkerconfig" title="Permanent link">&para;</a></h2>
+<p>External workers can declare a Pydantic config model to drive:</p>
+<ul>
+<li>Validation/defaults for worker configuration.</li>
+<li>JSON schema for UI forms.</li>
+</ul>
+<p>Pattern:</p>
+<ul>
+<li>Create <code>class MyConfig(ExternalWorkerConfig): ...</code></li>
+<li>Set <code>config_cls = MyConfig</code> on the external worker class.</li>
+</ul>
+<h3 id="reacting-to-config-changes">Reacting to config changes<a class="headerlink" href="#reacting-to-config-changes" title="Permanent link">&para;</a></h3>
+<p>External workers typically implement a “post update” hook to apply changes:</p>
+<ul>
+<li>Validate and apply config changes safely and idempotently.</li>
+<li>If the set of exposed nodes/shelves depends on config, trigger a refresh (see below).</li>
+</ul>
+<p>Common pattern:</p>
+<ol>
+<li>Read <code>self.config</code> (already validated/merged).</li>
+<li>Apply changes to internal state/resources.</li>
+<li>If the <em>library surface</em> changed (shelf contents or UI options), emit a nodes update.</li>
+</ol>
+<h3 id="export-vs-save-secrets">Export vs. save (secrets)<a class="headerlink" href="#export-vs-save-secrets" title="Permanent link">&para;</a></h3>
+<p>Worker <em>exports</em> (for sharing/migration) should not leak secrets.</p>
+<p>If your config includes tokens/credentials, mark them as non-exportable:</p>
+<ul>
+<li>Class-level: <code>EXPORT_EXCLUDE_FIELDS = {"token", ...}</code></li>
+<li>Field-level: set a JSON schema extra flag <code>export: false</code> on that field.</li>
+</ul>
+<p>The goal is:</p>
+<ul>
+<li>Normal saves preserve full state for local use.</li>
+<li>Exports redact sensitive fields.</li>
+</ul>
+<hr />
+<h2 id="providing-additional-nodes-via-a-shelf-optional">Providing additional nodes via a Shelf (optional)<a class="headerlink" href="#providing-additional-nodes-via-a-shelf-optional" title="Permanent link">&para;</a></h2>
+<p>Beyond instance methods, an external worker can optionally provide a <code>Shelf</code> by implementing <code>get_nodeshelf()</code>:</p>
+<ul>
+<li>This is useful when you want to group extra nodes under a named subshelf.</li>
+<li>The shelf can be computed dynamically based on current worker state/config.</li>
+</ul>
+<p>Signature (conceptual):</p>
+<ul>
+<li><code>def get_nodeshelf(self) -&gt; Optional[Shelf]: ...</code></li>
+</ul>
+<p>Behavior:</p>
+<ul>
+<li>If it returns <code>None</code>, no subshelf is added.</li>
+<li>If it returns a <code>Shelf</code>, the Worker adds it as a <strong>weak subshelf</strong> for the external worker instance.</li>
+</ul>
+<h3 id="instance-methods-vs-shelf-nodes-how-to-choose">Instance methods vs shelf nodes (how to choose)<a class="headerlink" href="#instance-methods-vs-shelf-nodes-how-to-choose" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Prefer <strong>instance methods</strong> for operations that must run against the instance state (<code>self</code>).</li>
+<li>Prefer a <strong>shelf</strong> when you want to expose a grouped set of nodes that is:</li>
+<li>generated dynamically (e.g. based on config or discovered capabilities), or</li>
+<li>not naturally expressed as a single method-per-node on the instance.</li>
+</ul>
+<h3 id="refresh-mechanics-nodes_update">Refresh mechanics (<code>"nodes_update"</code>)<a class="headerlink" href="#refresh-mechanics-nodes_update" title="Permanent link">&para;</a></h3>
+<p>If the shelf contents or UI options depend on state/config changes:</p>
+<ul>
+<li>Emit a <code>"nodes_update"</code> event (<code>self.emit("nodes_update")</code>) after the change.</li>
+<li>Alternatively, set/replace the shelf (which emits <code>"nodes_update"</code> internally when a shelf is assigned).</li>
+</ul>
+<p>Minimal sketch:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">funcnodes_core</span><span class="w"> </span><span class="kn">import</span> <span class="n">Shelf</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyWorker</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_nodeshelf</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Shelf</span><span class="p">]:</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodeshelf</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">post_config_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_nodeshelf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_shelf_from_config</span><span class="p">()</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s2">&quot;nodes_update&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="lifecycle-and-cleanup">Lifecycle and cleanup<a class="headerlink" href="#lifecycle-and-cleanup" title="Permanent link">&para;</a></h2>
+<p>External workers should clearly define:</p>
+<ul>
+<li>What resources are acquired (files, sockets, threads, subprocesses).</li>
+<li>How they are released on stop.</li>
+</ul>
+<p>Recommended approach:</p>
+<ul>
+<li>Keep resource acquisition in init/setup methods that can fail cleanly.</li>
+<li>Ensure stop triggers cleanup and ends the loop promptly.</li>
+<li>Avoid reference cycles (event handlers capturing <code>self</code>, long-lived closures) that prevent garbage collection.</li>
+</ul>
+<h3 id="cleanup"><code>cleanup()</code><a class="headerlink" href="#cleanup" title="Permanent link">&para;</a></h3>
+<p>External workers inherit cleanup behavior from <code>NodeClassMixin</code>:</p>
+<ul>
+<li><code>cleanup()</code> cleans up all node instances created for this external worker instance.</li>
+<li><code>stop()</code> calls <code>cleanup()</code> as part of shutdown.</li>
+</ul>
+<p>If you override <code>cleanup()</code> to release extra resources, always call <code>super().cleanup()</code> as well.</p>
+<hr />
+<h2 id="discovery-registration-how-external-workers-become-available">Discovery &amp; registration (how external workers become available)<a class="headerlink" href="#discovery-registration-how-external-workers-become-available" title="Permanent link">&para;</a></h2>
+<p>There are two common ways external worker classes become available to a Worker:</p>
+<ol>
+<li>
+<p><strong>Local scripts (development/experiments)</strong>
+   A Worker can scan a local scripts directory and discover subclasses placed there.</p>
+</li>
+<li>
+<p>Default location: <code>&lt;worker_data_path&gt;/local_scripts/</code></p>
+</li>
+<li>Any <code>*.py</code> file in that folder (recursively) can define subclasses of <code>FuncNodesExternalWorker</code>.</li>
+<li>
+<p>Discovered classes become available to instantiate as external worker instances.</p>
+</li>
+<li>
+<p><strong>Module-provided external workers (packaged distribution)</strong>
+   A FuncNodes module can advertise external worker classes via its <code>funcnodes.module</code> entry points under the key <code>external_worker</code>.</p>
+</li>
+</ol>
+<p>Minimal <code>pyproject.toml</code> entry point:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;funcnodes.module&quot;</span><span class="k">]</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">module</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_pkg&quot;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">shelf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_pkg:NODE_SHELF&quot;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">external_worker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_pkg:FUNCNODES_WORKER_CLASSES&quot;</span>
+</span></code></pre></div>
+<p>And in <code>my_pkg/__init__.py</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">.my_worker</span><span class="w"> </span><span class="kn">import</span> <span class="n">MyWorker</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">FUNCNODES_WORKER_CLASSES</span> <span class="o">=</span> <span class="p">[</span><span class="n">MyWorker</span><span class="p">]</span>
+</span></code></pre></div>
+<p><code>FUNCNODES_WORKER_CLASSES</code> may also be a single class instead of a list/tuple.</p>
+<p>The Worker then exposes these “available worker classes” so the UI can instantiate and manage instances.</p>
+<hr />
+<h2 id="minimal-template-starter">Minimal template (starter)<a class="headerlink" href="#minimal-template-starter" title="Permanent link">&para;</a></h2>
+<p>This is a minimal shape of an external worker. Replace the method decorators and config fields to fit your use case.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">funcnodes_worker</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuncNodesExternalWorker</span><span class="p">,</span> <span class="n">ExternalWorkerConfig</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">funcnodes_core</span><span class="w"> </span><span class="kn">import</span> <span class="n">instance_nodefunction</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyWorkerConfig</span><span class="p">(</span><span class="n">ExternalWorkerConfig</span><span class="p">):</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">interval_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyWorker</span><span class="p">(</span><span class="n">FuncNodesExternalWorker</span><span class="p">):</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">NODECLASSID</span> <span class="o">=</span> <span class="s2">&quot;my_worker&quot;</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="n">config_cls</span> <span class="o">=</span> <span class="n">MyWorkerConfig</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        <span class="c1"># background maintenance work (non-blocking)</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="o">...</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">post_config_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        <span class="c1"># apply config changes; optionally refresh nodes/shelf</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="o">...</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>    <span class="nd">@instance_nodefunction</span><span class="p">()</span>
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>        <span class="c1"># instance-bound node that reads state</span>
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>        <span class="k">return</span> <span class="s2">&quot;ok&quot;</span>
+</span></code></pre></div>
+<hr />
+<h2 id="troubleshooting-checklist">Troubleshooting checklist<a class="headerlink" href="#troubleshooting-checklist" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>TypeError</code> about awaiting <code>None</code></strong>: <code>loop()</code> must be <code>async def loop(self): ...</code>.</li>
+<li><strong>Worker becomes unresponsive</strong>: avoid blocking I/O in <code>loop()</code> and <code>post_config_update()</code>; offload to async/thread/process as needed.</li>
+<li><strong>UI does not update options/shelf</strong>: emit <code>self.emit("nodes_update")</code> after changing shelf or updating node input options.</li>
+<li><strong>Secrets leaked in exports</strong>: exclude sensitive config fields via <code>EXPORT_EXCLUDE_FIELDS</code> / field <code>export: false</code>.</li>
 </ul>
 
 
@@ -2790,7 +3361,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../external-workers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: External Workers">
+          <a href="../worker/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Workers">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2800,20 +3371,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                External Workers
+                Workers
               </div>
             </div>
           </a>
         
         
           
-          <a href="../config/" class="md-footer__link md-footer__link--next" aria-label="Next: Global Config">
+          <a href="../workermanager/" class="md-footer__link md-footer__link--next" aria-label="Next: Workermanager">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Global Config
+                Workermanager
               </div>
             </div>
             <div class="md-footer__button md-icon">

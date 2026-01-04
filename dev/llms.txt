@@ -13,6 +13,7 @@ Comprehensive documentation for FuncNodes - a modular workflow automation system
 ## Core Concepts
 
 - [Global Config](https://linkdlab.github.io/FuncNodes/dev/components/config/index.md)
+- [External Workers](https://linkdlab.github.io/FuncNodes/dev/components/external-workers/index.md)
 - [Inputs & Outputs](https://linkdlab.github.io/FuncNodes/dev/components/inputs-outputs/index.md)
 - [Library Registry](https://linkdlab.github.io/FuncNodes/dev/components/lib/index.md)
 - [Creating Nodes](https://linkdlab.github.io/FuncNodes/dev/components/node/index.md)
@@ -36,6 +37,7 @@ Comprehensive documentation for FuncNodes - a modular workflow automation system
 ## Runtime
 
 - [Global Config](https://linkdlab.github.io/FuncNodes/dev/components/config/index.md)
+- [External Workers](https://linkdlab.github.io/FuncNodes/dev/components/external-workers/index.md)
 - [Inputs & Outputs](https://linkdlab.github.io/FuncNodes/dev/components/inputs-outputs/index.md)
 - [Library Registry](https://linkdlab.github.io/FuncNodes/dev/components/lib/index.md)
 - [Creating Nodes](https://linkdlab.github.io/FuncNodes/dev/components/node/index.md)
@@ -73,6 +75,7 @@ Comprehensive documentation for FuncNodes - a modular workflow automation system
 ## Components
 
 - [Global Config](https://linkdlab.github.io/FuncNodes/dev/components/config/index.md)
+- [External Workers](https://linkdlab.github.io/FuncNodes/dev/components/external-workers/index.md)
 - [Inputs & Outputs](https://linkdlab.github.io/FuncNodes/dev/components/inputs-outputs/index.md)
 - [Library Registry](https://linkdlab.github.io/FuncNodes/dev/components/lib/index.md)
 - [Creating Nodes](https://linkdlab.github.io/FuncNodes/dev/components/node/index.md)
