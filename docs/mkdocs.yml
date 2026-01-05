@@ -163,6 +163,7 @@ nav:
 
   - Runtime:
       - Workers: components/worker.md
+      - External Workers: components/external-workers.md
       - Workermanager: components/workermanager.md
       - Configuration:
           - Global Config: components/config.md

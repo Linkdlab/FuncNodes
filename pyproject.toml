@@ -52,6 +52,7 @@ dev = [
     "funcnodes[profiling]",
     "pytest-funcnodes>=0.1.0",
     "pytest-cov",
+    "ipykernel>=7.1.0",
 ]
 
 docs = [

@@ -20,6 +20,8 @@ The worker event loop runs several recurring tasks:
 
 Defaults can be tuned via worker config (e.g., `nodespace_delay`, `save_delay`) for responsiveness vs. CPU/disk usage.
 
+For stateful integrations that provide instance-bound nodes and background loops, see [External Workers](external-workers.md).
+
 ## RPC surface (WebSocket JSON)
 
 Clients send `{"type":"cmd","cmd":<name>,"kwargs":{...}}`; worker replies with `result` or `error`. Common commands:
