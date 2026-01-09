@@ -16,214 +16,206 @@ const divid_to_div_id = (div_or_id) => {
     divid = div.getAttribute("id");
   }
   if (!div) {
-    throw new Exception("div element does not exist for id", divid);
+    throw new Error("div element does not exist for id: " + divid);
   }
 
   if (!divid) {
-    throw new Exception("div element does not have an id", div);
+    throw new Error("div element does not have an id");
   }
   return [div, divid];
 };
 
-window.active_workers = [];
-window.webworkers = {};
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
 
-window.inject_fn_on_div = ({ id, fnw_url, shared_worker = false }) => {
-  const [div, divid] = divid_to_div_id(id);
-
-  const workerurl =
-    baseurl +
-    (shared_worker
-      ? "static/funcnodespyodide/pyodideSharedWorker.js"
-      : "static/funcnodespyodide/pyodideDedicatedWorker.js");
-
-  console.log("workerurl", shared_worker, workerurl);
-  let webworker = window.webworkers[divid];
-  if (webworker == undefined) {
-    if (shared_worker) {
-      webworker = new SharedWorker(workerurl, {
-        type: "module",
-        name: id,
-      });
+const fetch_fnw_url = async (fnw_url) => {
+  if (!fnw_url) {
+    return null;
+  }
+  if (fnw_url.length === 0) {
+    return null;
+  }
+  let exportStr = null;
+  try {
+    const url = new URL(fnw_url, window.location.href).toString();
+    console.log("preloading worker export from", url);
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.error(
+        `Failed to load worker export (${resp.status}) from ${url}`
+      );
     } else {
-      webworker = new Worker(workerurl, {
-        type: "module",
-        name: id,
-      });
-    }
+      const buf = await resp.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b; // "PK"
 
-    window.webworkers[id] = webworker;
+      exportStr = isZip
+        ? arrayBufferToBase64(buf)
+        : new TextDecoder().decode(bytes).trim();
+
+      console.log("worker export loaded (chars)", exportStr.length);
+    }
+  } catch (e) {
+    console.error("Failed to preload worker export from URL", e);
   }
-  const fnworker = new FuncNodes.FuncnodesPyodideWorker({
-    // worker_url: workerurl,
-    shared_worker: shared_worker,
-    uuid: divid,
-    // worker: webworker,
-  });
-  console.log("fnw_url", fnw_url);
-  const fn = window.FuncNodes(div, {
-    useWorkerManager: false,
-    worker: fnworker,
-    fnw_url: fnw_url,
-  });
-
-  window.active_workers.push(fnworker);
-  const observer = new MutationObserver((mutationsList, observer) => {
-    //check if the div is removed
-    if (!document.getElementById(divid)) {
-      observer.disconnect();
-      fn.root.unmount();
-      fnworker.stop();
-      window.active_workers = window.active_workers.filter(
-        (w) => w !== fnworker
-      );
-      return;
-    }
-  });
-  observer.observe(document, { childList: true, subtree: true });
+  return exportStr;
 };
 
-window.nodebuilderwebworkers = {};
-window.inject_nodebuilder_into_div = ({
-  id,
-  shared_worker = true,
-  worker_id = "nodbuilder_worker",
-  show_python_editor = false,
-  python_code = "",
-}) => {
+window.inject_fn_on_div = async ({ id, fnw_url, shared_worker = false }) => {
   const [div, divid] = divid_to_div_id(id);
 
-  if (div.getAttribute("active") === "true") {
-    return;
-  }
+  console.log("fnw_url", fnw_url);
+  let exportStr = await fetch_fnw_url(fnw_url);
 
-  // set div attribute active to true
-  div.setAttribute("active", "true");
-
-  // const workerurl =
-  //   baseurl +
-  //   (shared_worker
-  //     ? "static/nodebuilder/pyodideSharedWorker.js"
-  //     : "static/nodebuilder/pyodideDedicatedWorker.js");
-
-  // let webworker = window.nodebuilderwebworkers[worker_id];
-  // if (webworker == undefined) {
-  //   if (shared_worker) {
-  //     webworker = new SharedWorker(workerurl, {
-  //       type: "module",
-  //       name: worker_id,
-  //     });
-  //   } else {
-  //     webworker = new Worker(workerurl, {
-  //       type: "module",
-  //       name: worker_id,
-  //     });
-  //   }
-
-  //   window.nodebuilderwebworkers[worker_id] = webworker;
-  // }
-
-  // const fnworker = new FuncNodes.FuncnodesPyodideWorker({
-  //   // worker_url: workerurl,
-  //   shared_worker: webworker instanceof SharedWorker,
-  //   uuid: divid,
-  //   worker: webworker,
-  // });
-
-  fn = NodeBuilder(div, {
-    python_code: python_code,
-    show_python_editor: show_python_editor,
-  });
-
-  const observer = new MutationObserver((mutationsList, observer) => {
-    //check if the div is removed
-    if (!document.getElementById(divid)) {
-      observer.disconnect();
-      fnworker.stop();
-      fn.root.unmount();
-      window.active_workers = window.active_workers.filter(
-        (w) => w !== fnworker
-      );
-      //remove div attribute active
-      div.removeAttribute("active");
-      return;
+  const fn = window.FuncNodes.FuncnodesPyodide(
+    div,
+    {
+      shared_worker: shared_worker,
+      uuid: divid,
+      post_worker_initialized: async (worker) => {
+        if (exportStr) {
+          await worker.update_from_export(exportStr);
+        }
+      },
+    },
+    {
+      // fnw_url: fnw_url,
     }
-  });
-  observer.observe(document, { childList: true, subtree: true });
+  );
 };
 
-const parse_nodebuildder_divs = () => {
-  //get all divs with class nodebuilder
-  const divs = document.querySelectorAll(".nodebuilder");
-  //parse each div
-  divs.forEach((div) => {
-    //make sure div has an id
-    if (!div.getAttribute("id")) {
-      throw new Exception("div element does not have an id", div);
-    }
+// window.nodebuilderwebworkers = {};
+// window.inject_nodebuilder_into_div = ({
+//   id,
+//   show_python_editor = false,
+//   python_code = "",
+// }) => {
+//   const [div, divid] = divid_to_div_id(id);
+//   div.classList.add("nodebuilder");
+//   div.setAttribute("pycode", python_code);
+//   if (window.nodebuilderwebworkers[divid]) {
+//     return;
+//   }
 
-    //get code from div
-    let python_code;
-    const python_code_src = div.getAttribute("code-source");
-    if (python_code_src) {
-      let codenode;
-      if (python_code_src.startsWith("prev_")) {
-        const identifiertoget = python_code_src.replace("prev_", "");
-        codenode = div.previousElementSibling;
-        while (codenode && !codenode.classList.contains(identifiertoget)) {
-          codenode = codenode.previousElementSibling;
-        }
-        if (!codenode || !codenode.classList.contains(identifiertoget)) {
-          console.error(
-            `NodeBuilder element does not have a previous sibling with class ${identifiertoget}`,
-            node
-          );
-          return;
-        }
-      } else if (python_code_src.startsWith("next_")) {
-        const identifiertoget = python_code_src.replace("next_", "");
-        codenode = div.nextElementSibling;
-        while (codenode && !codenode.classList.contains(identifiertoget)) {
-          codenode = codenode.nextElementSibling;
-        }
-        if (!codenode || !codenode.classList.contains(identifiertoget)) {
-          console.error(
-            `NodeBuilder element does not have a next sibling with class ${identifiertoget}`,
-            node
-          );
-          return;
-        }
-      } else {
-        console.log("python_code_src", python_code_src);
-      }
+//   if (div.getAttribute("active") === "true") {
+//     return;
+//   }
 
-      python_code = codenode.textContent.trim();
-    }
+//   // set div attribute active to true
+//   div.setAttribute("active", "true");
 
-    if (!python_code || python_code.trim() === "") {
-      console.error("NodeBuilder element does not have a code-source", div);
-      return;
-    }
+//   const fn = NodeBuilder(div, {
+//     python_code: python_code,
+//     show_python_editor: show_python_editor,
+//   });
+//   console.log("fn", fn);
+//   window.nodebuilderwebworkers[divid] = fn;
+// };
 
-    let height = div.getAttribute("nodebuilder-height") || "300px";
-    let width = div.getAttribute("nodebuilder-width") || "300px";
+// window.unmount = (id) => {
+//   try {
+//     const [div, divid] = divid_to_div_id(id);
+//     console.log("unmounting", divid);
+//     id = divid;
+//     div.setAttribute("active", "false");
+//   } catch (e) {}
+//   console.log("disposing", id);
+//   window.nodebuilderwebworkers[id].dispose();
+//   delete window.nodebuilderwebworkers[id];
+// };
 
-    div.style.height = height;
-    div.style.width = width;
+// const parse_nodebuildder_divs = () => {
+//   //get all divs with class nodebuilder
+//   console.log("parse_nodebuildder_divs");
+//   const divs = document.querySelectorAll(".nodebuilder");
+//   const workers_to_remove = Object.keys(window.nodebuilderwebworkers);
+//   //parse each div
+//   divs.forEach((div) => {
+//     //make sure div has an id
+//     if (!div.getAttribute("id")) {
+//       throw new Error("div element does not have an id", div);
+//     }
 
-    worker_id = div.getAttribute("worker-id") || "code_nodbuilder_worker";
-    inject_nodebuilder_into_div({
-      id: div,
-      python_code: python_code,
-      show_python_editor: false,
-      worker_id: worker_id,
-    });
-  });
-};
+//     //get code from div
+//     let python_code = div.getAttribute("pycode");
+//     const python_code_src = div.getAttribute("code-source");
+//     if (python_code_src) {
+//       let codenode;
+//       if (python_code_src.startsWith("prev_")) {
+//         const identifiertoget = python_code_src.replace("prev_", "");
+//         codenode = div.previousElementSibling;
+//         while (codenode && !codenode.classList.contains(identifiertoget)) {
+//           codenode = codenode.previousElementSibling;
+//         }
+//         if (!codenode || !codenode.classList.contains(identifiertoget)) {
+//           console.error(
+//             `NodeBuilder element does not have a previous sibling with class ${identifiertoget}`,
+//             node
+//           );
+//           return;
+//         }
+//       } else if (python_code_src.startsWith("next_")) {
+//         const identifiertoget = python_code_src.replace("next_", "");
+//         codenode = div.nextElementSibling;
+//         while (codenode && !codenode.classList.contains(identifiertoget)) {
+//           codenode = codenode.nextElementSibling;
+//         }
+//         if (!codenode || !codenode.classList.contains(identifiertoget)) {
+//           console.error(
+//             `NodeBuilder element does not have a next sibling with class ${identifiertoget}`,
+//             node
+//           );
+//           return;
+//         }
+//       } else {
+//         console.log("python_code_src", python_code_src);
+//       }
 
-const domoberserver = new MutationObserver((mutationsList, observer) => {});
-domoberserver.observe(document, { childList: true, subtree: true });
+//       python_code = codenode.textContent.trim();
+//     }
 
-document.addEventListener("DOMContentLoaded", function (event) {
-  parse_nodebuildder_divs();
-});
+//     if (!python_code || python_code.trim() === "") {
+//       console.error("NodeBuilder element does not have a code-source", div);
+//       return;
+//     }
+
+//     let height =
+//       div.getAttribute("nodebuilder-height") || div.style.height || "300px";
+//     let width =
+//       div.getAttribute("nodebuilder-width") || div.style.width || "300px";
+
+//     div.style.height = height;
+//     div.style.width = width;
+
+//     worker_id = div.getAttribute("worker-id") || "code_nodbuilder_worker";
+//     inject_nodebuilder_into_div({
+//       id: div,
+//       python_code: python_code,
+//       show_python_editor: false,
+//       worker_id: worker_id,
+//     });
+//     workers_to_remove.splice(
+//       workers_to_remove.indexOf(divid_to_div_id(div)[1]),
+//       1
+//     );
+//   });
+//   workers_to_remove.forEach((worker_id) => {
+//     unmount(worker_id);
+//   });
+// };
+
+// const domoberserver = new MutationObserver((mutationsList, observer) => {
+//   parse_nodebuildder_divs();
+// });
+// domoberserver.observe(document, { childList: true, subtree: true });
+
+// document.addEventListener("DOMContentLoaded", function (event) {
+//   parse_nodebuildder_divs();
+// });

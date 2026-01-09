@@ -57,8 +57,6 @@
       
     
     
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.css">
-    
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.css">
     
       <link rel="stylesheet" href="static/css/style.css">
@@ -2776,22 +2774,41 @@
 <h2 id="try-it-now">Try It Now<a class="headerlink" href="#try-it-now" title="Permanent link">&para;</a></h2>
 <p>Create nodes interactively—the preview updates as you type:</p>
 <div>
-<div id="node-code-demo" style="width:100%;aspect-ratio : 2 / 1;" ></div>
+<div id="node-code-demo" style="width:100%;aspect-ratio : 2 / 1;"  ></div>
 <script>
 (()=>{
-if (window.inject_fn_on_div) inject_nodebuilder_into_div({
-  id: document.getElementById("node-code-demo"),
-  python_code: default_py_editor_code,
-  show_python_editor: true,
-});
-else
-document.addEventListener("DOMContentLoaded", function (event) {
-  window.inject_nodebuilder_into_div({
-    id: document.getElementById("node-code-demo"),
-    python_code: default_py_editor_code,
-    show_python_editor: true,
+  const hideandbefore=(ele,show)=>{
+      console.log(ele,show,ele===window,window);
+      const d =show?"unset":"none"
+      ele.style.display=d;
+      while(ele.tagName!="HR"){
+        ele=ele.previousElementSibling
+        if(!ele) break;
+        ele.style.display=d;
+        console.log(ele);
+      }
+    };
+  const inj = ()=>{
+    const ele=document.getElementById("node-code-demo");
+    const parent=ele.parentElement;
+    if (parent===window)return false;
+    if (window.inject_nodebuilder_into_div){
+      inject_nodebuilder_into_div({
+        id: ele,
+        python_code: default_py_editor_code,
+        show_python_editor: true,
+      })
+      hideandbefore(parent,true);
+      return true;
+    }
+    hideandbefore(parent,false);
+    return false;
+  }
+  if (window.inject_nodebuilder_into_div) inj();
+  else
+    document.addEventListener("DOMContentLoaded", function (event) {
+    inj()
   });
-});
 })();
 </script>
 </div>
@@ -3043,8 +3060,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
       <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.es.js" type="module"></script>
-      
-        <script src="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.es.js" type="module"></script>
       
         <script src="static/js/basic_funcnodes_pyodide.js"></script>
       

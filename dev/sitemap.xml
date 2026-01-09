@@ -2,142 +2,142 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/api/cli/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/architecture/core-components/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/architecture/event-system/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/architecture/message-protocol/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/architecture/overview/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/architecture/worker-components/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/config/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/external-workers/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/inputs-outputs/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/lib/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/node/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/nodeinput/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/nodeoutput/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/nodespace/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/serialization/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/shelf/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/worker/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/worker_config/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/components/workermanager/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/examples/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/examples/cat/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/examples/csv/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/examples/titanic/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/experimental/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/experimental/standalone/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/extending/react-plugins/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/extending/testing-modules/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/extending/writing-modules/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/faq/common-issues/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/getting-started/basic_usage/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/getting-started/installation/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/getting-started/introduction/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/modules/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
     <url>
          <loc>https://linkdlab.github.io/FuncNodes/dev/ui-guide/react_flow/web-ui/</loc>
-         <lastmod>2026-01-05</lastmod>
+         <lastmod>2026-01-09</lastmod>
     </url>
 </urlset>
