@@ -24,22 +24,41 @@ Then create a worker, add modules, and start building workflows visually.
 Create nodes interactively—the preview updates as you type:
 
 <div>
-<div id="node-code-demo" style="width:100%;aspect-ratio : 2 / 1;" ></div>
+<div id="node-code-demo" style="width:100%;aspect-ratio : 2 / 1;"  ></div>
 <script>
 (()=>{
-if (window.inject_fn_on_div) inject_nodebuilder_into_div({
-  id: document.getElementById("node-code-demo"),
-  python_code: default_py_editor_code,
-  show_python_editor: true,
-});
-else
-document.addEventListener("DOMContentLoaded", function (event) {
-  window.inject_nodebuilder_into_div({
-    id: document.getElementById("node-code-demo"),
-    python_code: default_py_editor_code,
-    show_python_editor: true,
+  const hideandbefore=(ele,show)=>{
+      console.log(ele,show,ele===window,window);
+      const d =show?"unset":"none"
+      ele.style.display=d;
+      while(ele.tagName!="HR"){
+        ele=ele.previousElementSibling
+        if(!ele) break;
+        ele.style.display=d;
+        console.log(ele);
+      }
+    };
+  const inj = ()=>{
+    const ele=document.getElementById("node-code-demo");
+    const parent=ele.parentElement;
+    if (parent===window)return false;
+    if (window.inject_nodebuilder_into_div){
+      inject_nodebuilder_into_div({
+        id: ele,
+        python_code: default_py_editor_code,
+        show_python_editor: true,
+      })
+      hideandbefore(parent,true);
+      return true;
+    }
+    hideandbefore(parent,false);
+    return false;
+  }
+  if (window.inject_nodebuilder_into_div) inj();
+  else
+    document.addEventListener("DOMContentLoaded", function (event) {
+    inj()
   });
-});
 })();
 </script>
 </div>
