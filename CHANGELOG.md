@@ -1,3 +1,11 @@
+## 1.5.1 (2026-01-09)
+
+### Refactor
+
+- update documentation and remove deprecated files
+
+## v1.5.0 (2025-12-23)
+
 ## 1.5.0 (2025-12-23)
 
 ### Feat
@@ -431,7 +439,7 @@
 ## v0.4.37 (2024-11-07)
 
 ### Other
-- relaod repos on update
+- reload repos on update
 
 ## v0.4.36 (2024-11-07)
 

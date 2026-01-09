@@ -92,13 +92,13 @@ theme:
 extra_javascript:
   - path: https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.es.js
     type: module
-  - path: https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.es.js
-    type: module
+  # - path: https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@main/public/funcnodes_nodebuilder.es.js
+  # type: module
   - static/js/basic_funcnodes_pyodide.js
   # - static/js/noderenderer.js
 
 extra_css:
-  - https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@master/public/funcnodes_nodebuilder.css
+  # - https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_nodebuilder@main/public/funcnodes_nodebuilder.css
   - https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.css
   - static/css/style.css
 
@@ -163,6 +163,7 @@ nav:
 
   - Runtime:
       - Workers: components/worker.md
+      - External Workers: components/external-workers.md
       - Workermanager: components/workermanager.md
       - Configuration:
           - Global Config: components/config.md
