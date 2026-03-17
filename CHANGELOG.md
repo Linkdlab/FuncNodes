@@ -1,3 +1,9 @@
+## 1.5.2 (2026-03-17)
+
+### Fix
+
+- **asyncutils**: avoid deadlocks in async_to_sync
+
 ## 1.5.1 (2026-01-09)
 
 ### Refactor
