@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
 resolution-markers = [
     "sys_platform != 'emscripten'",
@@ -787,7 +787,7 @@ docs = [
 requires-dist = [
     { name = "funcnodes", extras = ["profiling"], marker = "extra == 'profile'" },
     { name = "funcnodes-basic", specifier = ">=0.2.1" },
-    { name = "funcnodes-core", specifier = ">=1.0.2" },
+    { name = "funcnodes-core", specifier = ">=2.4.0" },
     { name = "funcnodes-module", marker = "sys_platform != 'emscripten'" },
     { name = "funcnodes-react-flow", marker = "sys_platform != 'emscripten'", specifier = ">=1.1.0" },
     { name = "funcnodes-worker", marker = "sys_platform == 'emscripten'", specifier = ">=1.5.1" },
@@ -836,7 +836,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes-core"
-version = "2.3.2"
+version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dill" },
@@ -846,9 +846,9 @@ dependencies = [
     { name = "setuptools" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4e/e3/f4e2f1ad8c94bbc027e7a6a3fe3f05b99a6ce3f9c968e1de2e9c2a66d282/funcnodes_core-2.3.2.tar.gz", hash = "sha256:adbea250558b8f98d06c1a460777720407325458465d0eb488c70b75013af13c", size = 193758, upload-time = "2025-12-24T05:57:16.17Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6e/22/5c15624ac9ba33faaaf60ce2f2c54f8d87adef37609af2a631eb6cd4a8fa/funcnodes_core-2.4.0.tar.gz", hash = "sha256:0826f6b47a1ee24277d271ef00067ae13b7b198ab69a922f3a9349077fa9745b", size = 197185, upload-time = "2026-03-17T08:59:51.445Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/05/10e1644cbae07983c3ae0275485d0241bc57aad28324d2b68676aad9cb46/funcnodes_core-2.3.2-py3-none-any.whl", hash = "sha256:020b3e0bcc3175eafb8b23badc6eb6d6dae232e8ab9182c8709fa9080e288f86", size = 93550, upload-time = "2025-12-24T05:57:14.817Z" },
+    { url = "https://files.pythonhosted.org/packages/86/a1/ce370d98c87bf20a2b8202c6d022b52d3eeae4deff9eaa13e2e778651917/funcnodes_core-2.4.0-py3-none-any.whl", hash = "sha256:0b17492825f0badb89262db860d147c1abc2fe9b64ca1bad89f7bffb077e50aa", size = 93946, upload-time = "2026-03-17T08:59:50.269Z" },
 ]
 
 [[package]]
@@ -940,7 +940,7 @@ name = "importlib-metadata"
 version = "8.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", source = { registry = "https://pypi.org/simple" } },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/49/3b30cad09e7771a4982d9975a8cbf64f00d4a1ececb53297f1d9a7be1b10/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb", size = 57107, upload-time = "2025-12-21T10:00:19.278Z" }
 wheels = [
