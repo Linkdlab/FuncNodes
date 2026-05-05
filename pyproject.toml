@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "1.5.2"
+version = "1.5.3"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
@@ -53,6 +53,7 @@ dev = [
     "pytest-funcnodes>=0.1.0",
     "pytest-cov",
     "ipykernel>=7.1.0",
+    "commitizen",
 ]
 
 docs = [
