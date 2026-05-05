@@ -1,3 +1,9 @@
+## 1.5.4a0 (2026-05-05)
+
+### Refactor
+
+- **worker_manager**: enhance host handling for worker connections
+
 ## 1.5.3 (2026-05-05)
 
 ### Feat
