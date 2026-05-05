@@ -1,3 +1,9 @@
+## 1.5.3 (2026-05-05)
+
+### Feat
+
+- add public worker manager host handling and tests
+
 ## 1.5.2 (2026-03-17)
 
 ### Fix
