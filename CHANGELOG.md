@@ -1,3 +1,9 @@
+## 1.7.1 (2026-05-06)
+
+### Feat
+
+- add multi-platform support for linux/amd64 and linux/arm64 in docker build workflow
+
 ## 1.7.0 (2026-05-06)
 
 ### Feat
