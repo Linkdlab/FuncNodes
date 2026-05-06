@@ -12,5 +12,6 @@ services:
       FUNCNODES_WORKER_MANAGER_PORT: "9380"
       FUNCNODES_HOST: "0.0.0.0"
       FUNCNODES_WS_WORKER_STARTPORT: "9382"
+      FUNCNODES_UPDATE_PACKAGES: ""
     volumes:
       - ./funcnodes_config:/usr/local/app/.funcnodes

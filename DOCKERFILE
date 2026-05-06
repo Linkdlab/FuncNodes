@@ -1,14 +1,39 @@
+# FuncNodes runtime image.
+#
+# The image intentionally installs the released `funcnodes` package from PyPI
+# instead of copying the repository source. This keeps the container aligned
+# with the package users install outside Docker.
 FROM python:3.13
+
+# Keep all runtime state under one predictable application directory.
 WORKDIR /usr/local/app
 
+# GitHub Actions passes the package version from pyproject.toml.
+# The build fails if the argument is missing so release images cannot
+# accidentally install an unpinned package version.
 ARG FUNCNODES_VERSION
 RUN test -n "$FUNCNODES_VERSION" \
     && pip install --no-cache-dir "funcnodes==$FUNCNODES_VERSION"
 
+# Run the server as a non-root user and pre-create the FuncNodes config
+# directory that will usually be backed by a host volume.
 RUN useradd -m app \
     && mkdir -p /usr/local/app/.funcnodes \
     && chown -R app:app /usr/local/app
 
+# The entrypoint optionally updates selected runtime packages before starting
+# the server, then delegates to `funcnodes runserver` or a custom command.
+COPY scripts/docker-entrypoint.sh /usr/local/bin/funcnodes-docker-entrypoint
+RUN chmod +x /usr/local/bin/funcnodes-docker-entrypoint
+
+# Runtime package updates use `pip install --user` as the non-root `app` user.
+# Putting the user install bin directory first ensures updated console scripts
+# shadow the versions baked into the image.
+ENV HOME=/home/app
+ENV PATH=/home/app/.local/bin:$PATH
+
+# Default FuncNodes locations and network bindings. These values can be
+# overridden with `docker run -e ...` or Docker Compose environment entries.
 ENV FUNCNODES_CONFIG_DIR=/usr/local/app/.funcnodes
 ENV FUNCNODES_RUNSERVER_HOST=0.0.0.0
 ENV FUNCNODES_RUNSERVER_PORT=8000
@@ -17,8 +42,17 @@ ENV FUNCNODES_WORKER_MANAGER_PORT=9380
 ENV FUNCNODES_HOST=0.0.0.0
 ENV FUNCNODES_WS_WORKER_STARTPORT=9382
 
+# Optional space-separated package list, for example:
+# FUNCNODES_UPDATE_PACKAGES="funcnodes-react-flow funcnodes-worker"
+# Leave empty for reproducible startup without network-dependent upgrades.
+ENV FUNCNODES_UPDATE_PACKAGES=
+
 USER app
 
+# 8000: web UI, 9380: worker manager, 9382-9482: websocket worker ports.
 EXPOSE 8000 9380 9382-9482
 
-CMD ["sh", "-c", "exec funcnodes runserver --host \"$FUNCNODES_RUNSERVER_HOST\" --port \"$FUNCNODES_RUNSERVER_PORT\" --worker_manager_host \"$FUNCNODES_WORKER_MANAGER_HOST\" --worker_manager_port \"$FUNCNODES_WORKER_MANAGER_PORT\""]
+# The entrypoint treats the default `runserver` command specially so it can
+# apply the environment variables above. Any other command is executed as-is.
+ENTRYPOINT ["funcnodes-docker-entrypoint"]
+CMD ["runserver"]
