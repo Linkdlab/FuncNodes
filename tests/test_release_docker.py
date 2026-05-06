@@ -56,6 +56,7 @@ def test_release_workflow_pushes_versioned_and_latest_docker_image():
     assert "packages: write" in workflow
     assert "docker/login-action" in workflow
     assert "docker/build-push-action" in workflow
+    assert "platforms: linux/amd64,linux/arm64" in workflow
     assert "FUNCNODES_VERSION=${{ env.CURRENT_VERSION }}" in workflow
     assert "ghcr.io/${{ env.IMAGE_NAME }}:v${{ env.CURRENT_VERSION }}" in workflow
     assert "ghcr.io/${{ env.IMAGE_NAME }}:latest" in workflow
