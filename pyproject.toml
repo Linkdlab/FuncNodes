@@ -1,6 +1,6 @@
 [project]
 name = "funcnodes"
-version = "1.7.0"
+version = "1.7.1"
 description = "funcnodes"
 
 authors = [{name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"}]
