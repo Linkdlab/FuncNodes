@@ -524,6 +524,7 @@ class WorkerManager:
         self._runner: Optional[web.AppRunner] = None
         self._site: Optional[web.TCPSite] = None
         self._last_woker_check = 0
+        self._autostart_tasks: dict[str, asyncio.Task] = {}
 
     @property
     def worker_dir(self):
@@ -854,6 +855,8 @@ class WorkerManager:
                 os.remove(jsonfilepath)
                 continue
 
+            workerconfig.setdefault("autostart", False)
+
             if pf:
                 pfile = os.path.join(self.worker_dir, pf)
                 try:
@@ -946,6 +949,104 @@ class WorkerManager:
         )
 
         await self.broadcast_worker_status()
+        self._schedule_autostart_workers()
+
+    def _schedule_autostart_workers(self):
+        for workerconfig in self._inactive_workers:
+            if not workerconfig.get("autostart", False):
+                continue
+
+            workerid = workerconfig["uuid"]
+            task = self._autostart_tasks.get(workerid)
+            if task is not None and not task.done():
+                continue
+
+            task = asyncio.create_task(
+                self._autostart_worker(WorkerJson(**workerconfig))
+            )
+            self._autostart_tasks[workerid] = task
+
+            def _forget_task(done_task: asyncio.Task, uuid: str = workerid):
+                if self._autostart_tasks.get(uuid) is done_task:
+                    self._autostart_tasks.pop(uuid, None)
+
+            task.add_done_callback(_forget_task)
+
+    async def _prepare_worker_for_start(
+        self,
+        worker: WorkerJson,
+        workerid: str,
+        websocket: web.WebSocketResponse = None,
+    ):
+        if worker.get("env_path") is None:
+            return
+
+        if not os.path.isabs(worker["env_path"]):
+            worker["env_path"] = os.path.abspath(
+                os.path.join(self.worker_dir, worker["env_path"])
+            )
+
+        logger.info("Updating worker %s", workerid)
+        await self.set_progress_state(
+            message="Updating worker.",
+            progress=0.2,
+            blocking=True,
+            status="info",
+            websocket=websocket,
+        )
+        workerenv = await venvmngr.UVVenvManager.aget_virtual_env(worker["env_path"])
+        update_on_startup = worker.get("update_on_startup", {})
+        if update_on_startup.get("funcnodes", True):
+            logger.info("Updating worker %s - funcnodes", workerid)
+            await self.set_progress_state(
+                message="updating funcnodes",
+                progress=0.3,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+            await workerenv.ainstall_package("funcnodes", upgrade=True)
+        if update_on_startup.get("funcnodes-core", True):
+            logger.info("Updating worker %s - funcnodes-core", workerid)
+            await self.set_progress_state(
+                message="updating funcnodes-core",
+                progress=0.3,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+            await workerenv.ainstall_package("funcnodes-core", upgrade=True)
+
+        for dep in worker.get("package_dependencies", {}).values():
+            if "package" not in dep:
+                continue
+            if dep.get("version", None) is not None:
+                continue
+
+            logger.info("Updating worker %s - %s", workerid, dep["package"])
+            await self.set_progress_state(
+                message="updating " + dep["package"],
+                progress=0.3,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+            await workerenv.ainstall_package(dep["package"], upgrade=True)
+
+    async def _autostart_worker(self, workerconfig: WorkerJson):
+        workerid = workerconfig["uuid"]
+        logger.info("Autostarting worker %s", workerid)
+        try:
+            await self._prepare_worker_for_start(workerconfig, workerid)
+            start_worker(workerconfig, debug=self._debug)
+            self._last_woker_check = 0
+            await asyncio.sleep(0.5)
+            await self.reload_workers()
+        except Exception as exc:
+            logger.exception("Could not autostart worker %s: %s", workerid, exc)
+            self._last_woker_check = 0
+        finally:
+            await self.reset_progress_state()
 
     async def broadcast_worker_status(self):
         """
@@ -1231,71 +1332,9 @@ class WorkerManager:
             if active_worker is None:
                 for worker in self._inactive_workers:
                     if worker["uuid"] == workerid:
-                        if worker["env_path"] is not None:
-                            # check if abs or rel path
-                            if not os.path.isabs(worker["env_path"]):
-                                worker["env_path"] = os.path.abspath(
-                                    os.path.join(self.worker_dir, worker["env_path"])
-                                )
-
-                            logger.info("Updating worker %s", workerid)
-                            await self.set_progress_state(
-                                message="Updating worker.",
-                                progress=0.2,
-                                blocking=True,
-                                status="info",
-                                websocket=websocket,
-                            )
-                            workerenv = await venvmngr.UVVenvManager.aget_virtual_env(
-                                worker["env_path"]
-                            )
-                            update_on_startup = worker.get("update_on_startup", {})
-                            if update_on_startup.get("funcnodes", True):
-                                logger.info("Updating worker %s - funcnodes", workerid)
-                                await self.set_progress_state(
-                                    message="updating funcnodes",
-                                    progress=0.3,
-                                    blocking=True,
-                                    status="info",
-                                    websocket=websocket,
-                                )
-                                await workerenv.ainstall_package(
-                                    "funcnodes", upgrade=True
-                                )
-                            if update_on_startup.get("funcnodes-core", True):
-                                logger.info(
-                                    "Updating worker %s - funcnodes-core", workerid
-                                )
-                                await self.set_progress_state(
-                                    message="updating funcnodes-core",
-                                    progress=0.3,
-                                    blocking=True,
-                                    status="info",
-                                    websocket=websocket,
-                                )
-                                await workerenv.ainstall_package(
-                                    "funcnodes-core", upgrade=True
-                                )
-
-                            for k, dep in worker["package_dependencies"].items():
-                                if "package" in dep:
-                                    if dep.get("version", None) is None:
-                                        logger.info(
-                                            "Updating worker %s - %s",
-                                            workerid,
-                                            dep["package"],
-                                        )
-                                        await self.set_progress_state(
-                                            message="updating " + dep["package"],
-                                            progress=0.3,
-                                            blocking=True,
-                                            status="info",
-                                            websocket=websocket,
-                                        )
-                                        await workerenv.ainstall_package(
-                                            dep["package"], upgrade=True
-                                        )
-
+                        await self._prepare_worker_for_start(
+                            worker, workerid, websocket=websocket
+                        )
                         await self.set_progress_state(
                             message="Starting worker.",
                             progress=0.4,
@@ -1470,6 +1509,7 @@ class WorkerManager:
         uuid: Optional[str] = None,
         workertype: str = "WSWorker",
         in_venv: Optional[bool] = None,
+        autostart: bool = False,
         **kwargs,
     ) -> WorkerJson:
         """
@@ -1505,6 +1545,7 @@ class WorkerManager:
         new_worker_config = new_worker.write_config()
         if name:
             new_worker_config["name"] = name
+        new_worker_config["autostart"] = autostart
 
         if in_venv is None:
             in_venv = os.environ.get("FUNCNODES_WORKER_IN_VENV", "1") in [

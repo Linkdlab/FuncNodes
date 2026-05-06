@@ -334,6 +334,33 @@ def test_start_new_worker_calls_start_existing(monkeypatch):
 
 
 @pytest_funcnodes.funcnodes_test
+def test_start_new_worker_forwards_autostart(monkeypatch):
+    from funcnodes.cli import worker as worker_mod
+
+    captured: dict = {}
+
+    async def fake_new_worker(
+        self, name=None, uuid=None, workertype="WSWorker", **kwargs
+    ):
+        captured["kwargs"] = kwargs
+        return {"uuid": uuid or "fake-uuid-autostart", "name": name, "type": workertype}
+
+    monkeypatch.setattr(
+        worker_mod.fn.worker.worker_manager.WorkerManager, "new_worker", fake_new_worker
+    )
+
+    result = worker_mod.start_new_worker(
+        name="cli-autostart-worker",
+        in_venv=False,
+        create_only=True,
+        autostart=True,
+    )
+
+    assert result is None
+    assert captured["kwargs"]["autostart"] is True
+
+
+@pytest_funcnodes.funcnodes_test
 def test_start_existing_worker_uses_virtual_env_and_subprocess(
     monkeypatch, tmp_path: Path, make_worker_config
 ):
@@ -911,6 +938,7 @@ def test_task_worker_dispatches(monkeypatch, workertask, target_name):
         profile=False,
         in_venv=False,
         create_only=False,
+        autostart=False,
         full=False,
         command="ping",
         kwargs=["--a", "1"],

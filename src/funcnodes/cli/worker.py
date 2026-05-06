@@ -108,6 +108,7 @@ def start_new_worker(
     in_venv: bool = True,
     create_only: bool = False,
     profile: bool = False,
+    autostart: bool = False,
     **kwargs,
 ):
     """
@@ -134,6 +135,7 @@ def start_new_worker(
         uuid=uuid,
         workertype=workertype or "WSWorker",
         in_venv=in_venv,
+        autostart=autostart,
         **kwargs,
     )
 

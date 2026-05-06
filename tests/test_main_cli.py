@@ -252,6 +252,21 @@ def test_add_worker_manager_parser_parses_args():
 
 
 @pytest_funcnodes.funcnodes_test
+def test_add_worker_parser_parses_new_autostart_flag():
+    from funcnodes.__main__ import add_worker_parser
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="task", required=True)
+    add_worker_parser(subparsers)
+
+    args = parser.parse_args(["worker", "new", "--autostart"])
+
+    assert args.task == "worker"
+    assert args.workertask == "new"
+    assert args.autostart is True
+
+
+@pytest_funcnodes.funcnodes_test
 def test_add_modules_parser_parses_args():
     from funcnodes.__main__ import add_modules_parser
 

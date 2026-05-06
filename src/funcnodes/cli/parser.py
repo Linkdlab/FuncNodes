@@ -220,6 +220,12 @@ def add_worker_parser(subparsers):
     new_worker_parser.add_argument(
         "--not-in-venv", action="store_false", dest="in_venv", help="Do not use a venv"
     )
+    new_worker_parser.add_argument(
+        "--autostart",
+        action="store_true",
+        default=False,
+        help="Automatically start this worker when the worker manager is running",
+    )
 
     # Start an existing worker
     start_worker_parser = worker_subparsers.add_parser(
