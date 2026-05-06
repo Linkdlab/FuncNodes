@@ -7,6 +7,7 @@ Comprehensive documentation for FuncNodes - a modular workflow automation system
 ## Getting Started
 
 - [First Steps](https://linkdlab.github.io/FuncNodes/dev/getting-started/basic_usage/index.md)
+- [Docker](https://linkdlab.github.io/FuncNodes/dev/getting-started/docker/index.md)
 - [Installation](https://linkdlab.github.io/FuncNodes/dev/getting-started/installation/index.md)
 - [Introduction](https://linkdlab.github.io/FuncNodes/dev/getting-started/introduction/index.md)
 

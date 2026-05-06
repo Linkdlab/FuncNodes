@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://linkdlab.github.io/FuncNodes/dev/modules/">
+        <link rel="canonical" href="https://linkdlab.github.io/FuncNodes/dev/getting-started/docker/">
       
       
-        <link rel="prev" href="../examples/titanic/">
+        <link rel="prev" href="../installation/">
       
       
-        <link rel="next" href="../extending/writing-modules/">
+        <link rel="next" href="../basic_usage/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Available Modules - FuncNodes Documentation</title>
+        <title>Docker - FuncNodes Documentation</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -61,9 +61,9 @@
     
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.css">
     
-      <link rel="stylesheet" href="../static/css/style.css">
+      <link rel="stylesheet" href="../../static/css/style.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -88,7 +88,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#official-modules-overview" class="md-skip">
+        <a href="#running-funcnodes-with-docker" class="md-skip">
           Skip to content
         </a>
       
@@ -106,7 +106,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="FuncNodes Documentation" class="md-header__button md-logo" aria-label="FuncNodes Documentation" data-md-component="logo">
+    <a href="../.." title="FuncNodes Documentation" class="md-header__button md-logo" aria-label="FuncNodes Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -126,7 +126,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Available Modules
+              Docker
             
           </span>
         </div>
@@ -207,7 +207,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -224,11 +224,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../getting-started/introduction/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../introduction/" class="md-tabs__link">
           
   
   
@@ -257,7 +259,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../components/node/" class="md-tabs__link">
+        <a href="../../components/node/" class="md-tabs__link">
           
   
   
@@ -282,7 +284,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../architecture/overview/" class="md-tabs__link">
+        <a href="../../architecture/overview/" class="md-tabs__link">
           
   
   
@@ -304,7 +306,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../components/worker/" class="md-tabs__link">
+        <a href="../../components/worker/" class="md-tabs__link">
           
   
   
@@ -326,7 +328,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../experimental/" class="md-tabs__link">
+        <a href="../../experimental/" class="md-tabs__link">
           
   
   
@@ -348,7 +350,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../ui-guide/react_flow/web-ui/" class="md-tabs__link">
+        <a href="../../ui-guide/react_flow/web-ui/" class="md-tabs__link">
           
   
   
@@ -370,7 +372,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../examples/" class="md-tabs__link">
+        <a href="../../examples/" class="md-tabs__link">
           
   
   
@@ -388,13 +390,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../modules/" class="md-tabs__link">
           
   
   
@@ -416,7 +416,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../extending/writing-modules/" class="md-tabs__link">
+        <a href="../../extending/writing-modules/" class="md-tabs__link">
           
   
   
@@ -438,7 +438,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../api/cli/" class="md-tabs__link">
+        <a href="../../api/cli/" class="md-tabs__link">
           
   
   
@@ -460,7 +460,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../faq/common-issues/" class="md-tabs__link">
+        <a href="../../faq/common-issues/" class="md-tabs__link">
           
   
   
@@ -496,7 +496,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="FuncNodes Documentation" class="md-nav__button md-logo" aria-label="FuncNodes Documentation" data-md-component="logo">
+    <a href="../.." title="FuncNodes Documentation" class="md-nav__button md-logo" aria-label="FuncNodes Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -526,7 +526,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -550,8 +550,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -567,19 +569,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
@@ -597,7 +602,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -615,7 +620,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/introduction/" class="md-nav__link">
+      <a href="../introduction/" class="md-nav__link">
         
   
   
@@ -643,7 +648,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -668,10 +673,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../getting-started/docker/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -687,6 +719,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pull-the-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull the Image
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run with Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-with-docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run with Docker Compose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Volume
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Updating
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -699,7 +806,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/basic_usage/" class="md-nav__link">
+      <a href="../basic_usage/" class="md-nav__link">
         
   
   
@@ -856,7 +963,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/node/" class="md-nav__link">
+      <a href="../../components/node/" class="md-nav__link">
         
   
   
@@ -884,7 +991,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/inputs-outputs/" class="md-nav__link">
+      <a href="../../components/inputs-outputs/" class="md-nav__link">
         
   
   
@@ -912,7 +1019,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/nodeinput/" class="md-nav__link">
+      <a href="../../components/nodeinput/" class="md-nav__link">
         
   
   
@@ -940,7 +1047,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/nodeoutput/" class="md-nav__link">
+      <a href="../../components/nodeoutput/" class="md-nav__link">
         
   
   
@@ -1034,7 +1141,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/nodespace/" class="md-nav__link">
+      <a href="../../components/nodespace/" class="md-nav__link">
         
   
   
@@ -1062,7 +1169,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/serialization/" class="md-nav__link">
+      <a href="../../components/serialization/" class="md-nav__link">
         
   
   
@@ -1156,7 +1263,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/lib/" class="md-nav__link">
+      <a href="../../components/lib/" class="md-nav__link">
         
   
   
@@ -1184,7 +1291,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/shelf/" class="md-nav__link">
+      <a href="../../components/shelf/" class="md-nav__link">
         
   
   
@@ -1291,7 +1398,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/overview/" class="md-nav__link">
+      <a href="../../architecture/overview/" class="md-nav__link">
         
   
   
@@ -1319,7 +1426,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/core-components/" class="md-nav__link">
+      <a href="../../architecture/core-components/" class="md-nav__link">
         
   
   
@@ -1347,7 +1454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/worker-components/" class="md-nav__link">
+      <a href="../../architecture/worker-components/" class="md-nav__link">
         
   
   
@@ -1375,7 +1482,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/message-protocol/" class="md-nav__link">
+      <a href="../../architecture/message-protocol/" class="md-nav__link">
         
   
   
@@ -1403,7 +1510,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/event-system/" class="md-nav__link">
+      <a href="../../architecture/event-system/" class="md-nav__link">
         
   
   
@@ -1500,7 +1607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/worker/" class="md-nav__link">
+      <a href="../../components/worker/" class="md-nav__link">
         
   
   
@@ -1528,7 +1635,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/external-workers/" class="md-nav__link">
+      <a href="../../components/external-workers/" class="md-nav__link">
         
   
   
@@ -1556,7 +1663,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/workermanager/" class="md-nav__link">
+      <a href="../../components/workermanager/" class="md-nav__link">
         
   
   
@@ -1642,7 +1749,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/config/" class="md-nav__link">
+      <a href="../../components/config/" class="md-nav__link">
         
   
   
@@ -1670,7 +1777,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/worker_config/" class="md-nav__link">
+      <a href="../../components/worker_config/" class="md-nav__link">
         
   
   
@@ -1738,7 +1845,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../experimental/" class="md-nav__link ">
+            <a href="../../experimental/" class="md-nav__link ">
               
   
   
@@ -1782,7 +1889,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../experimental/standalone/" class="md-nav__link">
+      <a href="../../experimental/standalone/" class="md-nav__link">
         
   
   
@@ -1873,7 +1980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ui-guide/react_flow/web-ui/" class="md-nav__link">
+      <a href="../../ui-guide/react_flow/web-ui/" class="md-nav__link">
         
   
   
@@ -1937,7 +2044,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../examples/" class="md-nav__link ">
+            <a href="../../examples/" class="md-nav__link ">
               
   
   
@@ -1981,7 +2088,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../examples/csv/" class="md-nav__link">
+      <a href="../../examples/csv/" class="md-nav__link">
         
   
   
@@ -2009,7 +2116,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../examples/cat/" class="md-nav__link">
+      <a href="../../examples/cat/" class="md-nav__link">
         
   
   
@@ -2037,7 +2144,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../examples/titanic/" class="md-nav__link">
+      <a href="../../examples/titanic/" class="md-nav__link">
         
   
   
@@ -2069,8 +2176,6 @@
       
   
   
-    
-  
   
   
     
@@ -2084,23 +2189,20 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="./" class="md-nav__link md-nav__link--active">
+            <a href="../../modules/" class="md-nav__link ">
               
   
   
@@ -2119,7 +2221,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2206,7 +2308,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../extending/writing-modules/" class="md-nav__link">
+      <a href="../../extending/writing-modules/" class="md-nav__link">
         
   
   
@@ -2234,7 +2336,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../extending/react-plugins/" class="md-nav__link">
+      <a href="../../extending/react-plugins/" class="md-nav__link">
         
   
   
@@ -2262,7 +2364,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../extending/testing-modules/" class="md-nav__link">
+      <a href="../../extending/testing-modules/" class="md-nav__link">
         
   
   
@@ -2353,7 +2455,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/cli/" class="md-nav__link">
+      <a href="../../api/cli/" class="md-nav__link">
         
   
   
@@ -2444,7 +2546,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../faq/common-issues/" class="md-nav__link">
+      <a href="../../faq/common-issues/" class="md-nav__link">
         
   
   
@@ -2489,6 +2591,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -2497,104 +2601,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#official-modules-overview" class="md-nav__link">
+  <a href="#pull-the-image" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Official Modules Overview
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Official Modules Overview">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#core-utilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Core utilities
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#data-numerics" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Data &amp; numerics
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#visualization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Visualization
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#vision-capture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Vision &amp; capture
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#chemistry-spectra-optimization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Chemistry, spectra, optimization
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tooling-testing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tooling &amp; testing
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#packaging-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Packaging notes
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#module-packaging-essentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Module packaging essentials
+        Pull the Image
       
     </span>
   </a>
@@ -2602,10 +2612,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#testing-funcnodes-modules" class="md-nav__link">
+  <a href="#run-with-docker" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Testing FuncNodes modules
+        Run with Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-with-docker-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run with Docker Compose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Volume
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updating" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Updating
       
     </span>
   </a>
@@ -2632,77 +2675,84 @@
   
 
 
-  <h1>Available Modules</h1>
-
-<h2 id="official-modules-overview">Official Modules Overview<a class="headerlink" href="#official-modules-overview" title="Permanent link">&para;</a></h2>
-<p>Use this page to discover what each packaged module adds to FuncNodes. Install modules from the UI (“Manage Libraries”) or via CLI <code>funcnodes modules install &lt;name&gt;</code>.</p>
-<h3 id="core-utilities">Core utilities<a class="headerlink" href="#core-utilities" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>funcnodes-basic</strong> — typed input nodes, list/dict helpers with dynamic index/key options, logic/control utilities.</li>
-<li><strong>funcnodes-files</strong> — sandboxed file/folder browsing, async downloads with progress, byte/file metadata types.</li>
-<li><strong>funcnodes-images</strong> — unified image container (Pillow/NumPy backends), resize/crop/scale/show helpers.</li>
-</ul>
-<h3 id="data-numerics">Data &amp; numerics<a class="headerlink" href="#data-numerics" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>funcnodes-numpy</strong> — array creation/manipulation with dtype enums and serialization/rendering for previews.</li>
-<li><strong>funcnodes-pandas</strong> — DataFrame/Series conversion, filtering, grouping, column/row selectors with dynamic dropdowns.</li>
-</ul>
-<h3 id="visualization">Visualization<a class="headerlink" href="#visualization" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>funcnodes-plotly</strong> — figure/trace builders (express + graph_objects), color scales, layout utilities, image export.</li>
-</ul>
-<h3 id="vision-capture">Vision &amp; capture<a class="headerlink" href="#vision-capture" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>funcnodes-opencv</strong> — normalized float image ops: filtering, thresholding, morphology, drawing, transforms, segmentation.</li>
-<li><strong>funcnodes-webcam</strong> — browser webcam capture into OpenCVImageFormat; device enumeration via React plugin.</li>
-<li><strong>funcnodes-yolo</strong> — starter object-detection nodes (draft).</li>
-</ul>
-<h3 id="chemistry-spectra-optimization">Chemistry, spectra, optimization<a class="headerlink" href="#chemistry-spectra-optimization" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>funcnodes-rdkit</strong> — molecule conversions (SMILES/InChI/molblock), SVG previews via custom encoders.</li>
-<li><strong>funcnodes-span</strong> — spectroscopy: baseline estimation (multiple algorithms), smoothing, peak detection/fitting with Plotly plots.</li>
-<li><strong>funcnodes-lmfit</strong> — model builders, auto-model selection, fitting, parameter sync, Plotly result plots.</li>
-<li><strong>funcnodes-bofire</strong> — Bayesian optimization (create/tell/ask/predict) with separate-process options.</li>
-<li><strong>funcnodes-chromatography</strong> — parse Shimadzu ASCII/LCD/QGD files into tidy DataFrames.</li>
-<li><strong>funcnodes-chemprop</strong> — deep-learning molecular property prediction (data prep, training, async metrics).</li>
-</ul>
-<h3 id="tooling-testing">Tooling &amp; testing<a class="headerlink" href="#tooling-testing" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>funcnodes-pytest</strong> — pytest plugin (<code>@nodetest</code>, <code>all_nodes_tested</code>) for coverage and isolated test contexts.</li>
-<li><strong>funcnodes-module</strong> — scaffolder/CLI to create/update modules with React plugin template.</li>
-<li><strong>funcnodes-repositories</strong> — registry metadata and helpers to refresh available module versions.</li>
-</ul>
-<h3 id="packaging-notes">Packaging notes<a class="headerlink" href="#packaging-notes" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Every module is a standalone Python package with <code>[project.entry-points."funcnodes.module"]</code> advertising at least <code>module</code> and usually <code>shelf</code>; some add <code>react_plugin</code> or <code>external_worker</code>.</li>
-<li>Prefer aligning module versions with the installed <code>funcnodes</code>/<code>funcnodes-core</code> to avoid API drift.</li>
-<li>If running offline, mirror <code>funcnodes_repositories</code> and point the UI/CLI to your mirrored list.</li>
-</ul>
-<h2 id="module-packaging-essentials">Module packaging essentials<a class="headerlink" href="#module-packaging-essentials" title="Permanent link">&para;</a></h2>
-<p>1) <strong>Entry points drive discovery</strong>
-Define the <code>funcnodes.module</code> entry points in <code>pyproject.toml</code>. Typical keys are:</p>
-<ul>
-<li><code>module</code> → importable module root (required).</li>
-<li><code>shelf</code> → exported <code>Shelf</code> object or dict (recommended for predictable grouping).</li>
-<li><code>react_plugin</code> → optional React bundle entry for the editor host.</li>
-<li><code>external_worker</code> → optional worker classes.</li>
-</ul>
-<p>Example (from <code>funcnodes-files</code>):</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;funcnodes.module&quot;</span><span class="k">]</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">module</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;funcnodes_files&quot;</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">shelf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;funcnodes_files:NODE_SHELF&quot;</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">react_plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;funcnodes_files:REACT_PLUGIN&quot;</span>
+<h1 id="running-funcnodes-with-docker">Running FuncNodes with Docker<a class="headerlink" href="#running-funcnodes-with-docker" title="Permanent link">&para;</a></h1>
+<p>FuncNodes publishes Docker images to GitHub Container Registry:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/linkdlab/funcnodes
 </span></code></pre></div>
-<p>2) <strong>React plugin build target</strong>
-Module templates build the UI add-on as a library named <code>FuncNodesPlugin</code>, bundling <code>src/index.tsx</code> and marking <code>react</code>, <code>react-dom</code>, and <code>@linkdlab/funcnodes_react_flow</code> as externals (see <code>vite.config.ts</code> in <code>funcnodes_files</code>).</p>
-<p>3) <strong>Testing</strong>
-Use <code>pytest-funcnodes</code> decorators to isolate state and ensure shelf coverage; see the Testing section below.</p>
-<h2 id="testing-funcnodes-modules">Testing FuncNodes modules<a class="headerlink" href="#testing-funcnodes-modules" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Decorate node tests with <code>@pytest_funcnodes.nodetest</code> so registries are isolated and coverage is tracked.</li>
-<li>Use <code>pytest_funcnodes.all_nodes_tested(all_nodes, NODE_SHELF, ignore=...)</code> to assert every exported node is exercised.</li>
-<li>Run <code>pytest --nodetests-only</code> for a fast pass over node suites. The plugin also provides <code>@funcnodes_test</code> for runtime/integration checks.</li>
-</ul>
+<p>Use Docker when you want to run the FuncNodes web UI and worker manager without installing Python packages on the host.</p>
+<h2 id="pull-the-image">Pull the Image<a class="headerlink" href="#pull-the-image" title="Permanent link">&para;</a></h2>
+<p>Use <code>latest</code> for the newest release:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>docker<span class="w"> </span>pull<span class="w"> </span>ghcr.io/linkdlab/funcnodes:latest
+</span></code></pre></div>
+<p>Use a version tag for reproducible deployments:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>docker<span class="w"> </span>pull<span class="w"> </span>ghcr.io/linkdlab/funcnodes:v1.6.0
+</span></code></pre></div>
+<h2 id="run-with-docker">Run with Docker<a class="headerlink" href="#run-with-docker" title="Permanent link">&para;</a></h2>
+<p>Create a local configuration directory first. This keeps workers, settings, and runtime state outside the container:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>funcnodes_config
+</span></code></pre></div>
+<p>Start FuncNodes:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">9380</span>:9380<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">9382</span>-9482:9382-9482<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">FUNCNODES_RUNSERVER_HOST</span><span class="o">=</span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">FUNCNODES_RUNSERVER_PORT</span><span class="o">=</span><span class="m">8000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">FUNCNODES_WORKER_MANAGER_HOST</span><span class="o">=</span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">FUNCNODES_WORKER_MANAGER_PORT</span><span class="o">=</span><span class="m">9380</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">FUNCNODES_HOST</span><span class="o">=</span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">FUNCNODES_WS_WORKER_STARTPORT</span><span class="o">=</span><span class="m">9382</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">  </span>-v<span class="w"> </span>./funcnodes_config:/usr/local/app/.funcnodes<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span>ghcr.io/linkdlab/funcnodes:latest
+</span></code></pre></div>
+<p>Open the UI at:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>http://localhost:8000
+</span></code></pre></div>
+<p>The worker manager listens on port <code>9380</code>. Worker websocket ports use the exposed range <code>9382-9482</code>.</p>
+<h2 id="run-with-docker-compose">Run with Docker Compose<a class="headerlink" href="#run-with-docker-compose" title="Permanent link">&para;</a></h2>
+<p>Use this <code>docker-compose.yaml</code>:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">services</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">funcnodes</span><span class="p">:</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/linkdlab/funcnodes:latest</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nt">ports</span><span class="p">:</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;8000:8000&quot;</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;9380:9380&quot;</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;9382-9482:9382-9482&quot;</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">      </span><span class="nt">FUNCNODES_RUNSERVER_HOST</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">      </span><span class="nt">FUNCNODES_RUNSERVER_PORT</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;8000&quot;</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">      </span><span class="nt">FUNCNODES_WORKER_MANAGER_HOST</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">      </span><span class="nt">FUNCNODES_WORKER_MANAGER_PORT</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;9380&quot;</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">      </span><span class="nt">FUNCNODES_HOST</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">      </span><span class="nt">FUNCNODES_WS_WORKER_STARTPORT</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;9382&quot;</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./funcnodes_config:/usr/local/app/.funcnodes</span>
+</span></code></pre></div>
+<p>Start the service:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>funcnodes_config
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>up
+</span></code></pre></div>
+<p>Run in the background:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</span></code></pre></div>
+<p>Stop the service:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>down
+</span></code></pre></div>
+<p>To pin a release, change the image tag:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/linkdlab/funcnodes:v1.6.0</span>
+</span></code></pre></div>
+<p>You can also download the example file: <a href="../../examples/docker-compose.yaml">docker-compose.yaml</a>.</p>
+<h2 id="configuration-volume">Configuration Volume<a class="headerlink" href="#configuration-volume" title="Permanent link">&para;</a></h2>
+<p>The container uses:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>FUNCNODES_CONFIG_DIR=/usr/local/app/.funcnodes
+</span></code></pre></div>
+<p>Mounting <code>./funcnodes_config</code> to that path makes worker configuration persistent across container restarts. Do not mount this directory read-only.</p>
+<h2 id="updating">Updating<a class="headerlink" href="#updating" title="Permanent link">&para;</a></h2>
+<p>For <code>latest</code>, pull the newest image and restart:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>pull
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</span></code></pre></div>
+<p>For pinned deployments, edit the image tag in <code>docker-compose.yaml</code>, then run the same commands.</p>
 
 
 
@@ -2740,7 +2790,7 @@ Use <code>pytest-funcnodes</code> decorators to isolate state and ensure shelf c
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../examples/titanic/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Plotly Visualization">
+          <a href="../installation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Installation">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2750,20 +2800,20 @@ Use <code>pytest-funcnodes</code> decorators to isolate state and ensure shelf c
                 Previous
               </span>
               <div class="md-ellipsis">
-                Plotly Visualization
+                Installation
               </div>
             </div>
           </a>
         
         
           
-          <a href="../extending/writing-modules/" class="md-footer__link md-footer__link--next" aria-label="Next: Writing Modules">
+          <a href="../basic_usage/" class="md-footer__link md-footer__link--next" aria-label="Next: First Steps">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Writing Modules
+                First Steps
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -2800,14 +2850,14 @@ Use <code>pytest-funcnodes</code> decorators to isolate state and ensure shelf c
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.code.select", "content.tooltips", "navigation.tabs", "navigation.sections", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://cdn.jsdelivr.net/gh/Linkdlab/funcnodes_pyodide@main/src/funcnodes_pyodide/static/funcnodes_pyodide_react_flow.es.js" type="module"></script>
       
-        <script src="../static/js/basic_funcnodes_pyodide.js"></script>
+        <script src="../../static/js/basic_funcnodes_pyodide.js"></script>
       
     
   </body>
