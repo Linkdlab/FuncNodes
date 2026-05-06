@@ -28,6 +28,9 @@ from funcnodes_worker.worker import (
     get_workers_dir,
     worker_json_get_data_path,
 )
+
+from funcnodes_worker.worker import AutostartPolicy, normalize_autostart_policy
+
 import subprocess_monitor
 import venvmngr
 
@@ -40,6 +43,71 @@ if DEVMODE:
     pass
 
 logger = fn.get_logger("worker_manager", propagate=False)
+
+_LOCAL_WORKER_HOSTS = {
+    "",
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "::",
+    "::1",
+    "[::]",
+    "[::1]",
+}
+
+
+def _strip_port_from_host(host: str) -> str:
+    if host.startswith("["):
+        end = host.find("]")
+        if end != -1:
+            return host[: end + 1]
+
+    if host.count(":") == 1:
+        return host.rsplit(":", 1)[0]
+
+    if ":" in host and not host.startswith("["):
+        return f"[{host}]"
+
+    return host
+
+
+def _public_worker_host(
+    configured_host: Optional[str],
+    request_host: Optional[str],
+) -> Optional[str]:
+    if configured_host is None:
+        return None
+
+    if configured_host not in _LOCAL_WORKER_HOSTS or not request_host:
+        return configured_host
+
+    return _strip_port_from_host(request_host)
+
+
+def _public_worker_config(
+    worker_config: WorkerJson,
+    request_host: Optional[str],
+) -> WorkerJson:
+    public_config = WorkerJson(**worker_config)
+    if "host" in public_config:
+        public_config["host"] = _public_worker_host(public_config["host"], request_host)
+    return public_config
+
+
+def _public_worker_configs(
+    worker_configs: list[WorkerJson],
+    request_host: Optional[str],
+) -> list[WorkerJson]:
+    return [
+        _public_worker_config(worker_config, request_host)
+        for worker_config in worker_configs
+    ]
+
+
+def _connectable_worker_host(host: Optional[str]) -> str:
+    if host in ("0.0.0.0", "::", "[::]", "", None):
+        return "127.0.0.1"
+    return host
 
 
 class ReturnValueThread(threading.Thread):
@@ -370,7 +438,8 @@ async def check_worker(workerconfig: WorkerJson):
             if fn.config.get_config()["worker_manager"].get("ssl", False)
             else "ws"
         )
-        url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
+        host = _connectable_worker_host(workerconfig["host"])
+        url = f"{protocol}://{host}:{workerconfig['port']}"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(url) as ws:
@@ -446,6 +515,7 @@ class WorkerManager:
         self._connectionslock = threading.Lock()
         # Store each aiohttp WebSocketResponse using a weakref
         self._connections: List[weakref.ReferenceType[web.WebSocketResponse]] = []
+        self._connection_request_hosts = weakref.WeakKeyDictionary()
 
         self._active_workers: List[WorkerJson] = []
         self._inactive_workers: List[WorkerJson] = []
@@ -457,6 +527,8 @@ class WorkerManager:
         self._runner: Optional[web.AppRunner] = None
         self._site: Optional[web.TCPSite] = None
         self._last_woker_check = 0
+        self._autostart_tasks: dict[str, asyncio.Task] = {}
+        self._autostart_suppressed_worker_ids: set[str] = set()
 
     @property
     def worker_dir(self):
@@ -517,13 +589,14 @@ class WorkerManager:
         # Track connection
         with self._connectionslock:
             self._connections.append(weakref.ref(ws))
+            self._connection_request_hosts[ws] = request.host
         logger.debug("New connection.")
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
                     message = msg.data
                     # Dispatch handling of this message
-                    asyncio.create_task(self._handle_message(message, ws))
+                    asyncio.create_task(self._handle_message(message, ws, request.host))
                 elif msg.type == WSMsgType.ERROR:
                     logger.warning(
                         "WebSocket connection closed with error: %s", ws.exception()
@@ -538,6 +611,7 @@ class WorkerManager:
                 self._connections = [
                     c for c in self._connections if c() is not None and c() != ws
                 ]
+                self._connection_request_hosts.pop(ws, None)
 
         return ws
 
@@ -548,7 +622,23 @@ class WorkerManager:
                 self._last_woker_check = time.time()
             await asyncio.sleep(1)
 
-    async def _handle_message(self, message: str, ws: web.WebSocketResponse):
+    def _worker_status_message(self, request_host: Optional[str] = None) -> str:
+        return json.dumps(
+            {
+                "type": "worker_status",
+                "active": _public_worker_configs(self._active_workers, request_host),
+                "inactive": _public_worker_configs(
+                    self._inactive_workers, request_host
+                ),
+            }
+        )
+
+    async def _handle_message(
+        self,
+        message: str,
+        ws: web.WebSocketResponse,
+        request_host: Optional[str] = None,
+    ):
         """
         Handles incoming messages from a single WebSocket client.
         """
@@ -570,15 +660,7 @@ class WorkerManager:
             )
             return await self.stop()
         elif message == "worker_status":
-            return await ws.send_str(
-                json.dumps(
-                    {
-                        "type": "worker_status",
-                        "active": self._active_workers,
-                        "inactive": self._inactive_workers,
-                    }
-                )
-            )
+            return await ws.send_str(self._worker_status_message(request_host))
         elif message == "new_worker":
             # Create a new worker with default arguments
             new_w_config = await self.new_worker()
@@ -593,12 +675,16 @@ class WorkerManager:
             try:
                 msg = json.loads(message)
                 if msg["type"] == "set_active":
-                    return await self.activate_worker(msg["workerid"], ws)
+                    return await self.activate_worker(
+                        msg["workerid"], ws, request_host=request_host
+                    )
                 elif msg["type"] == "stop_worker":
                     return await self.stop_worker(msg["workerid"], ws)
                 elif msg["type"] == "restart_worker":
                     await self.stop_worker(msg["workerid"], ws)
-                    return await self.activate_worker(msg["workerid"], ws)
+                    return await self.activate_worker(
+                        msg["workerid"], ws, request_host=request_host
+                    )
                 elif msg["type"] == "delete_worker":
                     return await self.delete_worker(msg["workerid"], ws)
                 elif msg["type"] == "new_worker":
@@ -773,6 +859,10 @@ class WorkerManager:
                 os.remove(jsonfilepath)
                 continue
 
+            workerconfig["autostart"] = normalize_autostart_policy(
+                workerconfig.get("autostart")
+            )
+
             if pf:
                 pfile = os.path.join(self.worker_dir, pf)
                 try:
@@ -865,6 +955,117 @@ class WorkerManager:
         )
 
         await self.broadcast_worker_status()
+        self._schedule_autostart_workers()
+
+    def _schedule_autostart_workers(self):
+        for workerconfig in self._inactive_workers:
+            autostart_policy = normalize_autostart_policy(workerconfig.get("autostart"))
+            if autostart_policy == "never":
+                continue
+
+            workerid = workerconfig["uuid"]
+            if (
+                autostart_policy == "unless-stopped"
+                and workerid in self._autostart_suppressed_worker_ids
+            ):
+                continue
+
+            task = self._autostart_tasks.get(workerid)
+            if task is not None and not task.done():
+                continue
+
+            task = asyncio.create_task(
+                self._autostart_worker(WorkerJson(**workerconfig))
+            )
+            self._autostart_tasks[workerid] = task
+
+            def _forget_task(done_task: asyncio.Task, uuid: str = workerid):
+                if self._autostart_tasks.get(uuid) is done_task:
+                    self._autostart_tasks.pop(uuid, None)
+
+            task.add_done_callback(_forget_task)
+
+    def _suppress_autostart_until_manual_start(self, workerid: str):
+        self._autostart_suppressed_worker_ids.add(workerid)
+
+    def _clear_autostart_suppression(self, workerid: str):
+        self._autostart_suppressed_worker_ids.discard(workerid)
+
+    async def _prepare_worker_for_start(
+        self,
+        worker: WorkerJson,
+        workerid: str,
+        websocket: web.WebSocketResponse = None,
+    ):
+        if worker.get("env_path") is None:
+            return
+
+        if not os.path.isabs(worker["env_path"]):
+            worker["env_path"] = os.path.abspath(
+                os.path.join(self.worker_dir, worker["env_path"])
+            )
+
+        logger.info("Updating worker %s", workerid)
+        await self.set_progress_state(
+            message="Updating worker.",
+            progress=0.2,
+            blocking=True,
+            status="info",
+            websocket=websocket,
+        )
+        workerenv = await venvmngr.UVVenvManager.aget_virtual_env(worker["env_path"])
+        update_on_startup = worker.get("update_on_startup", {})
+        if update_on_startup.get("funcnodes", True):
+            logger.info("Updating worker %s - funcnodes", workerid)
+            await self.set_progress_state(
+                message="updating funcnodes",
+                progress=0.3,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+            await workerenv.ainstall_package("funcnodes", upgrade=True)
+        if update_on_startup.get("funcnodes-core", True):
+            logger.info("Updating worker %s - funcnodes-core", workerid)
+            await self.set_progress_state(
+                message="updating funcnodes-core",
+                progress=0.3,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+            await workerenv.ainstall_package("funcnodes-core", upgrade=True)
+
+        for dep in worker.get("package_dependencies", {}).values():
+            if "package" not in dep:
+                continue
+            if dep.get("version", None) is not None:
+                continue
+
+            logger.info("Updating worker %s - %s", workerid, dep["package"])
+            await self.set_progress_state(
+                message="updating " + dep["package"],
+                progress=0.3,
+                blocking=True,
+                status="info",
+                websocket=websocket,
+            )
+            await workerenv.ainstall_package(dep["package"], upgrade=True)
+
+    async def _autostart_worker(self, workerconfig: WorkerJson):
+        workerid = workerconfig["uuid"]
+        logger.info("Autostarting worker %s", workerid)
+        try:
+            await self._prepare_worker_for_start(workerconfig, workerid)
+            start_worker(workerconfig, debug=self._debug)
+            self._last_woker_check = 0
+            await asyncio.sleep(0.5)
+            await self.reload_workers()
+        except Exception as exc:
+            logger.exception("Could not autostart worker %s: %s", workerid, exc)
+            self._last_woker_check = 0
+        finally:
+            await self.reset_progress_state()
 
     async def broadcast_worker_status(self):
         """
@@ -877,14 +1078,22 @@ class WorkerManager:
           >>> await broadcast_worker_status()
         """
 
-        await self.broadcast(
-            json.dumps(
-                {
-                    "type": "worker_status",
-                    "active": self._active_workers,
-                    "inactive": self._inactive_workers,
-                }
-            )
+        async def try_send(ws: web.WebSocketResponse, msg: str):
+            try:
+                await ws.send_str(msg)
+            except Exception:
+                pass
+
+        with self._connectionslock:
+            conns = [c() for c in self._connections]
+            conns = [c for c in conns if c is not None]
+            messages = [
+                self._worker_status_message(self._connection_request_hosts.get(c))
+                for c in conns
+            ]
+
+        await asyncio.gather(
+            *[try_send(ws, message) for ws, message in zip(conns, messages)]
         )
 
     async def delete_worker(
@@ -1070,6 +1279,12 @@ class WorkerManager:
         if target_worker is None:
             return
 
+        if (
+            normalize_autostart_policy(target_worker.get("autostart"))
+            == "unless-stopped"
+        ):
+            self._suppress_autostart_until_manual_start(workerid)
+
         try:
             config = fn.config.get_config()
             await self.set_progress_state(
@@ -1080,7 +1295,8 @@ class WorkerManager:
                 websocket=websocket,
             )
             protocol = "wss" if config["worker_manager"].get("ssl", False) else "ws"
-            url = f"{protocol}://{target_worker['host']}:{target_worker['port']}"
+            host = _connectable_worker_host(target_worker["host"])
+            url = f"{protocol}://{host}:{target_worker['port']}"
 
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(url) as ws:
@@ -1104,7 +1320,12 @@ class WorkerManager:
             # await self.broadcast_worker_status() # already done in reload_workers
             await self.reset_progress_state(websocket=websocket)
 
-    async def activate_worker(self, workerid, websocket: web.WebSocketResponse):
+    async def activate_worker(
+        self,
+        workerid,
+        websocket: web.WebSocketResponse,
+        request_host: Optional[str] = None,
+    ):
         """
         Activates a worker.
 
@@ -1136,71 +1357,9 @@ class WorkerManager:
             if active_worker is None:
                 for worker in self._inactive_workers:
                     if worker["uuid"] == workerid:
-                        if worker["env_path"] is not None:
-                            # check if abs or rel path
-                            if not os.path.isabs(worker["env_path"]):
-                                worker["env_path"] = os.path.abspath(
-                                    os.path.join(self.worker_dir, worker["env_path"])
-                                )
-
-                            logger.info("Updating worker %s", workerid)
-                            await self.set_progress_state(
-                                message="Updating worker.",
-                                progress=0.2,
-                                blocking=True,
-                                status="info",
-                                websocket=websocket,
-                            )
-                            workerenv = await venvmngr.UVVenvManager.aget_virtual_env(
-                                worker["env_path"]
-                            )
-                            update_on_startup = worker.get("update_on_startup", {})
-                            if update_on_startup.get("funcnodes", True):
-                                logger.info("Updating worker %s - funcnodes", workerid)
-                                await self.set_progress_state(
-                                    message="updating funcnodes",
-                                    progress=0.3,
-                                    blocking=True,
-                                    status="info",
-                                    websocket=websocket,
-                                )
-                                await workerenv.ainstall_package(
-                                    "funcnodes", upgrade=True
-                                )
-                            if update_on_startup.get("funcnodes-core", True):
-                                logger.info(
-                                    "Updating worker %s - funcnodes-core", workerid
-                                )
-                                await self.set_progress_state(
-                                    message="updating funcnodes-core",
-                                    progress=0.3,
-                                    blocking=True,
-                                    status="info",
-                                    websocket=websocket,
-                                )
-                                await workerenv.ainstall_package(
-                                    "funcnodes-core", upgrade=True
-                                )
-
-                            for k, dep in worker["package_dependencies"].items():
-                                if "package" in dep:
-                                    if dep.get("version", None) is None:
-                                        logger.info(
-                                            "Updating worker %s - %s",
-                                            workerid,
-                                            dep["package"],
-                                        )
-                                        await self.set_progress_state(
-                                            message="updating " + dep["package"],
-                                            progress=0.3,
-                                            blocking=True,
-                                            status="info",
-                                            websocket=websocket,
-                                        )
-                                        await workerenv.ainstall_package(
-                                            dep["package"], upgrade=True
-                                        )
-
+                        await self._prepare_worker_for_start(
+                            worker, workerid, websocket=websocket
+                        )
                         await self.set_progress_state(
                             message="Starting worker.",
                             progress=0.4,
@@ -1293,7 +1452,8 @@ class WorkerManager:
                 # get the protocol and url from the config
                 protocol = "wss" if config["worker_manager"].get("ssl", False) else "ws"
                 # get the url from the config to connect to the worker
-                url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
+                host = _connectable_worker_host(workerconfig["host"])
+                url = f"{protocol}://{host}:{workerconfig['port']}"
 
                 # check if the uuid in the config matches the active worker, which it should
                 # under normal circumstances
@@ -1325,14 +1485,20 @@ class WorkerManager:
                                         )
                                     # if the uuid matches, send the worker config frontend that activates the worker
                                     # and return
-                                    return await websocket.send_str(
+                                    public_workerconfig = _public_worker_config(
+                                        workerconfig,
+                                        request_host,
+                                    )
+                                    await websocket.send_str(
                                         json.dumps(
                                             {
                                                 "type": "set_worker",
-                                                "data": workerconfig,
+                                                "data": public_workerconfig,
                                             }
                                         )
                                     )
+                                    self._clear_autostart_suppression(workerid)
+                                    return
                 except (
                     ConnectionRefusedError,
                     asyncio.TimeoutError,
@@ -1370,6 +1536,7 @@ class WorkerManager:
         uuid: Optional[str] = None,
         workertype: str = "WSWorker",
         in_venv: Optional[bool] = None,
+        autostart: AutostartPolicy | bool = "never",
         **kwargs,
     ) -> WorkerJson:
         """
@@ -1405,6 +1572,7 @@ class WorkerManager:
         new_worker_config = new_worker.write_config()
         if name:
             new_worker_config["name"] = name
+        new_worker_config["autostart"] = normalize_autostart_policy(autostart)
 
         if in_venv is None:
             in_venv = os.environ.get("FUNCNODES_WORKER_IN_VENV", "1") in [

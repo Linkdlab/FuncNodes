@@ -1,3 +1,36 @@
+## 1.6.0 (2026-05-06)
+
+### Feat
+
+- **worker_manager**: enhance autostart configuration for workers
+- **worker_manager**: add autostart functionality for workers
+
+## 1.5.4a0 (2026-05-05)
+
+### Refactor
+
+- **worker_manager**: enhance host handling for worker connections
+
+## 1.5.3 (2026-05-05)
+
+### Feat
+
+- add public worker manager host handling and tests
+
+## 1.5.2 (2026-03-17)
+
+### Fix
+
+- **asyncutils**: avoid deadlocks in async_to_sync
+
+## 1.5.1 (2026-01-09)
+
+### Refactor
+
+- update documentation and remove deprecated files
+
+## v1.5.0 (2025-12-23)
+
 ## 1.5.0 (2025-12-23)
 
 ### Feat
@@ -431,7 +464,7 @@
 ## v0.4.37 (2024-11-07)
 
 ### Other
-- relaod repos on update
+- reload repos on update
 
 ## v0.4.36 (2024-11-07)
 

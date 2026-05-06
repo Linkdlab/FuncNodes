@@ -22,6 +22,42 @@ import time
 
 logger = logging.getLogger(__name__)
 
+_LOCAL_WORKER_MANAGER_HOSTS = {
+    "",
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "::",
+    "::1",
+    "[::]",
+    "[::1]",
+}
+
+
+def _strip_port_from_host(host: str) -> str:
+    if host.startswith("["):
+        end = host.find("]")
+        if end != -1:
+            return host[: end + 1]
+
+    if host.count(":") == 1:
+        return host.rsplit(":", 1)[0]
+
+    if ":" in host and not host.startswith("["):
+        return f"[{host}]"
+
+    return host
+
+
+def _public_worker_manager_host(
+    configured_host: Optional[str], request_host: Optional[str]
+) -> str:
+    configured_host = configured_host or ""
+    if configured_host not in _LOCAL_WORKER_MANAGER_HOSTS or not request_host:
+        return configured_host
+
+    return _strip_port_from_host(request_host)
+
 
 class Methods(Enum):
     GET = "GET"
@@ -262,11 +298,15 @@ class BaseServer:
                 ssl=self.worker_manager_ssl,
                 debug=self.debug,
             )
+            public_host = _public_worker_manager_host(
+                configured_host=self.worker_manager_host,
+                request_host=request.host,
+            )
 
             return web.Response(
                 text=(
                     f"ws{'s' if self.worker_manager_ssl else ''}://"
-                    f"{self.worker_manager_host}:{self.worker_manager_port}"
+                    f"{public_host}:{self.worker_manager_port}"
                 )
             )
         return web.Response(text="No worker manager running.", status=404)

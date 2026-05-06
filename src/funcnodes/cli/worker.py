@@ -108,6 +108,8 @@ def start_new_worker(
     in_venv: bool = True,
     create_only: bool = False,
     profile: bool = False,
+    autostart: Optional[bool] = None,
+    autostart_policy: str = "never",
     **kwargs,
 ):
     """
@@ -129,11 +131,15 @@ def start_new_worker(
 
     mng = fn.worker.worker_manager.WorkerManager(debug=debug)
 
+    if autostart is not None:
+        autostart_policy = "unless-stopped" if autostart else "never"
+
     new_worker_routine = mng.new_worker(
         name=name,
         uuid=uuid,
         workertype=workertype or "WSWorker",
         in_venv=in_venv,
+        autostart=autostart_policy,
         **kwargs,
     )
 
@@ -362,7 +368,9 @@ async def call_worker_command(
     if not port:
         raise ValueError(f"Worker {worker_config.get('uuid')} has no port configured")
 
-    connect_host = host if host not in ("0.0.0.0", "::", "") else "127.0.0.1"
+    from funcnodes.worker.worker_manager import _connectable_worker_host
+
+    connect_host = _connectable_worker_host(host)
     protocol = "wss" if worker_config.get("ssl", False) else "ws"
     url = f"{protocol}://{connect_host}:{port}"
 

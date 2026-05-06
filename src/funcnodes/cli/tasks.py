@@ -155,6 +155,7 @@ def task_worker(args: argparse.Namespace):
                 in_venv=args.in_venv,
                 create_only=args.create_only,
                 profile=args.profile,
+                autostart_policy=args.autostart_policy,
             )
         elif workertask == "list":
             return list_workers(args)
