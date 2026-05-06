@@ -1,0 +1,24 @@
+FROM python:3.13
+WORKDIR /usr/local/app
+
+ARG FUNCNODES_VERSION
+RUN test -n "$FUNCNODES_VERSION" \
+    && pip install --no-cache-dir "funcnodes==$FUNCNODES_VERSION"
+
+RUN useradd -m app \
+    && mkdir -p /usr/local/app/.funcnodes \
+    && chown -R app:app /usr/local/app
+
+ENV FUNCNODES_CONFIG_DIR=/usr/local/app/.funcnodes
+ENV FUNCNODES_RUNSERVER_HOST=0.0.0.0
+ENV FUNCNODES_RUNSERVER_PORT=8000
+ENV FUNCNODES_WORKER_MANAGER_HOST=0.0.0.0
+ENV FUNCNODES_WORKER_MANAGER_PORT=9380
+ENV FUNCNODES_HOST=0.0.0.0
+ENV FUNCNODES_WS_WORKER_STARTPORT=9382
+
+USER app
+
+EXPOSE 8000 9380 9382-9482
+
+CMD ["sh", "-c", "exec funcnodes runserver --host \"$FUNCNODES_RUNSERVER_HOST\" --port \"$FUNCNODES_RUNSERVER_PORT\" --worker_manager_host \"$FUNCNODES_WORKER_MANAGER_HOST\" --worker_manager_port \"$FUNCNODES_WORKER_MANAGER_PORT\""]
