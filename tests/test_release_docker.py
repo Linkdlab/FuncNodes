@@ -77,7 +77,43 @@ def test_release_workflow_uses_v_prefixed_commitizen_tag_format():
     cz_config = (REPO_ROOT / "cz.toml").read_text(encoding="utf-8")
 
     assert 'tag_format = "$version"' in cz_config
+    assert 'TAG="v$CURRENT_VERSION"' in workflow
+    assert 'git tag -a "$TAG" -m "Release version $CURRENT_VERSION"' in workflow
+    assert 'git push origin "refs/tags/$TAG"' in workflow
+
+
+def test_release_workflow_treats_existing_tag_as_success():
+    workflow = (
+        REPO_ROOT / ".github" / "workflows" / "version_publish_main.yml"
+    ).read_text(encoding="utf-8")
+
+    assert 'TAG="v$CURRENT_VERSION"' in workflow
+    assert 'git fetch origin "refs/tags/$TAG:refs/tags/$TAG" || true' in workflow
+    assert 'git rev-parse -q --verify "refs/tags/$TAG"' in workflow
+    assert 'git push origin "refs/tags/$TAG"' in workflow
+    assert "Tag $TAG already exists on origin" in workflow
+
+
+def test_release_workflow_deploys_versioned_docs_after_release():
+    workflow = (
+        REPO_ROOT / ".github" / "workflows" / "version_publish_main.yml"
+    ).read_text(encoding="utf-8")
+    docs_condition = "${{ always() && steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true' }}"
+
+    assert "uv sync --group docs --upgrade" in workflow
+    assert "git fetch origin gh-pages --depth=1 || true" in workflow
+    assert workflow.count(docs_condition) >= 3
+    assert 'DOCS_VERSION="v${CURRENT_VERSION}"' in workflow
     assert (
-        'git tag -a v$CURRENT_VERSION -m "Release version $CURRENT_VERSION"' in workflow
+        'uv run mike deploy --push --update-aliases -F "$CFG" "$DOCS_VERSION" latest --alias-type=redirect'
+        in workflow
     )
-    assert "git push origin v$CURRENT_VERSION" in workflow
+    assert 'uv run mike set-default --push -F "$CFG" latest' in workflow
+
+
+def test_docs_workflow_still_deploys_doc_branch_to_dev():
+    workflow = (REPO_ROOT / ".github" / "workflows" / "docs.yaml").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'uv run mike deploy --push -F "$CFG" dev' in workflow
