@@ -30,28 +30,27 @@ my_funcnodes_module/
 
 ---
 
-## Quick Start with funcnodes_module
+## Quick Start with funcnodes-module
 
-The fastest way to create a module is using the `funcnodes_module` scaffolding tool:
+The fastest way to create a module is using the `funcnodes-module` scaffolding tool:
 
 ```bash
 # Install the tool
 pip install funcnodes-module
 
 # Create a new module
-funcnodes_module create funcnodes_mymodule
+funcnodes-module new funcnodes_mymodule
 
 # Or with options
-funcnodes_module create funcnodes_mymodule \
-    --description "My awesome nodes" \
-    --author "Your Name" \
-    --with-react-plugin
+funcnodes-module new funcnodes_mymodule \
+    --path ./modules \
+    --with_react
 ```
 
 This generates a complete project structure with:
 - Pre-configured `pyproject.toml`
-- Example node definitions
-- Test setup with `funcnodes_pytest`
+- An exported `NODE_SHELF`
+- Test setup with `pytest-funcnodes`
 - Optional React plugin scaffold
 
 ---
@@ -94,13 +93,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
-    "funcnodes-core>=0.2.0",
+    "funcnodes>=1.0.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest",
-    "funcnodes-pytest",
+    "pytest-funcnodes",
 ]
 
 # CRITICAL: Entry points for FuncNodes discovery
@@ -117,7 +116,7 @@ packages = ["src/funcnodes_mymodule"]
 Create your nodes in `src/funcnodes_mymodule/nodes.py`:
 
 ```python
-import funcnodes_core as fn
+import funcnodes as fn
 from typing import List
 
 @fn.NodeDecorator(
@@ -158,12 +157,12 @@ def multiply(
 Export your nodes in `src/funcnodes_mymodule/__init__.py`:
 
 ```python
-from funcnodes_core import Shelf
+import funcnodes as fn
 
 from .nodes import greet, sum_list, multiply
 
 # Define the shelf structure
-NODE_SHELF = Shelf(
+NODE_SHELF = fn.Shelf(
     name="My Module",
     description="Custom nodes for demonstration",
     nodes=[greet, sum_list, multiply],
@@ -178,14 +177,14 @@ __all__ = ["NODE_SHELF", "greet", "sum_list", "multiply"]
 
 ```bash
 # Install in development mode
-pip install -e .
+uv sync --dev
 
 # Verify discovery
-funcnodes modules list
+uv run funcnodes modules list
 # Should show: funcnodes_mymodule
 
 # Test in the UI
-funcnodes runserver
+uv run funcnodes runserver
 ```
 
 ---
@@ -200,7 +199,7 @@ The `[project.entry-points."funcnodes.module"]` section tells FuncNodes how to l
 | `shelf` | Recommended | Path to your `NODE_SHELF` object |
 | `react_plugin` | Optional | Path to React plugin info dict |
 | `render_options` | Optional | Custom render options for types |
-| `external_worker` | Optional | Custom worker class |
+| `external_worker` | Optional | Custom worker class or list of worker classes |
 
 ### Example with All Entry Points
 
@@ -210,6 +209,7 @@ module = "funcnodes_mymodule"
 shelf = "funcnodes_mymodule:NODE_SHELF"
 react_plugin = "funcnodes_mymodule:REACT_PLUGIN"
 render_options = "funcnodes_mymodule:RENDER_OPTIONS"
+external_worker = "funcnodes_mymodule:FUNCNODES_WORKER_CLASSES"
 ```
 
 ---
@@ -221,7 +221,7 @@ render_options = "funcnodes_mymodule:RENDER_OPTIONS"
 For simple modules with few nodes:
 
 ```python
-NODE_SHELF = Shelf(
+NODE_SHELF = fn.Shelf(
     name="My Module",
     nodes=[node1, node2, node3]
 )
@@ -232,27 +232,27 @@ NODE_SHELF = Shelf(
 For larger modules, use subshelves:
 
 ```python
-from funcnodes_core import Shelf
+import funcnodes as fn
 
 from .math_nodes import add, subtract, multiply, divide
 from .string_nodes import concat, split, upper, lower
 from .io_nodes import read_file, write_file
 
-NODE_SHELF = Shelf(
+NODE_SHELF = fn.Shelf(
     name="My Module",
     description="Comprehensive utility nodes",
     subshelves=[
-        Shelf(
+        fn.Shelf(
             name="Math",
             description="Mathematical operations",
             nodes=[add, subtract, multiply, divide]
         ),
-        Shelf(
+        fn.Shelf(
             name="Strings",
             description="String manipulation",
             nodes=[concat, split, upper, lower]
         ),
-        Shelf(
+        fn.Shelf(
             name="I/O",
             description="File operations",
             nodes=[read_file, write_file]
@@ -277,6 +277,7 @@ NODE_SHELF = Shelf(
 
 ```python
 from typing import Tuple
+import funcnodes as fn
 
 @fn.NodeDecorator(
     node_id="funcnodes_mymodule.divmod",
@@ -294,10 +295,22 @@ def divmod_node(a: int, b: int) -> Tuple[int, int]:
 ### Nodes with Dynamic Options
 
 ```python
-from funcnodes_core.io_hooks import update_other_io_options
+import funcnodes as fn
+from funcnodes_core.decorator import update_other_io_options
 
-@fn.NodeDecorator(node_id="funcnodes_mymodule.select_column")
-@update_other_io_options("column", modifier=lambda df: df.columns.tolist())
+@fn.NodeDecorator(
+    node_id="funcnodes_mymodule.select_column",
+    default_io_options={
+        "df": {
+            "on": {
+                "after_set_value": update_other_io_options(
+                    "column",
+                    modifier=lambda df: df.columns.tolist(),
+                )
+            }
+        }
+    },
+)
 def select_column(df: "pd.DataFrame", column: str) -> "pd.Series":
     """Select a column from a DataFrame."""
     return df[column]
@@ -306,6 +319,8 @@ def select_column(df: "pd.DataFrame", column: str) -> "pd.Series":
 ### Nodes with Value Constraints
 
 ```python
+import funcnodes as fn
+
 @fn.NodeDecorator(
     node_id="funcnodes_mymodule.clamp",
     name="Clamp Value"
@@ -346,6 +361,7 @@ class ClampNode(fn.Node):
 
 ```python
 import aiohttp
+import funcnodes as fn
 
 @fn.NodeDecorator(node_id="funcnodes_mymodule.fetch_url")
 async def fetch_url(url: str) -> str:
@@ -358,6 +374,8 @@ async def fetch_url(url: str) -> str:
 ### Heavy Computation Nodes
 
 ```python
+import funcnodes as fn
+
 @fn.NodeDecorator(
     node_id="funcnodes_mymodule.heavy_compute",
     separate_thread=True  # Run in thread pool
@@ -382,8 +400,10 @@ def very_heavy_compute(data: list) -> list:
 ### Nodes with Progress
 
 ```python
+import funcnodes as fn
+
 @fn.NodeDecorator(node_id="funcnodes_mymodule.process_items")
-async def process_items(items: list, node: fn.Node = None) -> list:
+async def process_items(items: list, node: fn.Node) -> list:
     """Process items with progress reporting."""
     results = []
     for item in node.progress(items):
@@ -398,9 +418,9 @@ async def process_items(items: list, node: fn.Node = None) -> list:
 ### DataEnum for Dropdowns
 
 ```python
-from funcnodes_core import DataEnum
+import funcnodes as fn
 
-class ColorMode(DataEnum):
+class ColorMode(fn.DataEnum):
     RGB = ("rgb", "RGB Color")
     HSV = ("hsv", "HSV Color")
     GRAYSCALE = ("gray", "Grayscale")
@@ -432,6 +452,8 @@ RENDER_OPTIONS = {
 Configure how node outputs are previewed:
 
 ```python
+import funcnodes as fn
+
 class ImageProcessorNode(fn.Node):
     node_id = "funcnodes_mymodule.image_processor"
 
@@ -454,7 +476,7 @@ class ImageProcessorNode(fn.Node):
 # Update version in pyproject.toml
 # Write changelog
 # Ensure tests pass
-pytest
+uv run pytest
 ```
 
 ### 2. Build the Package
@@ -494,21 +516,20 @@ funcnodes-mymodule:
 ### Setup pytest-funcnodes
 
 ```bash
-pip install funcnodes-pytest
+pip install pytest-funcnodes
 ```
 
 ### Write Node Tests
 
 ```python
 # tests/test_nodes.py
-import pytest
-from funcnodes_pytest import nodetest, all_nodes_tested
+from pytest_funcnodes import nodetest, all_nodes_tested
 
 from funcnodes_mymodule import NODE_SHELF
 from funcnodes_mymodule.nodes import greet, sum_list, multiply
 
 
-@nodetest
+@nodetest(greet)
 async def test_greet():
     node = greet()
     node.inputs["name"].value = "Alice"
@@ -516,7 +537,7 @@ async def test_greet():
     assert node.outputs["out"].value == "Hello, Alice!"
 
 
-@nodetest
+@nodetest(sum_list)
 async def test_sum_list():
     node = sum_list()
     node.inputs["numbers"].value = [1, 2, 3, 4, 5]
@@ -524,7 +545,7 @@ async def test_sum_list():
     assert node.outputs["out"].value == 15
 
 
-@nodetest
+@nodetest(multiply)
 async def test_multiply():
     node = multiply()
     node.inputs["a"].value = 3.0
@@ -542,13 +563,13 @@ def test_all_nodes_covered(all_nodes):
 
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run only node tests
-pytest --nodetests-only
+uv run pytest --nodetests-only
 
 # With coverage
-pytest --cov=funcnodes_mymodule
+uv run pytest --cov=funcnodes_mymodule
 ```
 
 See [Testing Modules](testing-modules.md) for comprehensive testing guidance.
@@ -585,6 +606,7 @@ export default MyPlugin;
 
 ```python
 from pathlib import Path
+import funcnodes as fn
 
 @fn.NodeDecorator(node_id="funcnodes_mymodule.read_json")
 def read_json(filepath: str) -> dict:
@@ -598,6 +620,7 @@ def read_json(filepath: str) -> dict:
 
 ```python
 from dataclasses import dataclass
+import funcnodes as fn
 
 @dataclass
 class Config:
@@ -616,6 +639,8 @@ def create_config(
 ### Wrapper Nodes for External Libraries
 
 ```python
+import funcnodes as fn
+
 @fn.NodeDecorator(
     node_id="funcnodes_mymodule.sklearn_fit",
     name="Fit Model"
