@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -2502,6 +2502,7 @@
 <li><strong>data_path</strong> — worker data dir (nodespace.json, files/, logs).</li>
 <li><strong>env_path</strong> — virtualenv location (absent when created with <code>--not-in-venv</code>).</li>
 <li><strong>host/port/ssl</strong> — where the worker’s WS/HTTP server listens.</li>
+<li><strong>autostart</strong> — Workermanager startup policy: <code>never</code>, <code>always</code>, or <code>unless-stopped</code> (default <code>never</code>). Legacy <code>false</code> maps to <code>never</code>; legacy <code>true</code> maps to <code>unless-stopped</code>.</li>
 <li><strong>update_on_startup</strong> — flags to auto-upgrade <code>funcnodes</code>, <code>funcnodes-core</code>, and unpinned dependencies on activation.</li>
 <li><strong>nodespace_path</strong> — path to the current NodeSpace state file.</li>
 <li><strong>required_heartbeat</strong> — optional timeout for heartbeat enforcement.</li>

@@ -6,6 +6,7 @@ Each worker keeps its own config file at `~/.funcnodes/workers/worker_<uuid>.jso
 - **data_path** — worker data dir (nodespace.json, files/, logs).
 - **env_path** — virtualenv location (absent when created with `--not-in-venv`).
 - **host/port/ssl** — where the worker’s WS/HTTP server listens.
+- **autostart** — Workermanager startup policy: `never`, `always`, or `unless-stopped` (default `never`). Legacy `false` maps to `never`; legacy `true` maps to `unless-stopped`.
 - **update_on_startup** — flags to auto-upgrade `funcnodes`, `funcnodes-core`, and unpinned dependencies on activation.
 - **nodespace_path** — path to the current NodeSpace state file.
 - **required_heartbeat** — optional timeout for heartbeat enforcement.

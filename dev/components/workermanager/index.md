@@ -41,11 +41,12 @@ Each worker has:
 - `worker_<uuid>.p` — PID file written by the worker
 - `worker_<uuid>.runstate` — textual status during startup/running
 
-Missing or stale files mark workers as inactive; status is refreshed every ~10 s.
+Missing or stale files mark workers as inactive; status is refreshed every ~10 s. Workers with `autostart: "always"` are started whenever a refresh finds them inactive. Workers with `autostart: "unless-stopped"` are also started automatically, but a manual stop suppresses further autostarts until the worker is manually started again or the manager session restarts.
 
 ## Virtualenv & dependency management
 
 - New workers default to their own venv unless `--not-in-venv` was set.
+- New workers can opt into automatic manager startup with `funcnodes worker new --autostart` or choose explicitly with `--autostart-policy never|always|unless-stopped`.
 - On activation, optional `update_on_startup` flags can reinstall `funcnodes`, `funcnodes-core`, and unpinned dependencies.
 - CLI helpers `funcnodes worker modules …` run inside the worker env.
 

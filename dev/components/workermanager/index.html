@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -2727,10 +2727,15 @@
 <li><code>worker_&lt;uuid&gt;.p</code> — PID file written by the worker</li>
 <li><code>worker_&lt;uuid&gt;.runstate</code> — textual status during startup/running</li>
 </ul>
-<p>Missing or stale files mark workers as inactive; status is refreshed every ~10 s.</p>
+<p>Missing or stale files mark workers as inactive; status is refreshed every ~10 s.
+Workers with <code>autostart: "always"</code> are started whenever a refresh finds them
+inactive. Workers with <code>autostart: "unless-stopped"</code> are also started
+automatically, but a manual stop suppresses further autostarts until the worker
+is manually started again or the manager session restarts.</p>
 <h2 id="virtualenv-dependency-management">Virtualenv &amp; dependency management<a class="headerlink" href="#virtualenv-dependency-management" title="Permanent link">&para;</a></h2>
 <ul>
 <li>New workers default to their own venv unless <code>--not-in-venv</code> was set.</li>
+<li>New workers can opt into automatic manager startup with <code>funcnodes worker new --autostart</code> or choose explicitly with <code>--autostart-policy never|always|unless-stopped</code>.</li>
 <li>On activation, optional <code>update_on_startup</code> flags can reinstall <code>funcnodes</code>, <code>funcnodes-core</code>, and unpinned dependencies.</li>
 <li>CLI helpers <code>funcnodes worker modules …</code> run inside the worker env.</li>
 </ul>
