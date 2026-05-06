@@ -792,7 +792,7 @@ wheels = [
 
 [[package]]
 name = "funcnodes"
-version = "1.5.3"
+version = "1.5.4a0"
 source = { editable = "." }
 dependencies = [
     { name = "funcnodes-basic" },

@@ -362,7 +362,9 @@ async def call_worker_command(
     if not port:
         raise ValueError(f"Worker {worker_config.get('uuid')} has no port configured")
 
-    connect_host = host if host not in ("0.0.0.0", "::", "") else "127.0.0.1"
+    from funcnodes.worker.worker_manager import _connectable_worker_host
+
+    connect_host = _connectable_worker_host(host)
     protocol = "wss" if worker_config.get("ssl", False) else "ws"
     url = f"{protocol}://{connect_host}:{port}"
 

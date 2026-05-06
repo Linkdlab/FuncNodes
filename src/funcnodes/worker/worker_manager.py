@@ -41,6 +41,71 @@ if DEVMODE:
 
 logger = fn.get_logger("worker_manager", propagate=False)
 
+_LOCAL_WORKER_HOSTS = {
+    "",
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "::",
+    "::1",
+    "[::]",
+    "[::1]",
+}
+
+
+def _strip_port_from_host(host: str) -> str:
+    if host.startswith("["):
+        end = host.find("]")
+        if end != -1:
+            return host[: end + 1]
+
+    if host.count(":") == 1:
+        return host.rsplit(":", 1)[0]
+
+    if ":" in host and not host.startswith("["):
+        return f"[{host}]"
+
+    return host
+
+
+def _public_worker_host(
+    configured_host: Optional[str],
+    request_host: Optional[str],
+) -> Optional[str]:
+    if configured_host is None:
+        return None
+
+    if configured_host not in _LOCAL_WORKER_HOSTS or not request_host:
+        return configured_host
+
+    return _strip_port_from_host(request_host)
+
+
+def _public_worker_config(
+    worker_config: WorkerJson,
+    request_host: Optional[str],
+) -> WorkerJson:
+    public_config = WorkerJson(**worker_config)
+    if "host" in public_config:
+        public_config["host"] = _public_worker_host(public_config["host"], request_host)
+    return public_config
+
+
+def _public_worker_configs(
+    worker_configs: list[WorkerJson],
+    request_host: Optional[str],
+) -> list[WorkerJson]:
+    return [
+        _public_worker_config(worker_config, request_host)
+        for worker_config in worker_configs
+    ]
+
+
+def _connectable_worker_host(host: Optional[str]) -> str:
+    if host in ("0.0.0.0", "::", "[::]", "", None):
+        return "127.0.0.1"
+    return host
+
 
 class ReturnValueThread(threading.Thread):
     """
@@ -370,7 +435,8 @@ async def check_worker(workerconfig: WorkerJson):
             if fn.config.get_config()["worker_manager"].get("ssl", False)
             else "ws"
         )
-        url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
+        host = _connectable_worker_host(workerconfig["host"])
+        url = f"{protocol}://{host}:{workerconfig['port']}"
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(url) as ws:
@@ -446,6 +512,7 @@ class WorkerManager:
         self._connectionslock = threading.Lock()
         # Store each aiohttp WebSocketResponse using a weakref
         self._connections: List[weakref.ReferenceType[web.WebSocketResponse]] = []
+        self._connection_request_hosts = weakref.WeakKeyDictionary()
 
         self._active_workers: List[WorkerJson] = []
         self._inactive_workers: List[WorkerJson] = []
@@ -517,13 +584,14 @@ class WorkerManager:
         # Track connection
         with self._connectionslock:
             self._connections.append(weakref.ref(ws))
+            self._connection_request_hosts[ws] = request.host
         logger.debug("New connection.")
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
                     message = msg.data
                     # Dispatch handling of this message
-                    asyncio.create_task(self._handle_message(message, ws))
+                    asyncio.create_task(self._handle_message(message, ws, request.host))
                 elif msg.type == WSMsgType.ERROR:
                     logger.warning(
                         "WebSocket connection closed with error: %s", ws.exception()
@@ -538,6 +606,7 @@ class WorkerManager:
                 self._connections = [
                     c for c in self._connections if c() is not None and c() != ws
                 ]
+                self._connection_request_hosts.pop(ws, None)
 
         return ws
 
@@ -548,7 +617,23 @@ class WorkerManager:
                 self._last_woker_check = time.time()
             await asyncio.sleep(1)
 
-    async def _handle_message(self, message: str, ws: web.WebSocketResponse):
+    def _worker_status_message(self, request_host: Optional[str] = None) -> str:
+        return json.dumps(
+            {
+                "type": "worker_status",
+                "active": _public_worker_configs(self._active_workers, request_host),
+                "inactive": _public_worker_configs(
+                    self._inactive_workers, request_host
+                ),
+            }
+        )
+
+    async def _handle_message(
+        self,
+        message: str,
+        ws: web.WebSocketResponse,
+        request_host: Optional[str] = None,
+    ):
         """
         Handles incoming messages from a single WebSocket client.
         """
@@ -570,15 +655,7 @@ class WorkerManager:
             )
             return await self.stop()
         elif message == "worker_status":
-            return await ws.send_str(
-                json.dumps(
-                    {
-                        "type": "worker_status",
-                        "active": self._active_workers,
-                        "inactive": self._inactive_workers,
-                    }
-                )
-            )
+            return await ws.send_str(self._worker_status_message(request_host))
         elif message == "new_worker":
             # Create a new worker with default arguments
             new_w_config = await self.new_worker()
@@ -593,12 +670,16 @@ class WorkerManager:
             try:
                 msg = json.loads(message)
                 if msg["type"] == "set_active":
-                    return await self.activate_worker(msg["workerid"], ws)
+                    return await self.activate_worker(
+                        msg["workerid"], ws, request_host=request_host
+                    )
                 elif msg["type"] == "stop_worker":
                     return await self.stop_worker(msg["workerid"], ws)
                 elif msg["type"] == "restart_worker":
                     await self.stop_worker(msg["workerid"], ws)
-                    return await self.activate_worker(msg["workerid"], ws)
+                    return await self.activate_worker(
+                        msg["workerid"], ws, request_host=request_host
+                    )
                 elif msg["type"] == "delete_worker":
                     return await self.delete_worker(msg["workerid"], ws)
                 elif msg["type"] == "new_worker":
@@ -877,14 +958,22 @@ class WorkerManager:
           >>> await broadcast_worker_status()
         """
 
-        await self.broadcast(
-            json.dumps(
-                {
-                    "type": "worker_status",
-                    "active": self._active_workers,
-                    "inactive": self._inactive_workers,
-                }
-            )
+        async def try_send(ws: web.WebSocketResponse, msg: str):
+            try:
+                await ws.send_str(msg)
+            except Exception:
+                pass
+
+        with self._connectionslock:
+            conns = [c() for c in self._connections]
+            conns = [c for c in conns if c is not None]
+            messages = [
+                self._worker_status_message(self._connection_request_hosts.get(c))
+                for c in conns
+            ]
+
+        await asyncio.gather(
+            *[try_send(ws, message) for ws, message in zip(conns, messages)]
         )
 
     async def delete_worker(
@@ -1080,7 +1169,8 @@ class WorkerManager:
                 websocket=websocket,
             )
             protocol = "wss" if config["worker_manager"].get("ssl", False) else "ws"
-            url = f"{protocol}://{target_worker['host']}:{target_worker['port']}"
+            host = _connectable_worker_host(target_worker["host"])
+            url = f"{protocol}://{host}:{target_worker['port']}"
 
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(url) as ws:
@@ -1104,7 +1194,12 @@ class WorkerManager:
             # await self.broadcast_worker_status() # already done in reload_workers
             await self.reset_progress_state(websocket=websocket)
 
-    async def activate_worker(self, workerid, websocket: web.WebSocketResponse):
+    async def activate_worker(
+        self,
+        workerid,
+        websocket: web.WebSocketResponse,
+        request_host: Optional[str] = None,
+    ):
         """
         Activates a worker.
 
@@ -1293,7 +1388,8 @@ class WorkerManager:
                 # get the protocol and url from the config
                 protocol = "wss" if config["worker_manager"].get("ssl", False) else "ws"
                 # get the url from the config to connect to the worker
-                url = f"{protocol}://{workerconfig['host']}:{workerconfig['port']}"
+                host = _connectable_worker_host(workerconfig["host"])
+                url = f"{protocol}://{host}:{workerconfig['port']}"
 
                 # check if the uuid in the config matches the active worker, which it should
                 # under normal circumstances
@@ -1325,11 +1421,15 @@ class WorkerManager:
                                         )
                                     # if the uuid matches, send the worker config frontend that activates the worker
                                     # and return
+                                    public_workerconfig = _public_worker_config(
+                                        workerconfig,
+                                        request_host,
+                                    )
                                     return await websocket.send_str(
                                         json.dumps(
                                             {
                                                 "type": "set_worker",
-                                                "data": workerconfig,
+                                                "data": public_workerconfig,
                                             }
                                         )
                                     )
