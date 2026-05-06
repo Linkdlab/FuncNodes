@@ -108,6 +108,8 @@ def start_new_worker(
     in_venv: bool = True,
     create_only: bool = False,
     profile: bool = False,
+    autostart: Optional[bool] = None,
+    autostart_policy: str = "never",
     **kwargs,
 ):
     """
@@ -129,11 +131,15 @@ def start_new_worker(
 
     mng = fn.worker.worker_manager.WorkerManager(debug=debug)
 
+    if autostart is not None:
+        autostart_policy = "unless-stopped" if autostart else "never"
+
     new_worker_routine = mng.new_worker(
         name=name,
         uuid=uuid,
         workertype=workertype or "WSWorker",
         in_venv=in_venv,
+        autostart=autostart_policy,
         **kwargs,
     )
 

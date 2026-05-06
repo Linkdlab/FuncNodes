@@ -67,6 +67,24 @@ if sys.platform != "emscripten":
     async def worker_manager(worker_managerpack):
         return worker_managerpack[0]
 
+    def _write_worker_config(worker_dir, **overrides):
+        cfg = {
+            "uuid": overrides.pop("uuid", "worker-autostart"),
+            "name": overrides.pop("name", "autostart"),
+            "type": overrides.pop("type", "WSWorker"),
+            "env_path": overrides.pop("env_path", None),
+            "data_path": overrides.pop("data_path", None),
+            "worker_dependencies": overrides.pop("worker_dependencies", {}),
+            "package_dependencies": overrides.pop("package_dependencies", {}),
+            "update_on_startup": overrides.pop("update_on_startup", {}),
+            "autostart": overrides.pop("autostart", "never"),
+        }
+        cfg.update(overrides)
+        path = os.path.join(worker_dir, f"worker_{cfg['uuid']}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f)
+        return cfg
+
     @funcnodes_test
     async def test_ping_pong(worker_manager, worker_manager_port):
         """
@@ -318,3 +336,202 @@ if sys.platform != "emscripten":
                 # We'll wait a moment to see if it closes or errors:
                 await asyncio.sleep(0.2)
                 assert not ws.closed
+
+    @funcnodes_test
+    async def test_reload_workers_autostarts_always_worker(monkeypatch):
+        import funcnodes.worker.worker_manager as worker_manager_mod
+
+        wm = WorkerManager(host="127.0.0.1", port=0, debug=True)
+        cfg = _write_worker_config(
+            wm.worker_dir, uuid="worker-autostart-always", autostart="always"
+        )
+        calls = []
+
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "sync_check_worker",
+            lambda workerconfig: (workerconfig["uuid"], False),
+        )
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "start_worker",
+            lambda workerconfig, debug=False: calls.append(
+                (workerconfig["uuid"], debug)
+            ),
+        )
+
+        await wm.reload_workers()
+        await asyncio.sleep(0.1)
+
+        assert calls == [(cfg["uuid"], True)]
+
+    @funcnodes_test
+    async def test_reload_workers_does_not_autostart_default_worker(monkeypatch):
+        import funcnodes.worker.worker_manager as worker_manager_mod
+
+        wm = WorkerManager(host="127.0.0.1", port=0, debug=True)
+        _write_worker_config(wm.worker_dir, uuid="worker-autostart-false")
+        calls = []
+
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "sync_check_worker",
+            lambda workerconfig: (workerconfig["uuid"], False),
+        )
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "start_worker",
+            lambda workerconfig, debug=False: calls.append(workerconfig["uuid"]),
+        )
+
+        await wm.reload_workers()
+        await asyncio.sleep(0.1)
+
+        assert calls == []
+
+    @funcnodes_test
+    async def test_reload_workers_autostarts_legacy_true_as_unless_stopped(
+        monkeypatch,
+    ):
+        import funcnodes.worker.worker_manager as worker_manager_mod
+
+        wm = WorkerManager(host="127.0.0.1", port=0, debug=True)
+        cfg = _write_worker_config(
+            wm.worker_dir, uuid="worker-autostart-legacy-true", autostart=True
+        )
+        calls = []
+
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "sync_check_worker",
+            lambda workerconfig: (workerconfig["uuid"], False),
+        )
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "start_worker",
+            lambda workerconfig, debug=False: calls.append(workerconfig["uuid"]),
+        )
+
+        await wm.reload_workers()
+        await asyncio.sleep(0.1)
+
+        assert calls == [cfg["uuid"]]
+
+    @funcnodes_test
+    async def test_reload_workers_does_not_autostart_unless_stopped_worker_after_stop(
+        monkeypatch,
+    ):
+        import funcnodes.worker.worker_manager as worker_manager_mod
+
+        wm = WorkerManager(host="127.0.0.1", port=0, debug=True)
+        cfg = _write_worker_config(
+            wm.worker_dir,
+            uuid="worker-autostart-unless-stopped",
+            autostart="unless-stopped",
+        )
+        calls = []
+
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "sync_check_worker",
+            lambda workerconfig: (workerconfig["uuid"], False),
+        )
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "start_worker",
+            lambda workerconfig, debug=False: calls.append(workerconfig["uuid"]),
+        )
+
+        wm._suppress_autostart_until_manual_start(cfg["uuid"])
+        await wm.reload_workers()
+        await asyncio.sleep(0.1)
+
+        assert calls == []
+
+    @funcnodes_test
+    async def test_reload_workers_autostarts_unless_stopped_after_manual_start(
+        monkeypatch,
+    ):
+        import funcnodes.worker.worker_manager as worker_manager_mod
+
+        wm = WorkerManager(host="127.0.0.1", port=0, debug=True)
+        cfg = _write_worker_config(
+            wm.worker_dir,
+            uuid="worker-autostart-unless-stopped-cleared",
+            autostart="unless-stopped",
+        )
+        calls = []
+
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "sync_check_worker",
+            lambda workerconfig: (workerconfig["uuid"], False),
+        )
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "start_worker",
+            lambda workerconfig, debug=False: calls.append(workerconfig["uuid"]),
+        )
+
+        wm._suppress_autostart_until_manual_start(cfg["uuid"])
+        wm._clear_autostart_suppression(cfg["uuid"])
+        await wm.reload_workers()
+        await asyncio.sleep(0.1)
+
+        assert calls == [cfg["uuid"]]
+
+    @funcnodes_test
+    async def test_reload_workers_autostarts_always_worker_after_stop(monkeypatch):
+        import funcnodes.worker.worker_manager as worker_manager_mod
+
+        wm = WorkerManager(host="127.0.0.1", port=0, debug=True)
+        cfg = _write_worker_config(
+            wm.worker_dir,
+            uuid="worker-autostart-always-stopped",
+            autostart="always",
+        )
+        calls = []
+
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "sync_check_worker",
+            lambda workerconfig: (workerconfig["uuid"], False),
+        )
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "start_worker",
+            lambda workerconfig, debug=False: calls.append(workerconfig["uuid"]),
+        )
+
+        wm._suppress_autostart_until_manual_start(cfg["uuid"])
+        await wm.reload_workers()
+        await asyncio.sleep(0.1)
+
+        assert calls == [cfg["uuid"]]
+
+    @funcnodes_test
+    async def test_reload_workers_does_not_schedule_overlapping_autostart(monkeypatch):
+        import funcnodes.worker.worker_manager as worker_manager_mod
+
+        wm = WorkerManager(host="127.0.0.1", port=0, debug=True)
+        cfg = _write_worker_config(
+            wm.worker_dir, uuid="worker-autostart-overlap", autostart=True
+        )
+        calls = []
+
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "sync_check_worker",
+            lambda workerconfig: (workerconfig["uuid"], False),
+        )
+        monkeypatch.setattr(
+            worker_manager_mod,
+            "start_worker",
+            lambda workerconfig, debug=False: calls.append(workerconfig["uuid"]),
+        )
+
+        await wm.reload_workers()
+        await wm.reload_workers()
+        await asyncio.sleep(0.1)
+
+        assert calls == [cfg["uuid"]]

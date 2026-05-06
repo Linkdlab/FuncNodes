@@ -1,3 +1,10 @@
+## 1.6.0 (2026-05-06)
+
+### Feat
+
+- **worker_manager**: enhance autostart configuration for workers
+- **worker_manager**: add autostart functionality for workers
+
 ## 1.5.4a0 (2026-05-05)
 
 ### Refactor
