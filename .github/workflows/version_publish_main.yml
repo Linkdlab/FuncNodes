@@ -130,8 +130,9 @@ jobs:
         id: check_tag
         if: steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true'
         run: |
-          TAG_EXISTS=$(git tag -l "v$CURRENT_VERSION")
-          if [ "$TAG_EXISTS" ]; then
+          TAG="v$CURRENT_VERSION"
+          git fetch origin "refs/tags/$TAG:refs/tags/$TAG" || true
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
             echo "tag_exists=true" >> $GITHUB_OUTPUT
           else
             echo "tag_exists=false" >> $GITHUB_OUTPUT
@@ -141,21 +142,36 @@ jobs:
         shell: bash
         if: steps.check_tag.outputs.tag_exists == 'false'
         run: |
+          set -euo pipefail
+          TAG="v$CURRENT_VERSION"
           git config --local user.name "${GITHUB_ACTOR}"
           git config --local user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git tag -a v$CURRENT_VERSION -m "Release version $CURRENT_VERSION"
-          git push origin v$CURRENT_VERSION
+          git fetch origin "refs/tags/$TAG:refs/tags/$TAG" || true
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists on origin"
+            exit 0
+          fi
+          git tag -a "$TAG" -m "Release version $CURRENT_VERSION"
+          if git push origin "refs/tags/$TAG"; then
+            exit 0
+          fi
+          git fetch origin "refs/tags/$TAG:refs/tags/$TAG" || true
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists on origin"
+            exit 0
+          fi
+          exit 1
 
       - name: Install docs dependencies
-        if: steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true'
+        if: ${{ always() && steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true' }}
         run: uv sync --group docs --upgrade
 
       - name: Fetch gh-pages for docs deployment
-        if: steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true'
+        if: ${{ always() && steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true' }}
         run: git fetch origin gh-pages --depth=1 || true
 
       - name: Deploy versioned docs
-        if: steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true'
+        if: ${{ always() && steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
