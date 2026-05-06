@@ -1,0 +1,17 @@
+services:
+  funcnodes:
+    image: ghcr.io/linkdlab/funcnodes:latest
+    ports:
+      - "8000:8000"
+      - "9380:9380"
+      - "9382-9482:9382-9482"
+    environment:
+      FUNCNODES_RUNSERVER_HOST: "0.0.0.0"
+      FUNCNODES_RUNSERVER_PORT: "8000"
+      FUNCNODES_WORKER_MANAGER_HOST: "0.0.0.0"
+      FUNCNODES_WORKER_MANAGER_PORT: "9380"
+      FUNCNODES_HOST: "0.0.0.0"
+      FUNCNODES_WS_WORKER_STARTPORT: "9382"
+      FUNCNODES_UPDATE_PACKAGES: ""
+    volumes:
+      - ./funcnodes_config:/usr/local/app/.funcnodes
