@@ -139,6 +139,7 @@ nav:
   - Getting Started:
       - Introduction: getting-started/introduction.md
       - Installation: getting-started/installation.md
+      - Docker: getting-started/docker.md
       - First Steps: getting-started/basic_usage.md
 
   - Core Concepts:

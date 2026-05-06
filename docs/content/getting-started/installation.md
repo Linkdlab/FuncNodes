@@ -1,8 +1,6 @@
 # Getting started
 
-FuncNodes is a powerful workflow automation system designed for modular and scalable execution. If you're familiar with Python, you can install FuncNodes with [`pip`][pip], the Python package manager. We also aim an stand alone Docker installation and local executables, but they are not yet finished.
-
-<!-- TODO: Docker and standalone -->
+FuncNodes is a powerful workflow automation system designed for modular and scalable execution. If you're familiar with Python, you can install FuncNodes with [`pip`][pip], the Python package manager. You can also run FuncNodes from the published [Docker image](docker.md).
 
 [pip]: #with-pip
 
