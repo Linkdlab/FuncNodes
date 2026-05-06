@@ -56,6 +56,7 @@ def test_release_workflow_pushes_versioned_and_latest_docker_image():
     assert "packages: write" in workflow
     assert "docker/login-action" in workflow
     assert "docker/build-push-action" in workflow
+    assert "platforms: linux/amd64,linux/arm64" in workflow
     assert "FUNCNODES_VERSION=${{ env.CURRENT_VERSION }}" in workflow
     assert "ghcr.io/${{ env.IMAGE_NAME }}:v${{ env.CURRENT_VERSION }}" in workflow
     assert "ghcr.io/${{ env.IMAGE_NAME }}:latest" in workflow
@@ -87,6 +88,10 @@ def test_release_workflow_only_builds_docker_when_pypi_has_current_version():
     assert "CURRENT_VERSION_ON_PYPI=false" in workflow
     assert "current_version_on_pypi=${CURRENT_VERSION_ON_PYPI}" in workflow
     assert "https://pypi.org/pypi/$PACKAGE_NAME/$CURRENT_VERSION/json" in workflow
+    assert "python -m pip install --dry-run --no-deps" in workflow
+    assert '"${PACKAGE_NAME}==${CURRENT_VERSION}"' in workflow
+    assert "for attempt in $(seq 1 30); do" in workflow
+    assert "sleep 10" in workflow
     assert "docker manifest inspect" in workflow
 
     docker_build_step = re.search(
