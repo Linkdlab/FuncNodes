@@ -353,11 +353,11 @@ def test_start_new_worker_forwards_autostart(monkeypatch):
         name="cli-autostart-worker",
         in_venv=False,
         create_only=True,
-        autostart=True,
+        autostart_policy="unless-stopped",
     )
 
     assert result is None
-    assert captured["kwargs"]["autostart"] is True
+    assert captured["kwargs"]["autostart"] == "unless-stopped"
 
 
 @pytest_funcnodes.funcnodes_test
@@ -939,6 +939,7 @@ def test_task_worker_dispatches(monkeypatch, workertask, target_name):
         in_venv=False,
         create_only=False,
         autostart=False,
+        autostart_policy="never",
         full=False,
         command="ping",
         kwargs=["--a", "1"],

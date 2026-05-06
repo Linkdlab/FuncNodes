@@ -220,11 +220,23 @@ def add_worker_parser(subparsers):
     new_worker_parser.add_argument(
         "--not-in-venv", action="store_false", dest="in_venv", help="Do not use a venv"
     )
-    new_worker_parser.add_argument(
+    autostart_group = new_worker_parser.add_mutually_exclusive_group()
+    autostart_group.add_argument(
         "--autostart",
-        action="store_true",
-        default=False,
-        help="Automatically start this worker when the worker manager is running",
+        dest="autostart_policy",
+        action="store_const",
+        const="unless-stopped",
+        default="never",
+        help=(
+            "Automatically start this worker when the worker manager is running, "
+            "unless it is stopped manually in the current manager session"
+        ),
+    )
+    autostart_group.add_argument(
+        "--autostart-policy",
+        choices=["never", "always", "unless-stopped"],
+        default="never",
+        help="Worker manager autostart policy",
     )
 
     # Start an existing worker

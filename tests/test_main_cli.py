@@ -263,7 +263,36 @@ def test_add_worker_parser_parses_new_autostart_flag():
 
     assert args.task == "worker"
     assert args.workertask == "new"
-    assert args.autostart is True
+    assert args.autostart_policy == "unless-stopped"
+
+
+@pytest_funcnodes.funcnodes_test
+def test_add_worker_parser_parses_new_autostart_policy():
+    from funcnodes.__main__ import add_worker_parser
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="task", required=True)
+    add_worker_parser(subparsers)
+
+    args = parser.parse_args(["worker", "new", "--autostart-policy", "always"])
+
+    assert args.task == "worker"
+    assert args.workertask == "new"
+    assert args.autostart_policy == "always"
+
+
+@pytest_funcnodes.funcnodes_test
+def test_add_worker_parser_rejects_autostart_flag_and_policy_together():
+    from funcnodes.__main__ import add_worker_parser
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="task", required=True)
+    add_worker_parser(subparsers)
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            ["worker", "new", "--autostart", "--autostart-policy", "always"]
+        )
 
 
 @pytest_funcnodes.funcnodes_test

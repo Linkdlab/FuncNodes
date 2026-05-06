@@ -28,6 +28,9 @@ from funcnodes_worker.worker import (
     get_workers_dir,
     worker_json_get_data_path,
 )
+
+from funcnodes_worker.worker import AutostartPolicy, normalize_autostart_policy
+
 import subprocess_monitor
 import venvmngr
 
@@ -525,6 +528,7 @@ class WorkerManager:
         self._site: Optional[web.TCPSite] = None
         self._last_woker_check = 0
         self._autostart_tasks: dict[str, asyncio.Task] = {}
+        self._autostart_suppressed_worker_ids: set[str] = set()
 
     @property
     def worker_dir(self):
@@ -855,7 +859,9 @@ class WorkerManager:
                 os.remove(jsonfilepath)
                 continue
 
-            workerconfig.setdefault("autostart", False)
+            workerconfig["autostart"] = normalize_autostart_policy(
+                workerconfig.get("autostart")
+            )
 
             if pf:
                 pfile = os.path.join(self.worker_dir, pf)
@@ -953,10 +959,17 @@ class WorkerManager:
 
     def _schedule_autostart_workers(self):
         for workerconfig in self._inactive_workers:
-            if not workerconfig.get("autostart", False):
+            autostart_policy = normalize_autostart_policy(workerconfig.get("autostart"))
+            if autostart_policy == "never":
                 continue
 
             workerid = workerconfig["uuid"]
+            if (
+                autostart_policy == "unless-stopped"
+                and workerid in self._autostart_suppressed_worker_ids
+            ):
+                continue
+
             task = self._autostart_tasks.get(workerid)
             if task is not None and not task.done():
                 continue
@@ -971,6 +984,12 @@ class WorkerManager:
                     self._autostart_tasks.pop(uuid, None)
 
             task.add_done_callback(_forget_task)
+
+    def _suppress_autostart_until_manual_start(self, workerid: str):
+        self._autostart_suppressed_worker_ids.add(workerid)
+
+    def _clear_autostart_suppression(self, workerid: str):
+        self._autostart_suppressed_worker_ids.discard(workerid)
 
     async def _prepare_worker_for_start(
         self,
@@ -1260,6 +1279,12 @@ class WorkerManager:
         if target_worker is None:
             return
 
+        if (
+            normalize_autostart_policy(target_worker.get("autostart"))
+            == "unless-stopped"
+        ):
+            self._suppress_autostart_until_manual_start(workerid)
+
         try:
             config = fn.config.get_config()
             await self.set_progress_state(
@@ -1464,7 +1489,7 @@ class WorkerManager:
                                         workerconfig,
                                         request_host,
                                     )
-                                    return await websocket.send_str(
+                                    await websocket.send_str(
                                         json.dumps(
                                             {
                                                 "type": "set_worker",
@@ -1472,6 +1497,8 @@ class WorkerManager:
                                             }
                                         )
                                     )
+                                    self._clear_autostart_suppression(workerid)
+                                    return
                 except (
                     ConnectionRefusedError,
                     asyncio.TimeoutError,
@@ -1509,7 +1536,7 @@ class WorkerManager:
         uuid: Optional[str] = None,
         workertype: str = "WSWorker",
         in_venv: Optional[bool] = None,
-        autostart: bool = False,
+        autostart: AutostartPolicy | bool = "never",
         **kwargs,
     ) -> WorkerJson:
         """
@@ -1545,7 +1572,7 @@ class WorkerManager:
         new_worker_config = new_worker.write_config()
         if name:
             new_worker_config["name"] = name
-        new_worker_config["autostart"] = autostart
+        new_worker_config["autostart"] = normalize_autostart_policy(autostart)
 
         if in_venv is None:
             in_venv = os.environ.get("FUNCNODES_WORKER_IN_VENV", "1") in [
