@@ -43,6 +43,7 @@ docker run --rm \
   -e FUNCNODES_WORKER_MANAGER_PORT=9380 \
   -e FUNCNODES_HOST=0.0.0.0 \
   -e FUNCNODES_WS_WORKER_STARTPORT=9382 \
+  -e FUNCNODES_UPDATE_PACKAGES="" \
   -v ./funcnodes_config:/usr/local/app/.funcnodes \
   ghcr.io/linkdlab/funcnodes:latest
 ```
@@ -74,6 +75,7 @@ services:
       FUNCNODES_WORKER_MANAGER_PORT: "9380"
       FUNCNODES_HOST: "0.0.0.0"
       FUNCNODES_WS_WORKER_STARTPORT: "9382"
+      FUNCNODES_UPDATE_PACKAGES: ""
     volumes:
       - ./funcnodes_config:/usr/local/app/.funcnodes
 ```
@@ -114,6 +116,24 @@ FUNCNODES_CONFIG_DIR=/usr/local/app/.funcnodes
 ```
 
 Mounting `./funcnodes_config` to that path makes worker configuration persistent across container restarts. Do not mount this directory read-only.
+
+## Runtime Package Updates
+
+The image installs the `funcnodes` release version at build time. If a dependency package has a newer compatible release, set `FUNCNODES_UPDATE_PACKAGES` to upgrade it when the container starts:
+
+```yaml
+environment:
+  FUNCNODES_UPDATE_PACKAGES: "funcnodes-react-flow"
+```
+
+Multiple packages can be separated by spaces:
+
+```yaml
+environment:
+  FUNCNODES_UPDATE_PACKAGES: "funcnodes-react-flow funcnodes-worker"
+```
+
+Runtime updates are useful when a dependency package was released independently of the main `funcnodes` package. They make startup depend on PyPI availability, so keep the value empty for reproducible deployments.
 
 ## Updating
 

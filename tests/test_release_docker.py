@@ -18,6 +18,36 @@ def test_dockerfile_installs_exact_funcnodes_version_from_build_arg():
     assert "funcnodes>=" not in dockerfile
 
 
+def test_dockerfile_uses_entrypoint_for_runtime_package_updates():
+    dockerfile = (REPO_ROOT / "DOCKERFILE").read_text(encoding="utf-8")
+
+    assert "ENV FUNCNODES_UPDATE_PACKAGES=" in dockerfile
+    assert "ENV HOME=/home/app" in dockerfile
+    assert "ENV PATH=/home/app/.local/bin:$PATH" in dockerfile
+    assert (
+        "COPY scripts/docker-entrypoint.sh /usr/local/bin/funcnodes-docker-entrypoint"
+        in dockerfile
+    )
+    assert "RUN chmod +x /usr/local/bin/funcnodes-docker-entrypoint" in dockerfile
+    assert 'ENTRYPOINT ["funcnodes-docker-entrypoint"]' in dockerfile
+    assert 'CMD ["runserver"]' in dockerfile
+
+
+def test_docker_entrypoint_updates_configured_packages_before_startup():
+    entrypoint_path = REPO_ROOT / "scripts" / "docker-entrypoint.sh"
+    entrypoint = entrypoint_path.read_text(encoding="utf-8")
+
+    assert "FUNCNODES_UPDATE_PACKAGES" in entrypoint
+    assert (
+        "python -m pip install --user --upgrade ${FUNCNODES_UPDATE_PACKAGES}"
+        in entrypoint
+    )
+    assert "exec funcnodes runserver" in entrypoint
+    assert '--host "${FUNCNODES_RUNSERVER_HOST}"' in entrypoint
+    assert '--worker_manager_port "${FUNCNODES_WORKER_MANAGER_PORT}"' in entrypoint
+    assert 'exec "$@"' in entrypoint
+
+
 def test_release_workflow_pushes_versioned_and_latest_docker_image():
     workflow = (
         REPO_ROOT / ".github" / "workflows" / "version_publish_main.yml"
