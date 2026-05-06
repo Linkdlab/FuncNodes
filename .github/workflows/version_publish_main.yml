@@ -145,3 +145,23 @@ jobs:
           git config --local user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           git tag -a v$CURRENT_VERSION -m "Release version $CURRENT_VERSION"
           git push origin v$CURRENT_VERSION
+
+      - name: Install docs dependencies
+        if: steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true'
+        run: uv sync --group docs --upgrade
+
+      - name: Fetch gh-pages for docs deployment
+        if: steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true'
+        run: git fetch origin gh-pages --depth=1 || true
+
+      - name: Deploy versioned docs
+        if: steps.check_current_pypi_version.outputs.current_version_on_pypi == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          CFG="docs/mkdocs.yml"
+          DOCS_VERSION="v${CURRENT_VERSION}"
+          uv run mike deploy --push --update-aliases -F "$CFG" "$DOCS_VERSION" latest --alias-type=redirect
+          uv run mike set-default --push -F "$CFG" latest
