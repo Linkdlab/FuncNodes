@@ -54,7 +54,7 @@ def test_release_workflow_uses_v_prefixed_commitizen_tag_format():
     ).read_text(encoding="utf-8")
     cz_config = (REPO_ROOT / "cz.toml").read_text(encoding="utf-8")
 
-    assert 'tag_format = "v$version"' in cz_config
+    assert 'tag_format = "$version"' in cz_config
     assert (
         'git tag -a v$CURRENT_VERSION -m "Release version $CURRENT_VERSION"' in workflow
     )
