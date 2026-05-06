@@ -1,3 +1,26 @@
+## 1.7.0 (2026-05-06)
+
+### Feat
+
+- add docker-entrypoint.sh to support optional runtime package updates via FUNCNODES_UPDATE_PACKAGES environment variable
+- update release workflow to handle idempotent tag creation and automated documentation deployment
+- add automated documentation deployment to version release workflow and verify with tests
+- add Docker image publishing to GHCR in release workflow and include validation tests
+
+### Refactor
+
+- decouple PyPI and Docker release conditions in version publish workflow and update tests
+
+## v1.6.0 (2026-05-06)
+
+## v1.5.4a0 (2026-05-06)
+
+## v1.5.3 (2026-05-05)
+
+## v1.5.2 (2026-03-17)
+
+## v1.5.1 (2026-01-09)
+
 ## 1.6.0 (2026-05-06)
 
 ### Feat
