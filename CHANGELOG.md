@@ -11,16 +11,6 @@
 
 - decouple PyPI and Docker release conditions in version publish workflow and update tests
 
-## v1.6.0 (2026-05-06)
-
-## v1.5.4a0 (2026-05-06)
-
-## v1.5.3 (2026-05-05)
-
-## v1.5.2 (2026-03-17)
-
-## v1.5.1 (2026-01-09)
-
 ## 1.6.0 (2026-05-06)
 
 ### Feat
