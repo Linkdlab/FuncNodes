@@ -156,6 +156,8 @@ def task_worker(args: argparse.Namespace):
                 create_only=args.create_only,
                 profile=args.profile,
                 autostart_policy=args.autostart_policy,
+                host=getattr(args, "host", None),
+                port=getattr(args, "port", None),
             )
         elif workertask == "list":
             return list_workers(args)

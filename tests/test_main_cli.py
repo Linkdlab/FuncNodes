@@ -282,6 +282,73 @@ def test_add_worker_parser_parses_new_autostart_policy():
 
 
 @pytest_funcnodes.funcnodes_test
+def test_add_worker_parser_parses_new_worker_host_and_port():
+    from funcnodes.__main__ import add_worker_parser
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="task", required=True)
+    add_worker_parser(subparsers)
+
+    args = parser.parse_args(
+        [
+            "worker",
+            "--uuid",
+            "worker-docker",
+            "--name",
+            "docker",
+            "new",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "9382",
+        ]
+    )
+
+    assert args.task == "worker"
+    assert args.workertask == "new"
+    assert args.uuid == "worker-docker"
+    assert args.name == "docker"
+    assert args.host == "0.0.0.0"
+    assert args.port == 9382
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_worker_new_passes_host_and_port(monkeypatch):
+    from funcnodes.cli import tasks as tasks_mod
+    from funcnodes.__main__ import task_worker
+
+    captured: dict = {}
+
+    def fake_start_new_worker(**kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(tasks_mod, "start_new_worker", fake_start_new_worker)
+
+    args = SimpleNamespace(
+        workertask="new",
+        uuid="worker-docker",
+        name="docker",
+        workertype="WSWorker",
+        debug=False,
+        in_venv=False,
+        create_only=True,
+        profile=False,
+        autostart_policy="never",
+        host="0.0.0.0",
+        port=9382,
+    )
+
+    task_worker(args)
+
+    assert captured["uuid"] == "worker-docker"
+    assert captured["name"] == "docker"
+    assert captured["host"] == "0.0.0.0"
+    assert captured["port"] == 9382
+    assert captured["in_venv"] is False
+    assert captured["create_only"] is True
+
+
+@pytest_funcnodes.funcnodes_test
 def test_add_worker_parser_rejects_autostart_flag_and_policy_together():
     from funcnodes.__main__ import add_worker_parser
 

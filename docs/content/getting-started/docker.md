@@ -6,7 +6,10 @@ FuncNodes publishes Docker images to GitHub Container Registry:
 ghcr.io/linkdlab/funcnodes
 ```
 
-Use Docker when you want to run the FuncNodes web UI and worker manager without installing Python packages on the host.
+Use Docker when you want to run FuncNodes without installing Python packages on the host. The image supports two runtime modes:
+
+- **Manager mode**: starts the web UI and uses a Workermanager. This is the default.
+- **Single-worker mode**: starts one persistent worker and a web UI connected directly to it, without a Workermanager.
 
 ## Pull the Image
 
@@ -56,6 +59,37 @@ http://localhost:8000
 
 The worker manager listens on port `9380`. Worker websocket ports use the exposed range `9382-9482`.
 
+## Single-Worker Mode
+
+Use single-worker mode when you want one empty worker and the web frontend without a Workermanager:
+
+```bash
+docker run --rm \
+  -p 8000:8000 \
+  -p 9382:9382 \
+  -e FUNCNODES_DOCKER_MODE=single-worker \
+  -e FUNCNODES_RUNSERVER_HOST=0.0.0.0 \
+  -e FUNCNODES_RUNSERVER_PORT=8000 \
+  -e FUNCNODES_SINGLE_WORKER_HOST=0.0.0.0 \
+  -e FUNCNODES_SINGLE_WORKER_PORT=9382 \
+  -v ./funcnodes_config:/usr/local/app/.funcnodes \
+  ghcr.io/linkdlab/funcnodes:latest
+```
+
+The container creates the worker once and reuses it on later starts through the mounted `funcnodes_config` volume.
+
+Optional single-worker settings:
+
+| Environment variable | Default | Description |
+| -------------------- | ------- | ----------- |
+| `FUNCNODES_SINGLE_WORKER_UUID` | `00000000000000000000000000000001` | Stable worker id used for the persisted worker config. |
+| `FUNCNODES_SINGLE_WORKER_NAME` | `docker-single-worker` | Display name for the worker. |
+| `FUNCNODES_SINGLE_WORKER_HOST` | `0.0.0.0` | Bind host inside the container. |
+| `FUNCNODES_SINGLE_WORKER_PORT` | `9382` | Worker websocket port. |
+| `FUNCNODES_SINGLE_WORKER_PUBLIC_HOST` | empty | Browser-facing worker host for reverse proxies or remote deployments. |
+
+For local Docker use, leave `FUNCNODES_SINGLE_WORKER_PUBLIC_HOST` empty. Set it only when the browser must connect to a public hostname that differs from the HTTP request host.
+
 ## Run with Docker Compose
 
 Use this `docker-compose.yaml`:
@@ -75,6 +109,26 @@ services:
       FUNCNODES_WORKER_MANAGER_PORT: "9380"
       FUNCNODES_HOST: "0.0.0.0"
       FUNCNODES_WS_WORKER_STARTPORT: "9382"
+      FUNCNODES_UPDATE_PACKAGES: ""
+    volumes:
+      - ./funcnodes_config:/usr/local/app/.funcnodes
+```
+
+For single-worker mode, remove the worker-manager port and expose one worker port:
+
+```yaml
+services:
+  funcnodes:
+    image: ghcr.io/linkdlab/funcnodes:latest
+    ports:
+      - "8000:8000"
+      - "9382:9382"
+    environment:
+      FUNCNODES_DOCKER_MODE: "single-worker"
+      FUNCNODES_RUNSERVER_HOST: "0.0.0.0"
+      FUNCNODES_RUNSERVER_PORT: "8000"
+      FUNCNODES_SINGLE_WORKER_HOST: "0.0.0.0"
+      FUNCNODES_SINGLE_WORKER_PORT: "9382"
       FUNCNODES_UPDATE_PACKAGES: ""
     volumes:
       - ./funcnodes_config:/usr/local/app/.funcnodes

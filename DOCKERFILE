@@ -42,6 +42,24 @@ ENV FUNCNODES_WORKER_MANAGER_PORT=9380
 ENV FUNCNODES_HOST=0.0.0.0
 ENV FUNCNODES_WS_WORKER_STARTPORT=9382
 
+# Docker startup mode. Empty/default starts the normal UI + Workermanager setup.
+# Set FUNCNODES_DOCKER_MODE=single-worker to start one persistent worker and a
+# frontend connected directly to it, without a Workermanager.
+ENV FUNCNODES_DOCKER_MODE=
+
+# Defaults for the Docker-only single-worker mode. The fixed UUID keeps the
+# same worker config across container restarts when FUNCNODES_CONFIG_DIR is
+# mounted as a volume.
+ENV FUNCNODES_SINGLE_WORKER_UUID=00000000000000000000000000000001
+ENV FUNCNODES_SINGLE_WORKER_NAME=docker-single-worker
+ENV FUNCNODES_SINGLE_WORKER_HOST=0.0.0.0
+ENV FUNCNODES_SINGLE_WORKER_PORT=9382
+
+# Optional browser-facing worker host for reverse proxy deployments. Leave empty
+# for normal local Docker use; the frontend server can infer the request host
+# for local/container bind hosts such as 0.0.0.0.
+ENV FUNCNODES_SINGLE_WORKER_PUBLIC_HOST=
+
 # Optional space-separated package list, for example:
 # FUNCNODES_UPDATE_PACKAGES="funcnodes-react-flow funcnodes-worker"
 # Leave empty for reproducible startup without network-dependent upgrades.
