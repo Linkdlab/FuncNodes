@@ -48,6 +48,41 @@ def test_docker_entrypoint_updates_configured_packages_before_startup():
     assert 'exec "$@"' in entrypoint
 
 
+def test_dockerfile_declares_single_worker_mode_defaults():
+    dockerfile = (REPO_ROOT / "DOCKERFILE").read_text(encoding="utf-8")
+
+    assert "ENV FUNCNODES_DOCKER_MODE=" in dockerfile
+    assert (
+        "ENV FUNCNODES_SINGLE_WORKER_UUID=00000000000000000000000000000001"
+        in dockerfile
+    )
+    assert "ENV FUNCNODES_SINGLE_WORKER_NAME=docker-single-worker" in dockerfile
+    assert "ENV FUNCNODES_SINGLE_WORKER_HOST=0.0.0.0" in dockerfile
+    assert "ENV FUNCNODES_SINGLE_WORKER_PORT=9382" in dockerfile
+    assert "ENV FUNCNODES_SINGLE_WORKER_PUBLIC_HOST=" in dockerfile
+
+
+def test_docker_entrypoint_supports_single_worker_mode():
+    entrypoint = (REPO_ROOT / "scripts" / "docker-entrypoint.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "FUNCNODES_DOCKER_MODE:-manager" in entrypoint
+    assert "single-worker" in entrypoint
+    assert 'funcnodes worker --uuid "${FUNCNODES_SINGLE_WORKER_UUID}"' in entrypoint
+    assert "new --create-only --not-in-venv" in entrypoint
+    assert '--host "${FUNCNODES_SINGLE_WORKER_HOST}"' in entrypoint
+    assert '--port "${FUNCNODES_SINGLE_WORKER_PORT}"' in entrypoint
+    assert (
+        'funcnodes worker --uuid "${FUNCNODES_SINGLE_WORKER_UUID}" start &'
+        not in entrypoint
+    )
+    assert "--no-manager" in entrypoint
+    assert '--worker-uuid "${FUNCNODES_SINGLE_WORKER_UUID}"' in entrypoint
+    assert '--worker_host "$worker_public_host"' in entrypoint
+    assert '--worker_port "${FUNCNODES_SINGLE_WORKER_PORT}"' in entrypoint
+
+
 def test_release_workflow_pushes_versioned_and_latest_docker_image():
     workflow = (
         REPO_ROOT / ".github" / "workflows" / "version_publish_main.yml"

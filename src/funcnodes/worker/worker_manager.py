@@ -1253,6 +1253,10 @@ class WorkerManager:
         """
         Stops a worker.
 
+        The target is resolved from the manager's active/inactive caches first.
+        If this manager instance has not loaded workers yet, the persisted worker
+        JSON is used as a fallback so CLI commands can stop a known worker UUID.
+
         Args:
           workerid (str): The id of the worker to stop.
           websocket (WebSocketResponse): The websocket connection to send status updates to.
@@ -1275,6 +1279,15 @@ class WorkerManager:
                 if worker["uuid"] == workerid:
                     target_worker = worker
                     break
+
+        if target_worker is None:
+            jsonfilepath = os.path.join(self.worker_dir, f"worker_{workerid}.json")
+            if os.path.exists(jsonfilepath):
+                try:
+                    with open(jsonfilepath, "r", encoding="utf-8") as file:
+                        target_worker = WorkerJson(**json.load(file))
+                except Exception:
+                    target_worker = None
 
         if target_worker is None:
             return

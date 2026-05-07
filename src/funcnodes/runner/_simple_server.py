@@ -59,6 +59,15 @@ def _public_worker_manager_host(
     return _strip_port_from_host(request_host)
 
 
+def _public_worker_host(
+    configured_host: Optional[str], request_host: Optional[str]
+) -> str:
+    return _public_worker_manager_host(
+        configured_host=configured_host,
+        request_host=request_host,
+    )
+
+
 class Methods(Enum):
     GET = "GET"
     DELETE = "DELETE"
@@ -281,9 +290,13 @@ class BaseServer:
             loop.run_until_complete(self.shutdown())
 
     async def get_worker(self, request):
+        public_host = _public_worker_host(
+            configured_host=self.worker_host,
+            request_host=request.host,
+        )
         return web.json_response(
             data={
-                "host": self.worker_host,
+                "host": public_host,
                 "port": self.worker_port,
                 "ssl": self.worker_ssl,
             },

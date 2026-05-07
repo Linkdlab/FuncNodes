@@ -13,5 +13,11 @@ services:
       FUNCNODES_HOST: "0.0.0.0"
       FUNCNODES_WS_WORKER_STARTPORT: "9382"
       FUNCNODES_UPDATE_PACKAGES: ""
+      # Uncomment these values to run one worker and the frontend without a
+      # Workermanager. In that mode, runserver attaches to the worker by UUID,
+      # port 9380 is not needed, and 9382 is the single worker websocket port.
+      # FUNCNODES_DOCKER_MODE: "single-worker"
+      # FUNCNODES_SINGLE_WORKER_HOST: "0.0.0.0"
+      # FUNCNODES_SINGLE_WORKER_PORT: "9382"
     volumes:
       - ./funcnodes_config:/usr/local/app/.funcnodes
