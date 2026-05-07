@@ -76,7 +76,7 @@ docker run --rm \
   ghcr.io/linkdlab/funcnodes:latest
 ```
 
-The container creates the worker once and reuses it on later starts through the mounted `funcnodes_config` volume.
+The container creates the worker once and reuses it on later starts through the mounted `funcnodes_config` volume. Startup uses `funcnodes runserver --no-manager --worker-uuid ...`: if the worker is already running, the frontend attaches to its existing port; otherwise the server starts it on `FUNCNODES_SINGLE_WORKER_PORT` and stops it again when the server exits.
 
 Optional single-worker settings:
 

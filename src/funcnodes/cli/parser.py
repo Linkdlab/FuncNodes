@@ -82,6 +82,14 @@ def add_runserver_parser(subparsers):
         help="The port to run the worker on",
     )
     parser.add_argument(
+        "--worker-uuid",
+        default=None,
+        help=(
+            "Existing worker UUID to use in --no-manager mode. If the worker is "
+            "not running, runserver starts it and stops it on shutdown."
+        ),
+    )
+    parser.add_argument(
         "--worker_ssl",
         action="store_true",
         help="Use SSL for the worker",

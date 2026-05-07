@@ -77,6 +77,264 @@ def test_task_run_server_calls_react_flow(monkeypatch):
 
 
 @pytest_funcnodes.funcnodes_test
+def test_task_run_server_attaches_to_running_worker(monkeypatch, worker_config):
+    from funcnodes.__main__ import task_run_server
+    from funcnodes.worker import worker_manager as worker_manager_mod
+
+    worker_config["host"] = "existing.local"
+    worker_config["port"] = 9399
+    worker_dir = Path(worker_manager_mod.WorkerManager(debug=False).worker_dir)
+    worker_file = worker_dir / f"worker_{worker_config['uuid']}.json"
+    worker_file.write_text(json.dumps(worker_config), encoding="utf-8")
+
+    captured: dict = {}
+    module = ModuleType("funcnodes_react_flow")
+
+    def run_server(**kwargs):
+        captured.update(kwargs)
+
+    async def fake_check_worker(config):
+        return config["uuid"], True
+
+    def fail_start_worker(config, debug=False):  # pragma: no cover - assertion guard
+        raise AssertionError("running worker must not be started")
+
+    async def fail_stop_worker(self, workerid, websocket=None):
+        raise AssertionError("attached worker must not be stopped")
+
+    module.run_server = run_server
+    monkeypatch.setitem(sys.modules, "funcnodes_react_flow", module)
+    monkeypatch.setattr(worker_manager_mod, "check_worker", fake_check_worker)
+    monkeypatch.setattr(worker_manager_mod, "start_worker", fail_start_worker)
+    monkeypatch.setattr(
+        worker_manager_mod.WorkerManager,
+        "stop_worker",
+        fail_stop_worker,
+    )
+
+    args = SimpleNamespace(
+        frontend="react_flow",
+        port=9001,
+        host="127.0.0.1",
+        no_browser=False,
+        worker_manager_host=None,
+        worker_manager_port=None,
+        worker_manager_ssl=False,
+        no_manager=False,
+        worker_host="localhost",
+        worker_port=9200,
+        worker_ssl=False,
+        worker_uuid=worker_config["uuid"],
+        debug=True,
+    )
+
+    task_run_server(args)
+
+    assert captured["has_worker_manager"] is False
+    assert captured["start_worker_manager"] is False
+    assert captured["worker_host"] == "existing.local"
+    assert captured["worker_port"] == 9399
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_run_server_starts_and_stops_stopped_worker(monkeypatch, worker_config):
+    from funcnodes.__main__ import task_run_server
+    from funcnodes.worker import worker_manager as worker_manager_mod
+
+    captured: dict = {}
+    started: list[dict] = []
+    stopped: list[str] = []
+    module = ModuleType("funcnodes_react_flow")
+
+    def run_server(**kwargs):
+        captured.update(kwargs)
+
+    async def fake_check_worker(config):
+        return config["uuid"], bool(started)
+
+    def fake_start_worker(config, debug=False):
+        started.append(dict(config))
+
+    async def fake_stop_worker(self, workerid, websocket=None):
+        stopped.append(workerid)
+
+    module.run_server = run_server
+    monkeypatch.setitem(sys.modules, "funcnodes_react_flow", module)
+    monkeypatch.setattr(worker_manager_mod, "check_worker", fake_check_worker)
+    monkeypatch.setattr(worker_manager_mod, "start_worker", fake_start_worker)
+    monkeypatch.setattr(
+        worker_manager_mod.WorkerManager,
+        "stop_worker",
+        fake_stop_worker,
+    )
+
+    args = SimpleNamespace(
+        frontend="react_flow",
+        port=9001,
+        host="127.0.0.1",
+        no_browser=False,
+        worker_manager_host=None,
+        worker_manager_port=None,
+        worker_manager_ssl=False,
+        no_manager=False,
+        worker_host="requested.local",
+        worker_port=9200,
+        worker_ssl=True,
+        worker_uuid=worker_config["uuid"],
+        debug=True,
+    )
+
+    task_run_server(args)
+
+    assert started[0]["host"] == "requested.local"
+    assert started[0]["port"] == 9200
+    assert "register_shutdown_handler" in captured
+    assert captured["worker_host"] == "requested.local"
+    assert captured["worker_port"] == 9200
+    assert captured["worker_ssl"] is True
+    assert stopped == [worker_config["uuid"]]
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_run_server_preserves_worker_bind_host_for_public_host_override(
+    monkeypatch, worker_config
+):
+    from funcnodes.__main__ import task_run_server
+    from funcnodes.worker import worker_manager as worker_manager_mod
+
+    worker_config["host"] = "0.0.0.0"
+    worker_dir = Path(worker_manager_mod.WorkerManager(debug=False).worker_dir)
+    worker_file = worker_dir / f"worker_{worker_config['uuid']}.json"
+    worker_file.write_text(json.dumps(worker_config), encoding="utf-8")
+
+    captured: dict = {}
+    started: list[dict] = []
+    stopped: list[str] = []
+    module = ModuleType("funcnodes_react_flow")
+
+    def run_server(**kwargs):
+        captured.update(kwargs)
+
+    async def fake_check_worker(config):
+        return config["uuid"], bool(started)
+
+    def fake_start_worker(config, debug=False):
+        started.append(dict(config))
+
+    async def fake_stop_worker(self, workerid, websocket=None):
+        stopped.append(workerid)
+
+    module.run_server = run_server
+    monkeypatch.setitem(sys.modules, "funcnodes_react_flow", module)
+    monkeypatch.setattr(worker_manager_mod, "check_worker", fake_check_worker)
+    monkeypatch.setattr(worker_manager_mod, "start_worker", fake_start_worker)
+    monkeypatch.setattr(
+        worker_manager_mod.WorkerManager,
+        "stop_worker",
+        fake_stop_worker,
+    )
+
+    args = SimpleNamespace(
+        frontend="react_flow",
+        port=9001,
+        host="127.0.0.1",
+        no_browser=False,
+        worker_manager_host=None,
+        worker_manager_port=None,
+        worker_manager_ssl=False,
+        no_manager=False,
+        worker_host="worker.example.com",
+        worker_port=9200,
+        worker_ssl=False,
+        worker_uuid=worker_config["uuid"],
+        debug=True,
+    )
+
+    task_run_server(args)
+
+    assert started[0]["host"] == "0.0.0.0"
+    assert captured["worker_host"] == "worker.example.com"
+    assert stopped == [worker_config["uuid"]]
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_run_server_stops_worker_when_startup_check_fails(
+    monkeypatch, worker_config
+):
+    from funcnodes.cli import tasks as tasks_mod
+    from funcnodes.worker import worker_manager as worker_manager_mod
+
+    started: list[dict] = []
+    stopped: list[str] = []
+
+    async def fake_check_worker(config):
+        return config["uuid"], False
+
+    def fake_start_worker(config, debug=False):
+        started.append(dict(config))
+
+    async def fake_stop_worker(self, workerid, websocket=None):
+        stopped.append(workerid)
+
+    ticks = iter([0, 31])
+
+    monkeypatch.setattr(worker_manager_mod, "check_worker", fake_check_worker)
+    monkeypatch.setattr(worker_manager_mod, "start_worker", fake_start_worker)
+    monkeypatch.setattr(
+        worker_manager_mod.WorkerManager,
+        "stop_worker",
+        fake_stop_worker,
+    )
+    monkeypatch.setattr(tasks_mod.time, "time", lambda: next(ticks))
+    monkeypatch.setattr(tasks_mod.time, "sleep", lambda delay: None)
+
+    args = SimpleNamespace(
+        frontend="react_flow",
+        no_manager=False,
+        worker_host="localhost",
+        worker_port=9200,
+        worker_ssl=False,
+        worker_uuid=worker_config["uuid"],
+        debug=True,
+    )
+
+    with pytest.raises(TimeoutError, match="did not become reachable"):
+        tasks_mod.task_run_server(args)
+
+    assert started
+    assert stopped == [worker_config["uuid"]]
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_run_server_worker_uuid_requires_no_manager(worker_config):
+    from funcnodes.__main__ import task_run_server
+
+    args = SimpleNamespace(
+        frontend="react_flow",
+        no_manager=True,
+        worker_uuid=worker_config["uuid"],
+    )
+
+    with pytest.raises(ValueError, match="--worker-uuid requires --no-manager"):
+        task_run_server(args)
+
+
+@pytest_funcnodes.funcnodes_test
+def test_task_run_server_unknown_worker_uuid_raises():
+    from funcnodes.__main__ import task_run_server
+
+    args = SimpleNamespace(
+        frontend="react_flow",
+        no_manager=False,
+        worker_uuid="missing-worker",
+        debug=False,
+    )
+
+    with pytest.raises(ValueError, match="No worker found"):
+        task_run_server(args)
+
+
+@pytest_funcnodes.funcnodes_test
 def test_task_run_server_rejects_unknown_frontend():
     from funcnodes.__main__ import task_run_server
 
@@ -111,6 +369,8 @@ def test_add_runserver_parser_parses_flags():
             "worker",
             "--worker_port",
             "9201",
+            "--worker-uuid",
+            "worker-123",
             "--worker_ssl",
         ]
     )
@@ -125,6 +385,7 @@ def test_add_runserver_parser_parses_flags():
     assert args.worker_manager_ssl is True
     assert args.worker_host == "worker"
     assert args.worker_port == 9201
+    assert args.worker_uuid == "worker-123"
     assert args.worker_ssl is True
 
 

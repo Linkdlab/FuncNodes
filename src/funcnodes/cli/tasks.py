@@ -4,11 +4,13 @@ import argparse
 import asyncio
 import textwrap
 import threading
+import time
 from typing import Optional
 
 from pathlib import Path
 
 import funcnodes as fn
+from funcnodes_core.utils.files import write_json_secure
 
 from .utils import parse_command_kwargs
 from .worker import (
@@ -29,6 +31,83 @@ from .worker import (
 # =============================================================================
 
 
+def _get_runserver_worker_config(worker_uuid: str, debug: bool):
+    """Return the manager and worker config for a direct runserver worker."""
+    manager = fn.worker.worker_manager.WorkerManager(debug=debug)
+    for worker_config in manager.get_all_workercfg():
+        if worker_config["uuid"] == worker_uuid:
+            return manager, worker_config
+
+    raise ValueError(f"No worker found with uuid {worker_uuid!r}")
+
+
+def _write_runserver_worker_config(manager, worker_config):
+    """Persist direct worker host/port changes before starting the worker."""
+    worker_config_file = (
+        Path(manager.worker_dir) / f"worker_{worker_config['uuid']}.json"
+    )
+    write_json_secure(worker_config, worker_config_file, indent=2)
+
+
+def _check_runserver_worker(worker_config) -> bool:
+    """Check whether the configured worker websocket is reachable."""
+    _, is_running = asyncio.run(fn.worker.worker_manager.check_worker(worker_config))
+    return is_running
+
+
+def _wait_for_runserver_worker(worker_uuid: str, debug: bool, timeout: float = 30.0):
+    """Wait for a worker started by runserver to publish a reachable endpoint."""
+    deadline = time.time() + timeout
+
+    while time.time() < deadline:
+        _, worker_config = _get_runserver_worker_config(worker_uuid, debug=debug)
+        if _check_runserver_worker(worker_config):
+            return worker_config
+        time.sleep(0.5)
+
+    raise TimeoutError(f"Worker {worker_uuid!r} did not become reachable")
+
+
+def _stop_runserver_worker(worker_uuid: str, debug: bool):
+    """Stop a worker that was started for a direct runserver session."""
+    manager = fn.worker.worker_manager.WorkerManager(debug=debug)
+    asyncio.run(manager.stop_worker(worker_uuid))
+
+
+def _prepare_direct_worker_for_runserver(args: argparse.Namespace):
+    """Attach to or start the worker requested by runserver --worker-uuid."""
+    worker_uuid = getattr(args, "worker_uuid", None)
+    if not worker_uuid:
+        return None, False
+
+    if getattr(args, "no_manager", True):
+        raise ValueError("--worker-uuid requires --no-manager")
+
+    debug = getattr(args, "debug", False)
+    manager, worker_config = _get_runserver_worker_config(worker_uuid, debug=debug)
+
+    if _check_runserver_worker(worker_config):
+        return worker_config, False
+
+    worker_config["host"] = (
+        worker_config.get("host") or getattr(args, "worker_host", None) or "localhost"
+    )
+    worker_config["port"] = getattr(args, "worker_port", None) or worker_config.get(
+        "port", 9380
+    )
+    worker_config["ssl"] = getattr(args, "worker_ssl", False)
+    worker_config.pop("pid", None)
+    _write_runserver_worker_config(manager, worker_config)
+
+    fn.worker.worker_manager.start_worker(worker_config, debug=debug)
+    try:
+        worker_config = _wait_for_runserver_worker(worker_uuid, debug=debug)
+    except Exception:
+        _stop_runserver_worker(worker_uuid, debug=debug)
+        raise
+    return worker_config, True
+
+
 def task_run_server(args: argparse.Namespace):
     """Run the FuncNodes server with the specified frontend."""
     frontend = args.frontend
@@ -37,20 +116,46 @@ def task_run_server(args: argparse.Namespace):
     else:
         raise Exception(f"Unknown frontend: {frontend}")
 
-    run_server(
-        port=args.port,
-        host=args.host,
-        open_browser=args.no_browser,
-        worker_manager_host=args.worker_manager_host,
-        worker_manager_port=args.worker_manager_port,
-        worker_manager_ssl=args.worker_manager_ssl,
-        start_worker_manager=args.no_manager,
-        has_worker_manager=args.no_manager,
-        worker_host=args.worker_host,
-        worker_port=args.worker_port,
-        worker_ssl=args.worker_ssl,
-        debug=args.debug,
+    direct_worker_config, started_direct_worker = _prepare_direct_worker_for_runserver(
+        args
     )
+
+    worker_host = args.worker_host
+    worker_port = args.worker_port
+    worker_ssl = args.worker_ssl
+    shutdown_handler_callback = None
+
+    if direct_worker_config is not None:
+        worker_host = direct_worker_config.get("host")
+        worker_port = direct_worker_config.get("port")
+        worker_ssl = direct_worker_config.get("ssl", False)
+        if args.worker_host and args.worker_host != "localhost":
+            worker_host = args.worker_host
+
+        def _direct_worker_shutdown_handler(handler):
+            return handler
+
+        shutdown_handler_callback = _direct_worker_shutdown_handler
+
+    try:
+        run_server(
+            port=args.port,
+            host=args.host,
+            open_browser=args.no_browser,
+            worker_manager_host=args.worker_manager_host,
+            worker_manager_port=args.worker_manager_port,
+            worker_manager_ssl=args.worker_manager_ssl,
+            start_worker_manager=args.no_manager,
+            has_worker_manager=args.no_manager,
+            worker_host=worker_host,
+            worker_port=worker_port,
+            worker_ssl=worker_ssl,
+            debug=args.debug,
+            register_shutdown_handler=shutdown_handler_callback,
+        )
+    finally:
+        if started_direct_worker and direct_worker_config is not None:
+            _stop_runserver_worker(direct_worker_config["uuid"], debug=args.debug)
 
 
 def task_standalone(args: argparse.Namespace):

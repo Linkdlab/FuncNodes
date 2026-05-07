@@ -75,11 +75,10 @@ def test_docker_entrypoint_supports_single_worker_mode():
     assert '--port "${FUNCNODES_SINGLE_WORKER_PORT}"' in entrypoint
     assert (
         'funcnodes worker --uuid "${FUNCNODES_SINGLE_WORKER_UUID}" start &'
-        in entrypoint
+        not in entrypoint
     )
-    assert 'worker_connect_host="127.0.0.1"' in entrypoint
-    assert 'wait_for_worker "$worker_connect_host"' in entrypoint
     assert "--no-manager" in entrypoint
+    assert '--worker-uuid "${FUNCNODES_SINGLE_WORKER_UUID}"' in entrypoint
     assert '--worker_host "$worker_public_host"' in entrypoint
     assert '--worker_port "${FUNCNODES_SINGLE_WORKER_PORT}"' in entrypoint
 
