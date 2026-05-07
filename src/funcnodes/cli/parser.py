@@ -82,6 +82,14 @@ def add_runserver_parser(subparsers):
         help="The port to run the worker on",
     )
     parser.add_argument(
+        "--worker-uuid",
+        default=None,
+        help=(
+            "Existing worker UUID to use in --no-manager mode. If the worker is "
+            "not running, runserver starts it and stops it on shutdown."
+        ),
+    )
+    parser.add_argument(
         "--worker_ssl",
         action="store_true",
         help="Use SSL for the worker",
@@ -219,6 +227,17 @@ def add_worker_parser(subparsers):
     )
     new_worker_parser.add_argument(
         "--not-in-venv", action="store_false", dest="in_venv", help="Do not use a venv"
+    )
+    new_worker_parser.add_argument(
+        "--host",
+        default=None,
+        help="The host to bind the new worker to",
+    )
+    new_worker_parser.add_argument(
+        "--port",
+        default=None,
+        type=int,
+        help="The port to bind the new worker to",
     )
     autostart_group = new_worker_parser.add_mutually_exclusive_group()
     autostart_group.add_argument(

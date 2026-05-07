@@ -23,6 +23,35 @@ if [ -n "${FUNCNODES_UPDATE_PACKAGES:-}" ]; then
     set +f
 fi
 
+run_single_worker() {
+    worker_config="${FUNCNODES_CONFIG_DIR}/workers/worker_${FUNCNODES_SINGLE_WORKER_UUID}.json"
+    worker_public_host="${FUNCNODES_SINGLE_WORKER_PUBLIC_HOST:-${FUNCNODES_SINGLE_WORKER_HOST}}"
+
+    # Create the fixed worker once. `--not-in-venv` keeps the worker in the
+    # container environment, which is already isolated by Docker and can be
+    # updated at startup via FUNCNODES_UPDATE_PACKAGES.
+    if [ ! -f "$worker_config" ]; then
+        funcnodes worker --uuid "${FUNCNODES_SINGLE_WORKER_UUID}" \
+            --name "${FUNCNODES_SINGLE_WORKER_NAME}" \
+            new --create-only --not-in-venv \
+            --host "${FUNCNODES_SINGLE_WORKER_HOST}" \
+            --port "${FUNCNODES_SINGLE_WORKER_PORT}"
+    fi
+
+    # Serve the React Flow frontend without Workermanager discovery. `runserver`
+    # attaches to the configured worker if it is already running; otherwise it
+    # starts it with the configured port and stops it during server shutdown.
+    exec funcnodes runserver \
+        --host "${FUNCNODES_RUNSERVER_HOST}" \
+        --port "${FUNCNODES_RUNSERVER_PORT}" \
+        --no-browser \
+        --no-manager \
+        --worker-uuid "${FUNCNODES_SINGLE_WORKER_UUID}" \
+        --worker_host "$worker_public_host" \
+        --worker_port "${FUNCNODES_SINGLE_WORKER_PORT}" \
+        "$@"
+}
+
 # Default command path.
 #
 # `docker run image` and `docker run image runserver` both start the FuncNodes
@@ -31,6 +60,10 @@ fi
 if [ "$#" -eq 0 ] || [ "$1" = "runserver" ]; then
     if [ "$#" -gt 0 ]; then
         shift
+    fi
+
+    if [ "${FUNCNODES_DOCKER_MODE:-manager}" = "single-worker" ]; then
+        run_single_worker "$@"
     fi
 
     exec funcnodes runserver \
